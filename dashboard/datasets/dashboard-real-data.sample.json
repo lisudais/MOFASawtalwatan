@@ -1,0 +1,458 @@
+{
+  "generatedAt": "2026-07-08T09:57:56.018Z",
+  "datasetType": "raw_dashboard_real_data",
+  "description": "Small readable sample of the raw dashboard real data (up to 2 records per sector).",
+  "containsMockData": false,
+  "generatedFromRealSourcesOnly": true,
+  "sectors": {
+    "securityThreats": {
+      "sourcesUsed": [
+        "U.S. Department of State"
+      ],
+      "records": [
+        {
+          "id": "sec-CD-0",
+          "sector": "securityThreats",
+          "source": "U.S. Department of State",
+          "sourceUrl": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/democratic-republic-of-the-congo-travel-advisory.html",
+          "title": "تحديث التصنيف الأمني: Level 4: Do Not Travel",
+          "country": "الكونغو الديمقراطية",
+          "region": "",
+          "location": "",
+          "latitude": null,
+          "longitude": null,
+          "date": "2026-06-03T21:00:00.000Z",
+          "severity": "CRITICAL",
+          "category": "security",
+          "summary": "",
+          "rawData": {
+            "overallScore": 87,
+            "level": "CRITICAL",
+            "advisoryLabel": "Level 4: Do Not Travel"
+          }
+        },
+        {
+          "id": "sec-SD-1",
+          "sector": "securityThreats",
+          "source": "U.S. Department of State",
+          "sourceUrl": "https://travel.state.gov/content/tsg_aem/us/en/home/international-travel/travel-advisories/destination.sdn.html",
+          "title": "تحديث التصنيف الأمني: Level 4: Do Not Travel",
+          "country": "السودان",
+          "region": "",
+          "location": "",
+          "latitude": null,
+          "longitude": null,
+          "date": "2026-05-14T21:00:00.000Z",
+          "severity": "CRITICAL",
+          "category": "security",
+          "summary": "",
+          "rawData": {
+            "overallScore": 86,
+            "level": "CRITICAL",
+            "advisoryLabel": "Level 4: Do Not Travel"
+          }
+        }
+      ]
+    },
+    "naturalDisasters": {
+      "sourcesUsed": [
+        "USGS",
+        "NASA EONET",
+        "EMSC"
+      ],
+      "records": [
+        {
+          "id": "usgs-us6000tavx",
+          "sector": "naturalDisasters",
+          "source": "USGS",
+          "sourceUrl": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000tavx",
+          "title": "M4.8 — 64 km W of Tobelo, Indonesia",
+          "country": "Indonesia",
+          "region": "",
+          "location": "64 km W of Tobelo, Indonesia",
+          "latitude": 1.8113,
+          "longitude": 127.4396,
+          "date": "2026-07-08T08:36:06.960Z",
+          "severity": "LOW",
+          "category": "earthquake",
+          "summary": "",
+          "rawData": {
+            "mag": 4.8,
+            "place": "64 km W of Tobelo, Indonesia",
+            "depthKm": 141.091,
+            "time": 1783499766960
+          }
+        },
+        {
+          "id": "usgs-us6000tavs",
+          "sector": "naturalDisasters",
+          "source": "USGS",
+          "sourceUrl": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000tavs",
+          "title": "M4.7 — 8 km ENE of Noda, Japan",
+          "country": "Japan",
+          "region": "",
+          "location": "8 km ENE of Noda, Japan",
+          "latitude": 40.1437,
+          "longitude": 141.8982,
+          "date": "2026-07-08T07:35:51.628Z",
+          "severity": "LOW",
+          "category": "earthquake",
+          "summary": "",
+          "rawData": {
+            "mag": 4.7,
+            "place": "8 km ENE of Noda, Japan",
+            "depthKm": 58.199,
+            "time": 1783496151628
+          }
+        }
+      ]
+    },
+    "health": {
+      "sourcesUsed": [
+        "WHO Disease Outbreak News",
+        "disease.sh"
+      ],
+      "records": [
+        {
+          "id": "who-608d728d-b078-4614-9ccf-682229ebfee8",
+          "sector": "health",
+          "source": "WHO Disease Outbreak News",
+          "sourceUrl": "https://www.who.int/2026-DON612",
+          "title": "Ebola disease caused by Bundibugyo virus, Democratic Republic of the Congo & Uganda",
+          "country": "Democratic Republic of the Congo & Uganda",
+          "region": "",
+          "location": "",
+          "latitude": null,
+          "longitude": null,
+          "date": "2026-07-03T15:13:57Z",
+          "severity": "",
+          "category": "health",
+          "summary": "The Bundibugyo virus disease (BVD) outbreak in the Democratic Republic of the Congo continues to evolve rapidly, with sustained transmission and increasing numbers of reported cases. As of 1 July, a cumulative of 1460 confirmed cases, including 452 deaths, have been reported from the Democratic Republic of the Congo. As of 2 July, Uganda has reported 20 confirmed cases including two deaths, as well as one probable case who has died. In addition, on 24 June 2026, French authorities notified WHO of a laboratory-confirmed case of Ebola disease caused by Bundibugyo virus in a medical doctor returning from the Democratic Republic of the Congo. In Uganda, the outbreak remains epidemiologically linked to transmission originating in the Democratic Republic of the Congo, with evidence of both imported infections and secondary transmission among contacts and healthcare workers. Uganda has not reported any new cases since 21 June 2026. National authorities in the two affected countries, in collaboration with WHO and partners, are implementing an extensive set of response measures. A regional preparedness and prioritization framework continues to guide readiness activities across the African Region.",
+          "rawData": {
+            "PublicationDate": "2026-07-03T15:13:57Z"
+          }
+        },
+        {
+          "id": "who-b4022b8d-0ad5-4022-b1ac-1d6661578e74",
+          "sector": "health",
+          "source": "WHO Disease Outbreak News",
+          "sourceUrl": "https://www.who.int/2026-DON611",
+          "title": "Hantavirus outbreak linked to cruise ship travel, Multi-locations",
+          "country": "Multi-locations",
+          "region": "",
+          "location": "",
+          "latitude": null,
+          "longitude": null,
+          "date": "2026-07-02T18:00:00Z",
+          "severity": "",
+          "category": "health",
+          "summary": "This is the fifth Disease Outbreak News posting on the Andes hantavirus (ANDV) outbreak linked to the cruise ship M/V Hondius. The outbreak identification followed the notification to the World Health Organization (WHO) on 2 May 2026 of severe acute respiratory illness cases onboard. Since the previous Disease Outbreak News was published on 28 May 2026, one of the probable cases from Tristan da Cunha, an Overseas Territory of the United Kingdom of Great Britain and Northern Ireland (hereafter referred to as the United Kingdom), was laboratory confirmed. As of 2 July, a total of 13 cases, including three deaths, have been notified (case fatality ratio 23%). Twelve cases have been laboratory-confirmed for ANDV infection, and one is a probable case. All confirmed cases are among individuals who travelled onboard the M/V Hondius. Among the ten cases admitted to hospitals, eight have recovered and have been discharged, while two are still undergoing medical treatment. All identified contacts have completed the 42 day follow-up period by local health authorities in line with WHO guidance. The completion of the contact follow up without detection of additional secondary cases demonstrates effective interruption of transmission and confirms outbreak containment. This outbreak no longer poses a public health risk and no further related transmission is expected.",
+          "rawData": {
+            "PublicationDate": "2026-07-02T18:00:00Z"
+          }
+        }
+      ]
+    },
+    "economicChanges": {
+      "sourcesUsed": [
+        "World Bank",
+        "Yahoo Finance"
+      ],
+      "records": [
+        {
+          "id": "wb-SAU-FP.CPI.TOTL.ZG",
+          "sector": "economicChanges",
+          "source": "World Bank",
+          "sourceUrl": "https://api.worldbank.org",
+          "title": "التضخم — السعودية",
+          "country": "Saudi Arabia",
+          "region": "",
+          "location": "",
+          "latitude": null,
+          "longitude": null,
+          "date": "2025",
+          "severity": "",
+          "category": "macro-indicator",
+          "summary": "2.08420853585036%",
+          "rawData": {
+            "indicator": "FP.CPI.TOTL.ZG",
+            "series": [
+              {
+                "year": "2025",
+                "value": 2.08420853585036
+              },
+              {
+                "year": "2024",
+                "value": 1.68792112375809
+              },
+              {
+                "year": "2023",
+                "value": 2.32708518362706
+              },
+              {
+                "year": "2022",
+                "value": 2.47407371925372
+              },
+              {
+                "year": "2021",
+                "value": 3.06328988941548
+              },
+              {
+                "year": "2020",
+                "value": 3.37234961012303
+              },
+              {
+                "year": "2019",
+                "value": -1.19298644533328
+              }
+            ]
+          }
+        },
+        {
+          "id": "wb-WLD-FP.CPI.TOTL.ZG",
+          "sector": "economicChanges",
+          "source": "World Bank",
+          "sourceUrl": "https://api.worldbank.org",
+          "title": "التضخم — عالمي",
+          "country": "World",
+          "region": "",
+          "location": "",
+          "latitude": null,
+          "longitude": null,
+          "date": "2025",
+          "severity": "",
+          "category": "macro-indicator",
+          "summary": "3.0414132155654%",
+          "rawData": {
+            "indicator": "FP.CPI.TOTL.ZG",
+            "series": [
+              {
+                "year": "2025",
+                "value": 3.0414132155654
+              },
+              {
+                "year": "2024",
+                "value": 3.01447576977999
+              },
+              {
+                "year": "2023",
+                "value": 5.79944107391962
+              },
+              {
+                "year": "2022",
+                "value": 8.08169507021982
+              },
+              {
+                "year": "2021",
+                "value": 3.47540320289875
+              },
+              {
+                "year": "2020",
+                "value": 1.90509722047501
+              },
+              {
+                "year": "2019",
+                "value": 2.20607305781525
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "globalAlertFeed": {
+      "sourcesUsed": [
+        "USGS",
+        "NASA EONET",
+        "EMSC"
+      ],
+      "records": [
+        {
+          "id": "usgs-us6000tavx",
+          "sector": "naturalDisasters",
+          "source": "USGS",
+          "sourceUrl": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000tavx",
+          "title": "M4.8 — 64 km W of Tobelo, Indonesia",
+          "country": "Indonesia",
+          "region": "",
+          "location": "64 km W of Tobelo, Indonesia",
+          "latitude": 1.8113,
+          "longitude": 127.4396,
+          "date": "2026-07-08T08:36:06.960Z",
+          "severity": "LOW",
+          "category": "earthquake",
+          "summary": "",
+          "rawData": {
+            "mag": 4.8,
+            "place": "64 km W of Tobelo, Indonesia",
+            "depthKm": 141.091,
+            "time": 1783499766960
+          }
+        },
+        {
+          "id": "usgs-us6000tavs",
+          "sector": "naturalDisasters",
+          "source": "USGS",
+          "sourceUrl": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000tavs",
+          "title": "M4.7 — 8 km ENE of Noda, Japan",
+          "country": "Japan",
+          "region": "",
+          "location": "8 km ENE of Noda, Japan",
+          "latitude": 40.1437,
+          "longitude": 141.8982,
+          "date": "2026-07-08T07:35:51.628Z",
+          "severity": "LOW",
+          "category": "earthquake",
+          "summary": "",
+          "rawData": {
+            "mag": 4.7,
+            "place": "8 km ENE of Noda, Japan",
+            "depthKm": 58.199,
+            "time": 1783496151628
+          }
+        }
+      ]
+    },
+    "officialStatements": {
+      "sourcesUsed": [
+        "RSS"
+      ],
+      "records": [
+        {
+          "id": "rss-GB-0-36",
+          "sector": "officialStatements",
+          "source": "RSS",
+          "sourceUrl": "https://www.gov.uk/guidance/arrested-or-in-prison-in-new-zealand",
+          "title": "Arrested or in prison in New Zealand",
+          "country": "المملكة المتحدة",
+          "region": "",
+          "location": "",
+          "latitude": null,
+          "longitude": null,
+          "date": "2026-07-08T09:35:49.000Z",
+          "severity": "",
+          "category": "official-statement",
+          "summary": "This guide provides information about being arrested in New Zealand including prison conditions.",
+          "rawData": {
+            "authority": "المملكة المتحدة — FCDO",
+            "sourceName": "المملكة المتحدة — FCDO",
+            "sourceApi": "RSS"
+          }
+        },
+        {
+          "id": "rss-GB-1-83",
+          "sector": "officialStatements",
+          "source": "RSS",
+          "sourceUrl": "https://www.gov.uk/government/news/fcdo-summons-iranian-charge-daffaires-over-attack-on-iran-international-journalist",
+          "title": "FCDO summons Iranian Chargé d'Affaires over attack on Iran international journalist",
+          "country": "المملكة المتحدة",
+          "region": "",
+          "location": "",
+          "latitude": null,
+          "longitude": null,
+          "date": "2026-07-07T16:57:00.000Z",
+          "severity": "",
+          "category": "official-statement",
+          "summary": "The Foreign, Commonwealth and Development Office has today summoned the Iranian Chargé d'Affaires in London in response to the sentencing of two individuals for their role in the attack on an Iran International journalist in 2024.",
+          "rawData": {
+            "authority": "المملكة المتحدة — FCDO",
+            "sourceName": "المملكة المتحدة — FCDO",
+            "sourceApi": "RSS"
+          }
+        }
+      ]
+    },
+    "mapAndCounters": {
+      "sourcesUsed": [
+        "USGS",
+        "NASA EONET",
+        "EMSC"
+      ],
+      "records": [
+        {
+          "id": "usgs-us6000tavx",
+          "sector": "naturalDisasters",
+          "source": "USGS",
+          "sourceUrl": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000tavx",
+          "title": "M4.8 — 64 km W of Tobelo, Indonesia",
+          "country": "Indonesia",
+          "region": "",
+          "location": "64 km W of Tobelo, Indonesia",
+          "latitude": 1.8113,
+          "longitude": 127.4396,
+          "date": "2026-07-08T08:36:06.960Z",
+          "severity": "LOW",
+          "category": "earthquake",
+          "summary": "",
+          "rawData": {
+            "mag": 4.8,
+            "place": "64 km W of Tobelo, Indonesia",
+            "depthKm": 141.091,
+            "time": 1783499766960
+          }
+        },
+        {
+          "id": "usgs-us6000tavs",
+          "sector": "naturalDisasters",
+          "source": "USGS",
+          "sourceUrl": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000tavs",
+          "title": "M4.7 — 8 km ENE of Noda, Japan",
+          "country": "Japan",
+          "region": "",
+          "location": "8 km ENE of Noda, Japan",
+          "latitude": 40.1437,
+          "longitude": 141.8982,
+          "date": "2026-07-08T07:35:51.628Z",
+          "severity": "LOW",
+          "category": "earthquake",
+          "summary": "",
+          "rawData": {
+            "mag": 4.7,
+            "place": "8 km ENE of Noda, Japan",
+            "depthKm": 58.199,
+            "time": 1783496151628
+          }
+        }
+      ],
+      "counters": {
+        "totalEvents": 90,
+        "criticalEvents": 0,
+        "highEvents": 0,
+        "activeAlerts": 0,
+        "affectedCountries": 19,
+        "eventsWithCoordinates": 90
+      }
+    }
+  },
+  "skippedSources": [
+    {
+      "source": "GDACS",
+      "reason": "fetch-failed (allorigins proxy)"
+    },
+    {
+      "source": "Alpha Vantage:WTI",
+      "reason": "no data / rate-limited"
+    },
+    {
+      "source": "Alpha Vantage:NATURAL_GAS",
+      "reason": "no data / rate-limited"
+    },
+    {
+      "source": "Alpha Vantage:FX",
+      "reason": "no data / rate-limited"
+    },
+    {
+      "source": "ACLED",
+      "reason": "not configured (no ACLED_* env)"
+    },
+    {
+      "source": "ReliefWeb (statements)",
+      "reason": "appname not approved / not configured (RELIEFWEB_APPNAME)"
+    }
+  ],
+  "validation": {
+    "noMockEvents": true,
+    "noMockTravelers": true,
+    "noFakeCitizenData": true,
+    "allRecordsFromRealSources": true
+  }
+}

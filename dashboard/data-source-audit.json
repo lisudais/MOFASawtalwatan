@@ -1,0 +1,381 @@
+{
+  "generatedAt": "2026-07-08T00:00:00Z",
+  "projectStatus": {
+    "hasMockDataInUserFacingUI": true,
+    "mockDataNote": "Only the agreed exception remains: MOCK_TRAVELERS and getSaudisAbroadData (Saudi travelers / Saudis-abroad). All sector alert/event data is real. MOCK_EVENTS was fully removed (0 references).",
+    "mainRisks": [
+      "GDACS (Natural Disasters) is fetched through a third-party CORS proxy (api.allorigins.win) and can fail silently.",
+      "Security: ACLED not configured (no ACLED_* env) and ReliefWeb not configured (no VITE_RELIEFWEB_APP_NAME) — both absent until credentials are added (warnings shown, no mock).",
+      "Official Statements: ReliefWeb backend appname (RELIEFWEB_APPNAME) not set — statements rely on GDELT + official RSS only.",
+      "Economic Changes: Alpha Vantage free tier is 25 requests/day (mitigated by 4h cache + World Bank fallback).",
+      "Travelers panel + Saudis-abroad section + travelersAtRisk counter still use mock data (agreed exception)."
+    ],
+    "recommendedNextSteps": [
+      "Add ACLED credentials (ACLED_ACCESS_TOKEN or ACLED_EMAIL+ACLED_PASSWORD) to activate conflict events.",
+      "Set VITE_RELIEFWEB_APP_NAME (approved appname) to activate ReliefWeb in the Security section.",
+      "Set RELIEFWEB_APPNAME (approved) to activate ReliefWeb in Official Statements.",
+      "Move GDACS off the allorigins proxy to a backend proxy endpoint for reliability.",
+      "Replace MOCK_TRAVELERS / getSaudisAbroadData with a real registry when a data source exists.",
+      "Remove or wire the dormant news.ts + NewsWidget.tsx (currently unused)."
+    ]
+  },
+  "sectors": [
+    {
+      "sectorName": "Security Threats",
+      "status": "partial",
+      "uiConnected": true,
+      "sources": [
+        {
+          "name": "U.S. State Department Travel Advisories",
+          "type": "real-api",
+          "purpose": "authoritative per-country threat level (1-4) + risk indicators; scoring backbone",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["netlify/lib/securityCore.mjs"],
+          "shownInUI": true,
+          "notes": "RSS at travel.state.gov, keyless, fetched server-side."
+        },
+        {
+          "name": "GDELT",
+          "type": "real-api",
+          "purpose": "recent security headlines matched to a country (timeline)",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["netlify/lib/securityCore.mjs"],
+          "shownInUI": true,
+          "notes": "Best-effort; may rate-limit."
+        },
+        {
+          "name": "ACLED",
+          "type": "real-api",
+          "purpose": "armed-conflict / civil-unrest events (fatalities, actors, coordinates)",
+          "requiresApiKey": true,
+          "configured": false,
+          "usedInFiles": ["netlify/lib/acled.mjs", "netlify/lib/securityCore.mjs"],
+          "shownInUI": false,
+          "notes": "OAuth2 (backend only). No ACLED_* env set → not configured; card shows an ACLED-not-configured notice. No mock fallback."
+        },
+        {
+          "name": "ReliefWeb",
+          "type": "real-api",
+          "purpose": "humanitarian/security reports merged into country profiles",
+          "requiresApiKey": true,
+          "configured": false,
+          "usedInFiles": ["src/services/security.ts"],
+          "shownInUI": false,
+          "notes": "Fetched client-side with VITE_RELIEFWEB_APP_NAME (not set → not configured). ReliefWeb v2 also requires an APPROVED appname."
+        },
+        {
+          "name": "gpt-oss (local Ollama)",
+          "type": "local-ai",
+          "purpose": "Arabic summary / explanation of the computed score",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/services/securityAi.ts"],
+          "shownInUI": true,
+          "notes": "Defaults to http://localhost:11434 / gpt-oss:20b; heuristic fallback if unavailable. Analyses real data only."
+        }
+      ],
+      "mockData": [],
+      "issues": [
+        "ACLED and ReliefWeb are not configured, so 2 of the 4 intended sources are inactive.",
+        "Score is deterministic from advisory text; ACLED fatalities only nudge it when configured."
+      ],
+      "recommendedFixes": [
+        "Add ACLED credentials and VITE_RELIEFWEB_APP_NAME to activate the remaining real sources."
+      ]
+    },
+    {
+      "sectorName": "Natural Disasters",
+      "status": "real",
+      "uiConnected": true,
+      "sources": [
+        {
+          "name": "USGS",
+          "type": "real-api",
+          "purpose": "earthquakes M4.5+ (7-day)",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/services/usgs.ts", "src/services/naturalDisasters.ts", "src/components/DisasterCategoryCard.tsx"],
+          "shownInUI": true,
+          "notes": "Direct JSON, keyless."
+        },
+        {
+          "name": "NASA EONET",
+          "type": "real-api",
+          "purpose": "wildfires, storms, volcanoes, floods (open events)",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/services/disasters.ts", "src/services/naturalDisasters.ts"],
+          "shownInUI": true,
+          "notes": "eonet.gsfc.nasa.gov, keyless."
+        },
+        {
+          "name": "EMSC",
+          "type": "real-api",
+          "purpose": "seismic events M4.5+",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/services/disasters.ts", "src/services/naturalDisasters.ts"],
+          "shownInUI": true,
+          "notes": "seismicportal.eu, keyless."
+        },
+        {
+          "name": "GDACS",
+          "type": "real-api-via-proxy",
+          "purpose": "multi-hazard alerts (RSS)",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/services/gdacs.ts", "src/services/naturalDisasters.ts"],
+          "shownInUI": true,
+          "notes": "Fetched through third-party proxy api.allorigins.win — reliability risk; fails soft to []."
+        },
+        {
+          "name": "gpt-oss (local Ollama)",
+          "type": "local-ai",
+          "purpose": "Arabic situation analysis in the detail panel",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/services/disasterAi.ts"],
+          "shownInUI": true,
+          "notes": "Heuristic Arabic fallback if the model is down."
+        }
+      ],
+      "mockData": [],
+      "issues": ["GDACS relies on a third-party CORS proxy (allorigins)."],
+      "recommendedFixes": ["Proxy GDACS through the project backend instead of allorigins."]
+    },
+    {
+      "sectorName": "Health",
+      "status": "real",
+      "uiConnected": true,
+      "sources": [
+        {
+          "name": "WHO Disease Outbreak News",
+          "type": "real-api",
+          "purpose": "official outbreak reports (diverse diseases)",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/services/healthFeed.ts", "src/components/HealthCategoryCard.tsx"],
+          "shownInUI": true,
+          "notes": "who.int/api/news, CORS-open, keyless."
+        },
+        {
+          "name": "disease.sh",
+          "type": "real-api",
+          "purpose": "per-country COVID figures (supplementary)",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/services/healthFeed.ts"],
+          "shownInUI": true,
+          "notes": "CORS-open, keyless."
+        },
+        {
+          "name": "gpt-oss (local Ollama)",
+          "type": "local-ai",
+          "purpose": "risk level, Arabic summary, Saudi impact, recommendations from raw WHO data",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/services/healthAi.ts", "src/components/HealthCountryDetailPanel.tsx"],
+          "shownInUI": true,
+          "notes": "If unavailable, panel shows raw WHO data + 'AI unavailable' warning (no fabricated analysis)."
+        }
+      ],
+      "mockData": [],
+      "issues": [],
+      "recommendedFixes": []
+    },
+    {
+      "sectorName": "Economic Changes",
+      "status": "real",
+      "uiConnected": true,
+      "sources": [
+        {
+          "name": "Alpha Vantage",
+          "type": "real-api",
+          "purpose": "oil (WTI), natural gas, USD/SAR",
+          "requiresApiKey": true,
+          "configured": true,
+          "usedInFiles": ["src/services/economy.ts"],
+          "shownInUI": true,
+          "notes": "VITE_ALPHAVANTAGE_API_KEY is SET. Free tier 25/day → cached 4h."
+        },
+        {
+          "name": "World Bank",
+          "type": "real-api",
+          "purpose": "fallback macro indicators (inflation, GDP growth)",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/services/economy.ts"],
+          "shownInUI": true,
+          "notes": "Keyless, CORS-open. Used only when Alpha Vantage yields nothing."
+        },
+        {
+          "name": "Yahoo Finance (GC=F)",
+          "type": "real-api",
+          "purpose": "gold spot + 7-day history",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["netlify/lib/goldCore.mjs", "src/services/economy.ts"],
+          "shownInUI": true,
+          "notes": "Server-side via /api/gold (no browser CORS)."
+        },
+        {
+          "name": "gold-api.com",
+          "type": "real-api",
+          "purpose": "gold spot fallback (no history)",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["netlify/lib/goldCore.mjs"],
+          "shownInUI": true,
+          "notes": "Fallback when Yahoo is unavailable."
+        },
+        {
+          "name": "gpt-oss (local Ollama)",
+          "type": "local-ai",
+          "purpose": "reason-for-change analysis in the detail panel",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/services/economyAi.ts"],
+          "shownInUI": true,
+          "notes": "Heuristic fallback with LOW confidence when the model is down."
+        }
+      ],
+      "mockData": [],
+      "issues": ["Alpha Vantage daily request cap; gold needs the /api/gold backend endpoint."],
+      "recommendedFixes": []
+    },
+    {
+      "sectorName": "Global Alert Feed",
+      "status": "real",
+      "uiConnected": true,
+      "sources": [
+        {
+          "name": "GDACS + USGS + NASA EONET + EMSC",
+          "type": "real-api",
+          "purpose": "map markers, event detail, and event counters (App events array)",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/App.tsx", "src/services/gdacs.ts", "src/services/usgs.ts", "src/services/disasters.ts"],
+          "shownInUI": true,
+          "notes": "The 'Global Alert Feed' panel is the container of the 5 sector cards; the map + counters use these real disaster events."
+        }
+      ],
+      "mockData": [
+        {
+          "name": "MOCK_EVENTS",
+          "usedInFiles": ["(removed)"],
+          "shownInUI": false,
+          "appearsOnMap": false,
+          "affectsCounters": false,
+          "appearsInSidebar": false,
+          "appearsInDetailsPanel": false,
+          "problem": "REMOVED. Previously mixed into App events; now 0 references in the project (verified)."
+        }
+      ],
+      "issues": ["GDACS via allorigins proxy (shared with Natural Disasters)."],
+      "recommendedFixes": ["Empty/error states already added: 'لا توجد تنبيهات حقيقية متاحة حاليًا' / 'تعذر جلب البيانات من المصدر الحقيقي'."]
+    },
+    {
+      "sectorName": "Official Statements / News",
+      "status": "partial",
+      "uiConnected": true,
+      "sources": [
+        {
+          "name": "GDELT",
+          "type": "real-api",
+          "purpose": "official/diplomatic statement discovery",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["netlify/lib/statementsCore.mjs"],
+          "shownInUI": true,
+          "notes": "Server-side, keyless."
+        },
+        {
+          "name": "Official RSS (gov.uk FCDO, UN News)",
+          "type": "real-api",
+          "purpose": "official government/UN statements",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["netlify/lib/statementsCore.mjs"],
+          "shownInUI": true,
+          "notes": "www.gov.uk + news.un.org, keyless, server-side."
+        },
+        {
+          "name": "ReliefWeb",
+          "type": "real-api",
+          "purpose": "official press releases",
+          "requiresApiKey": true,
+          "configured": false,
+          "usedInFiles": ["netlify/lib/statementsCore.mjs"],
+          "shownInUI": false,
+          "notes": "Backend RELIEFWEB_APPNAME not set (and needs an APPROVED appname) → 403 → falls back to GDELT + RSS. No mock."
+        },
+        {
+          "name": "gpt-oss (local Ollama)",
+          "type": "local-ai",
+          "purpose": "summary / category / urgency / entities",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/services/statementAi.ts"],
+          "shownInUI": true,
+          "notes": "Keyword-heuristic fallback if unavailable."
+        },
+        {
+          "name": "news.ts + NewsWidget.tsx (GDELT via allorigins)",
+          "type": "unused",
+          "purpose": "older news-analysis widget",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/services/news.ts", "src/components/NewsWidget.tsx"],
+          "shownInUI": false,
+          "notes": "Dormant/unreferenced — NOT rendered anywhere in the current UI."
+        }
+      ],
+      "mockData": [],
+      "issues": ["ReliefWeb source inactive (missing/unapproved RELIEFWEB_APPNAME).", "Dormant news.ts/NewsWidget not wired."],
+      "recommendedFixes": ["Set an approved RELIEFWEB_APPNAME.", "Remove or wire the dormant news widget."]
+    },
+    {
+      "sectorName": "Map markers / counters / sidebar statistics",
+      "status": "mixed",
+      "uiConnected": true,
+      "sources": [
+        {
+          "name": "App events (GDACS/USGS/EONET/EMSC)",
+          "type": "real-api",
+          "purpose": "map markers + EventDetail + event counters (totalEvents, criticalEvents, affectedCountries, activeAlerts)",
+          "requiresApiKey": false,
+          "configured": true,
+          "usedInFiles": ["src/App.tsx", "src/components/WorldMap.tsx", "src/components/EventDetail.tsx", "src/components/SidebarStatsGrid.tsx"],
+          "shownInUI": true,
+          "notes": "Event counters are computed only from real events. Each event card shows 'المصدر: <source>'."
+        }
+      ],
+      "mockData": [
+        {
+          "name": "MOCK_TRAVELERS",
+          "usedInFiles": ["src/services/mockData.ts", "src/App.tsx"],
+          "shownInUI": true,
+          "appearsOnMap": true,
+          "affectsCounters": true,
+          "appearsInSidebar": true,
+          "appearsInDetailsPanel": false,
+          "problem": "Agreed exception: Saudi travelers are mock. Feeds the TravelerPanel (right sidebar), traveler markers, and the travelersAtRisk / notificationsSent counters."
+        },
+        {
+          "name": "getSaudisAbroadData",
+          "usedInFiles": ["src/services/mockData.ts", "src/components/SaudisAbroadSection.tsx"],
+          "shownInUI": true,
+          "appearsOnMap": false,
+          "affectsCounters": false,
+          "appearsInSidebar": true,
+          "appearsInDetailsPanel": false,
+          "problem": "Agreed exception: Saudis-abroad totals/distribution are mock (left sidebar top section)."
+        }
+      ],
+      "issues": ["travelersAtRisk counter derives from mock travelers.", "Saudis-abroad section is fully mock."],
+      "recommendedFixes": ["Wire a real Saudi registry/consular source when available; until then keep clearly-scoped as the only mock exception."]
+    }
+  ]
+}

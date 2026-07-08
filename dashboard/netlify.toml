@@ -1,0 +1,14 @@
+[build]
+  command = "yarn build"
+  publish = "dist"
+
+# Backend proxy for the official-statements feed (GDELT + RSS + ReliefWeb).
+# The function self-registers the /api/statements route via its `config.path`.
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

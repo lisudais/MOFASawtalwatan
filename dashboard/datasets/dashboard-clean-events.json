@@ -1,0 +1,1182 @@
+{
+  "generatedAt": "2026-07-08T10:27:15.789Z",
+  "datasetType": "clean_event_date_city_description_dataset",
+  "sourceFile": "dashboard/datasets/dashboard-real-data.json",
+  "records": [
+    {
+      "event": "Travel advisory",
+      "date": "2026-06-03T21:00:00.000Z",
+      "city": "الكونغو الديمقراطية",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة الكونغو الديمقراطية: Level 4: Do Not Travel (مؤشر الخطورة 87، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-05-14T21:00:00.000Z",
+      "city": "السودان",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة السودان: Level 4: Do Not Travel (مؤشر الخطورة 86، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2025-07-15T21:00:00.000Z",
+      "city": "ليبيا",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة ليبيا: Level 4: Do Not Travel (مؤشر الخطورة 86، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-01-14T21:00:00.000Z",
+      "city": "أفريقيا الوسطى",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة أفريقيا الوسطى: Level 4: Do Not Travel (مؤشر الخطورة 86، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2025-12-18T21:00:00.000Z",
+      "city": "اليمن",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة اليمن: Level 4: Do Not Travel (مؤشر الخطورة 85، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-05-05T21:00:00.000Z",
+      "city": "لبنان",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة لبنان: Level 4: Do Not Travel (مؤشر الخطورة 85، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2025-12-28T21:00:00.000Z",
+      "city": "روسيا",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة روسيا: Level 4: Do Not Travel (مؤشر الخطورة 85، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-04-15T21:00:00.000Z",
+      "city": "هايتي",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة هايتي: Level 4: Do Not Travel (مؤشر الخطورة 85، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-05-20T21:00:00.000Z",
+      "city": "الصومال",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة الصومال: Level 4: Do Not Travel (مؤشر الخطورة 84، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-06-07T21:00:00.000Z",
+      "city": "مالي",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة مالي: Level 4: Do Not Travel (مؤشر الخطورة 84، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-03-01T21:00:00.000Z",
+      "city": "العراق",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة العراق: Level 4: Do Not Travel (مؤشر الخطورة 83، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2025-12-04T21:00:00.000Z",
+      "city": "إيران",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة إيران: Level 4: Do Not Travel (مؤشر الخطورة 83، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-01-28T21:00:00.000Z",
+      "city": "النيجر",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة النيجر: Level 4: Do Not Travel (مؤشر الخطورة 83، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-04-27T21:00:00.000Z",
+      "city": "تشاد",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة تشاد: Level 4: Do Not Travel (مؤشر الخطورة 83، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2025-12-10T21:00:00.000Z",
+      "city": "سوريا",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة سوريا: Level 4: Do Not Travel (مؤشر الخطورة 82، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-05-07T21:00:00.000Z",
+      "city": "ميانمار",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة ميانمار: Level 4: Do Not Travel (مؤشر الخطورة 80، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-02-19T21:00:00.000Z",
+      "city": "أفغانستان",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة أفغانستان: Level 4: Do Not Travel (مؤشر الخطورة 79، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-05-03T21:00:00.000Z",
+      "city": "بوركينا فاسو",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة بوركينا فاسو: Level 4: Do Not Travel (مؤشر الخطورة 79، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-05-16T21:00:00.000Z",
+      "city": "جنوب السودان",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة جنوب السودان: Level 4: Do Not Travel (مؤشر الخطورة 78، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2024-11-13T21:00:00.000Z",
+      "city": "أوكرانيا",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة أوكرانيا: Level 4: Do Not Travel (مؤشر الخطورة 76، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-03-30T21:00:00.000Z",
+      "city": "كولومبيا",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة كولومبيا: Level 3: Reconsider Travel (مؤشر الخطورة 70، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-06-11T21:00:00.000Z",
+      "city": "نيجيريا",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة نيجيريا: Level 3: Reconsider Travel (مؤشر الخطورة 68، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-03-31T21:00:00.000Z",
+      "city": "إثيوبيا",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة إثيوبيا: Level 3: Reconsider Travel (مؤشر الخطورة 68، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-06-15T21:00:00.000Z",
+      "city": "باكستان",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة باكستان: Level 3: Reconsider Travel (مؤشر الخطورة 67، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-05-03T21:00:00.000Z",
+      "city": "الأردن",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة الأردن: Level 3: Reconsider Travel (مؤشر الخطورة 66، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-03-02T21:00:00.000Z",
+      "city": "الإمارات",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة الإمارات: Level 3: Reconsider Travel (مؤشر الخطورة 65، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-01-19T21:00:00.000Z",
+      "city": "بنغلاديش",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة بنغلاديش: Level 3: Reconsider Travel (مؤشر الخطورة 65، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-06-26T21:00:00.000Z",
+      "city": "فنزويلا",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة فنزويلا: Level 3: Reconsider Travel (مؤشر الخطورة 65، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2025-07-14T21:00:00.000Z",
+      "city": "موريتانيا",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة موريتانيا: Level 3: Reconsider Travel (مؤشر الخطورة 62، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2025-04-28T21:00:00.000Z",
+      "city": "كوريا الشمالية",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة كوريا الشمالية: Level 4: Do Not Travel (مؤشر الخطورة 62، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-03-01T21:00:00.000Z",
+      "city": "البحرين",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة البحرين: Level 3: Reconsider Travel (مؤشر الخطورة 61، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-06-26T21:00:00.000Z",
+      "city": "عُمان",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة عُمان: Level 3: Reconsider Travel (مؤشر الخطورة 60، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-06-27T21:00:00.000Z",
+      "city": "الكويت",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة الكويت: Level 3: Reconsider Travel (مؤشر الخطورة 59، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-03-01T21:00:00.000Z",
+      "city": "قطر",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة قطر: Level 3: Reconsider Travel (مؤشر الخطورة 56، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-05-20T21:00:00.000Z",
+      "city": "تونس",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة تونس: Level 2: Exercise Increased Caution (مؤشر الخطورة 48، MEDIUM)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2025-07-14T21:00:00.000Z",
+      "city": "مصر",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة مصر: Level 2: Exercise Increased Caution (مؤشر الخطورة 47، MEDIUM)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-07-06T21:00:00.000Z",
+      "city": "إندونيسيا",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة إندونيسيا: Level 2: Exercise Increased Caution (مؤشر الخطورة 45، MEDIUM)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2025-05-07T21:00:00.000Z",
+      "city": "الفلبين",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة الفلبين: Level 2: Exercise Increased Caution (مؤشر الخطورة 44، MEDIUM)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-06-08T21:00:00.000Z",
+      "city": "تركيا",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة تركيا: Level 2: Exercise Increased Caution (مؤشر الخطورة 42، MEDIUM)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2025-04-20T21:00:00.000Z",
+      "city": "المغرب",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة المغرب: Level 2: Exercise Increased Caution (مؤشر الخطورة 41، MEDIUM)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2025-06-15T21:00:00.000Z",
+      "city": "الهند",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة الهند: Level 2: Exercise Increased Caution (مؤشر الخطورة 41، MEDIUM)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2024-09-25T21:00:00.000Z",
+      "city": "الجزائر",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة الجزائر: Level 2: Exercise Increased Caution (مؤشر الخطورة 40، MEDIUM)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2025-03-05T21:00:00.000Z",
+      "city": "جيبوتي",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة جيبوتي: Level 2: Exercise Increased Caution (مؤشر الخطورة 40، MEDIUM)."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-08T08:36:06.960Z",
+      "city": "64 km W of Tobelo, Indonesia",
+      "description": "Earthquake of magnitude M4.8 near 64 km W of Tobelo, Indonesia at depth 141.091 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-08T07:35:51.628Z",
+      "city": "8 km ENE of Noda, Japan",
+      "description": "Earthquake of magnitude M4.7 near 8 km ENE of Noda, Japan at depth 58.199 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-08T05:00:32.411Z",
+      "city": "25 km NNE of Santa Rosa, Peru",
+      "description": "Earthquake of magnitude M4.7 near 25 km NNE of Santa Rosa, Peru at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-08T04:21:46.738Z",
+      "city": "61 km ENE of Olonkinbyen, Svalbard and Jan Mayen",
+      "description": "Earthquake of magnitude M4.7 near 61 km ENE of Olonkinbyen, Svalbard and Jan Mayen at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-08T02:08:48.776Z",
+      "city": "15 km NNE of Xunchang, China",
+      "description": "Earthquake of magnitude M5 near 15 km NNE of Xunchang, China at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T23:35:51.427Z",
+      "city": "132 km WNW of Ternate, Indonesia",
+      "description": "Earthquake of magnitude M4.6 near 132 km WNW of Ternate, Indonesia at depth 49.277 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T22:42:36.894Z",
+      "city": "21 km ESE of Karakenja, Tajikistan",
+      "description": "Earthquake of magnitude M4.9 near 21 km ESE of Karakenja, Tajikistan at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T22:22:13.825Z",
+      "city": "13 km SSE of Yibin, China",
+      "description": "Earthquake of magnitude M4.6 near 13 km SSE of Yibin, China at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T22:12:29.518Z",
+      "city": "13 km W of Changning, China",
+      "description": "Earthquake of magnitude M5.1 near 13 km W of Changning, China at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T20:37:40.097Z",
+      "city": "7 km SSE of Calatagan, Philippines",
+      "description": "Earthquake of magnitude M4.5 near 7 km SSE of Calatagan, Philippines at depth 155.427 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T20:33:15.705Z",
+      "city": "88 km WNW of Hicks Bay, New Zealand",
+      "description": "Earthquake of magnitude M4.9 near 88 km WNW of Hicks Bay, New Zealand at depth 121.41 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T19:44:52.435Z",
+      "city": "95 km WSW of Labuan, Indonesia",
+      "description": "Earthquake of magnitude M5.3 near 95 km WSW of Labuan, Indonesia at depth 35 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T18:11:32.787Z",
+      "city": "10 km WSW of Orotina, Costa Rica",
+      "description": "Earthquake of magnitude M5.3 near 10 km WSW of Orotina, Costa Rica at depth 47.784 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T18:07:41.091Z",
+      "city": "81 km NNE of Adak, Alaska",
+      "description": "Earthquake of magnitude M4.5 near 81 km NNE of Adak, Alaska at depth 172.427 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T17:39:56.121Z",
+      "city": "298 km SSE of Ushuaia, Argentina",
+      "description": "Earthquake of magnitude M4.9 near 298 km SSE of Ushuaia, Argentina at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T14:21:22.044Z",
+      "city": "172 km NNW of Tobelo, Indonesia",
+      "description": "Earthquake of magnitude M4.5 near 172 km NNW of Tobelo, Indonesia at depth 35 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T08:41:37.390Z",
+      "city": "32 km NE of Yaguaraparo, Venezuela",
+      "description": "Earthquake of magnitude M4.5 near 32 km NE of Yaguaraparo, Venezuela at depth 126.81 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T08:30:56.236Z",
+      "city": "Reykjanes Ridge",
+      "description": "Earthquake of magnitude M5 near Reykjanes Ridge at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T07:16:26.844Z",
+      "city": "162 km NNW of Tobelo, Indonesia",
+      "description": "Earthquake of magnitude M5.4 near 162 km NNW of Tobelo, Indonesia at depth 36.821 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T05:55:40.352Z",
+      "city": "Reykjanes Ridge",
+      "description": "Earthquake of magnitude M5.3 near Reykjanes Ridge at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T05:00:43.964Z",
+      "city": "Reykjanes Ridge",
+      "description": "Earthquake of magnitude M5 near Reykjanes Ridge at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T01:26:45.626Z",
+      "city": "296 km SSE of Ushuaia, Argentina",
+      "description": "Earthquake of magnitude M5.8 near 296 km SSE of Ushuaia, Argentina at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-06T20:25:12.410Z",
+      "city": "216 km NE of Port Mathurin, Mauritius",
+      "description": "Earthquake of magnitude M4.9 near 216 km NE of Port Mathurin, Mauritius at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-06T17:09:03.352Z",
+      "city": "52 km E of Noda, Japan",
+      "description": "Earthquake of magnitude M4.6 near 52 km E of Noda, Japan at depth 57.696 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-06T16:50:10.046Z",
+      "city": "Southwest Indian Ridge",
+      "description": "Earthquake of magnitude M4.9 near Southwest Indian Ridge at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-06T16:18:10.947Z",
+      "city": "48 km WSW of La Ligua, Chile",
+      "description": "Earthquake of magnitude M4.8 near 48 km WSW of La Ligua, Chile at depth 29.486 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-06T16:15:51.905Z",
+      "city": "56 km W of La Ligua, Chile",
+      "description": "Earthquake of magnitude M5.1 near 56 km W of La Ligua, Chile at depth 20.998 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-06T14:43:38.525Z",
+      "city": "211 km ESE of Hihifo, Tonga",
+      "description": "Earthquake of magnitude M5.1 near 211 km ESE of Hihifo, Tonga at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-06T11:29:36.717Z",
+      "city": "28 km NNE of Kuji, Japan",
+      "description": "Earthquake of magnitude M4.6 near 28 km NNE of Kuji, Japan at depth 66.979 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-06T08:41:38.715Z",
+      "city": "65 km SSW of Sarangani, Philippines",
+      "description": "Earthquake of magnitude M5.4 near 65 km SSW of Sarangani, Philippines at depth 35 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-06T08:11:11.032Z",
+      "city": "48 km SSW of Sarangani, Philippines",
+      "description": "Earthquake of magnitude M5.8 near 48 km SSW of Sarangani, Philippines at depth 35 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-06T08:07:21.524Z",
+      "city": "112 km NNW of Neiafu, Tonga",
+      "description": "Earthquake of magnitude M4.6 near 112 km NNW of Neiafu, Tonga at depth 113.237 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-06T02:37:31.983Z",
+      "city": "91 km WNW of Tamarindo, Costa Rica",
+      "description": "Earthquake of magnitude M4.7 near 91 km WNW of Tamarindo, Costa Rica at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-05T19:10:14.439Z",
+      "city": "185 km W of Abepura, Indonesia",
+      "description": "Earthquake of magnitude M4.6 near 185 km W of Abepura, Indonesia at depth 19.39 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-05T17:27:21.406Z",
+      "city": "southeast Indian Ridge",
+      "description": "Earthquake of magnitude M4.5 near southeast Indian Ridge at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-05T15:53:33.718Z",
+      "city": "106 km NW of Coquimbo, Chile",
+      "description": "Earthquake of magnitude M5 near 106 km NW of Coquimbo, Chile at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-05T15:30:13.631Z",
+      "city": "26 km NNW of Mianzhu, Deyang, Sichuan, China",
+      "description": "Earthquake of magnitude M5 near 26 km NNW of Mianzhu, Deyang, Sichuan, China at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-05T15:20:13.084Z",
+      "city": "31 km NNW of Mianzhu, Deyang, Sichuan, China",
+      "description": "Earthquake of magnitude M4.6 near 31 km NNW of Mianzhu, Deyang, Sichuan, China at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-05T15:06:29.483Z",
+      "city": "28 km NW of Shikotan, Russia",
+      "description": "Earthquake of magnitude M4.5 near 28 km NW of Shikotan, Russia at depth 98.821 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-05T15:03:27.206Z",
+      "city": "23 km NNW of Mianzhu, Deyang, Sichuan, China",
+      "description": "Earthquake of magnitude M5 near 23 km NNW of Mianzhu, Deyang, Sichuan, China at depth 10 km."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-07-06T17:58:00.000Z",
+      "city": "Maze, Madison, Idaho",
+      "description": "Wildfire reported at Maze, Madison, Idaho (NASA EONET category: Wildfires); EONET magnitude value: 1300."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-07-06T16:15:00.000Z",
+      "city": "RA 6 ADA CO CLAREMONT, Ada, Idaho",
+      "description": "Wildfire reported at RA 6 ADA CO CLAREMONT, Ada, Idaho (NASA EONET category: Wildfires); EONET magnitude value: 2000."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-07-05T19:33:00.000Z",
+      "city": "Dutch Flat, Humboldt, Nevada",
+      "description": "Wildfire reported at Dutch Flat, Humboldt, Nevada (NASA EONET category: Wildfires); EONET magnitude value: 15409."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-07-05T02:01:00.000Z",
+      "city": "NAVARRE COULEE, Chelan, Washington",
+      "description": "Wildfire reported at NAVARRE COULEE, Chelan, Washington (NASA EONET category: Wildfires); EONET magnitude value: 845."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-07-04T18:37:00.000Z",
+      "city": "North Cayuse, Umatilla, Oregon",
+      "description": "Wildfire reported at North Cayuse, Umatilla, Oregon (NASA EONET category: Wildfires); EONET magnitude value: 4663."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-07-04T08:58:00.000Z",
+      "city": "CHELAN HILLS, Douglas, Washington",
+      "description": "Wildfire reported at CHELAN HILLS, Douglas, Washington (NASA EONET category: Wildfires); EONET magnitude value: 9735."
+    },
+    {
+      "event": "Storm",
+      "date": "2026-07-04T18:00:00.000Z",
+      "city": "Tropical Storm Maysak",
+      "description": "Storm reported at Tropical Storm Maysak (NASA EONET category: Severe Storms); EONET magnitude value: 50."
+    },
+    {
+      "event": "Storm",
+      "date": "2026-07-03T06:00:00.000Z",
+      "city": "Tropical Storm Douglas",
+      "description": "Storm reported at Tropical Storm Douglas (NASA EONET category: Severe Storms); EONET magnitude value: 35."
+    },
+    {
+      "event": "Storm",
+      "date": "2026-07-08T00:00:00.000Z",
+      "city": "Super Typhoon Bavi",
+      "description": "Storm reported at Super Typhoon Bavi (NASA EONET category: Severe Storms); EONET magnitude value: 135."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-07-01T00:11:00.000Z",
+      "city": "Siruk, Yukon-Koyukuk, Alaska",
+      "description": "Wildfire reported at Siruk, Yukon-Koyukuk, Alaska (NASA EONET category: Wildfires); EONET magnitude value: 589.57."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-30T14:26:00.000Z",
+      "city": "Black Bird Ranch (14), DeSoto, Florida",
+      "description": "Wildfire reported at Black Bird Ranch (14), DeSoto, Florida (NASA EONET category: Wildfires); EONET magnitude value: 750."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-29T20:42:00.000Z",
+      "city": "ATLANTIC (06), Broward, Florida",
+      "description": "Wildfire reported at ATLANTIC (06), Broward, Florida (NASA EONET category: Wildfires); EONET magnitude value: 5780."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-29T20:40:00.000Z",
+      "city": "Sheep Head, Huerfano, Colorado",
+      "description": "Wildfire reported at Sheep Head, Huerfano, Colorado (NASA EONET category: Wildfires); EONET magnitude value: 1322."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-29T15:11:00.000Z",
+      "city": "HELLS BAY (48), Orange, Florida",
+      "description": "Wildfire reported at HELLS BAY (48), Orange, Florida (NASA EONET category: Wildfires); EONET magnitude value: 540."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-29T14:11:00.000Z",
+      "city": "LAMBDIN, Walla Walla, Washington",
+      "description": "Wildfire reported at LAMBDIN, Walla Walla, Washington (NASA EONET category: Wildfires); EONET magnitude value: 12776."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-29T10:21:00.000Z",
+      "city": "Aspen Acres, Custer, Colorado",
+      "description": "Wildfire reported at Aspen Acres, Custer, Colorado (NASA EONET category: Wildfires); EONET magnitude value: 91982."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-29T09:04:00.000Z",
+      "city": "Prescribed Fire RX Brewster 5525, Brewster, Texas",
+      "description": "Wildfire reported at Prescribed Fire RX Brewster 5525, Brewster, Texas (NASA EONET category: Wildfires); EONET magnitude value: 1300."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-28T18:47:00.000Z",
+      "city": "Willow, Lake, Colorado",
+      "description": "Wildfire reported at Willow, Lake, Colorado (NASA EONET category: Wildfires); EONET magnitude value: 4150."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-28T16:50:00.000Z",
+      "city": "CARLTON EAST, Sarasota, Florida",
+      "description": "Wildfire reported at CARLTON EAST, Sarasota, Florida (NASA EONET category: Wildfires); EONET magnitude value: 960."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-27T19:53:00.000Z",
+      "city": "Gold Mountain, Ouray, Colorado",
+      "description": "Wildfire reported at Gold Mountain, Ouray, Colorado (NASA EONET category: Wildfires); EONET magnitude value: 29287."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-27T18:39:00.000Z",
+      "city": "Ferris, Montezuma, Colorado",
+      "description": "Wildfire reported at Ferris, Montezuma, Colorado (NASA EONET category: Wildfires); EONET magnitude value: 51622."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-27T15:03:00.000Z",
+      "city": "Doe Canyon, Dolores, Colorado",
+      "description": "Wildfire reported at Doe Canyon, Dolores, Colorado (NASA EONET category: Wildfires); EONET magnitude value: 1046."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-27T11:08:00.000Z",
+      "city": "Jones, Grand, Utah",
+      "description": "Wildfire reported at Jones, Grand, Utah (NASA EONET category: Wildfires); EONET magnitude value: 1459."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-27T09:56:00.000Z",
+      "city": "Snyder, Grand, Utah",
+      "description": "Wildfire reported at Snyder, Grand, Utah (NASA EONET category: Wildfires); EONET magnitude value: 30202."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-26T19:48:00.000Z",
+      "city": "Cecil, Yukon-Koyukuk, Alaska",
+      "description": "Wildfire reported at Cecil, Yukon-Koyukuk, Alaska (NASA EONET category: Wildfires); EONET magnitude value: 723.9."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-26T18:24:00.000Z",
+      "city": "Wild Goose, Millard, Utah",
+      "description": "Wildfire reported at Wild Goose, Millard, Utah (NASA EONET category: Wildfires); EONET magnitude value: 12647."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-26T17:54:00.000Z",
+      "city": "Babylon, San Juan, Utah",
+      "description": "Wildfire reported at Babylon, San Juan, Utah (NASA EONET category: Wildfires); EONET magnitude value: 96564."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-26T17:20:00.000Z",
+      "city": "Beehive, Rio Arriba, New Mexico",
+      "description": "Wildfire reported at Beehive, Rio Arriba, New Mexico (NASA EONET category: Wildfires); EONET magnitude value: 4728."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-26T16:54:00.000Z",
+      "city": "PETERSON, Klickitat, Washington",
+      "description": "Wildfire reported at PETERSON, Klickitat, Washington (NASA EONET category: Wildfires); EONET magnitude value: 1000."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-26T16:33:00.000Z",
+      "city": "Dry Canyon, Lincoln, Nevada",
+      "description": "Wildfire reported at Dry Canyon, Lincoln, Nevada (NASA EONET category: Wildfires); EONET magnitude value: 1651."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-08T08:36:06.960Z",
+      "city": "HALMAHERA, INDONESIA",
+      "description": "Earthquake of magnitude M4.8 near HALMAHERA, INDONESIA at depth 141.1 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-08T07:35:51.370Z",
+      "city": "NEAR EAST COAST OF HONSHU, JAPAN",
+      "description": "Earthquake of magnitude M4.9 near NEAR EAST COAST OF HONSHU, JAPAN at depth 55 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-08T07:01:37.270Z",
+      "city": "SOUTH OF KERMADEC ISLANDS",
+      "description": "Earthquake of magnitude M5.2 near SOUTH OF KERMADEC ISLANDS at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-08T05:00:32.690Z",
+      "city": "CENTRAL PERU",
+      "description": "Earthquake of magnitude M4.7 near CENTRAL PERU at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-08T04:21:46.860Z",
+      "city": "JAN MAYEN ISLAND REGION",
+      "description": "Earthquake of magnitude M4.7 near JAN MAYEN ISLAND REGION at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-08T02:08:49.350Z",
+      "city": "EASTERN SICHUAN, CHINA",
+      "description": "Earthquake of magnitude M5.1 near EASTERN SICHUAN, CHINA at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T23:35:51.590Z",
+      "city": "MOLUCCA SEA",
+      "description": "Earthquake of magnitude M4.6 near MOLUCCA SEA at depth 45 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T22:42:37.380Z",
+      "city": "TAJIKISTAN",
+      "description": "Earthquake of magnitude M4.9 near TAJIKISTAN at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T22:22:13.980Z",
+      "city": "EASTERN SICHUAN, CHINA",
+      "description": "Earthquake of magnitude M4.6 near EASTERN SICHUAN, CHINA at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T22:12:30.160Z",
+      "city": "EASTERN SICHUAN, CHINA",
+      "description": "Earthquake of magnitude M5.1 near EASTERN SICHUAN, CHINA at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T20:37:39.500Z",
+      "city": "MINDORO, PHILIPPINES",
+      "description": "Earthquake of magnitude M4.5 near MINDORO, PHILIPPINES at depth 155 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T20:33:15.610Z",
+      "city": "OFF E. COAST OF N. ISLAND, N.Z.",
+      "description": "Earthquake of magnitude M5 near OFF E. COAST OF N. ISLAND, N.Z. at depth 120 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T19:54:41.350Z",
+      "city": "KYRGYZSTAN",
+      "description": "Earthquake of magnitude M4.6 near KYRGYZSTAN at depth 5 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T19:44:53.250Z",
+      "city": "SUNDA STRAIT, INDONESIA",
+      "description": "Earthquake of magnitude M5.3 near SUNDA STRAIT, INDONESIA at depth 35 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T18:11:32.140Z",
+      "city": "COSTA RICA",
+      "description": "Earthquake of magnitude M5.3 near COSTA RICA at depth 45.5 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T18:07:41.130Z",
+      "city": "ANDREANOF ISLANDS, ALEUTIAN IS.",
+      "description": "Earthquake of magnitude M4.5 near ANDREANOF ISLANDS, ALEUTIAN IS. at depth 177.9 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T17:39:56.430Z",
+      "city": "DRAKE PASSAGE",
+      "description": "Earthquake of magnitude M4.9 near DRAKE PASSAGE at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T17:25:36.980Z",
+      "city": "VIRGIN ISLANDS REGION",
+      "description": "Earthquake of magnitude M4.7 near VIRGIN ISLANDS REGION at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T14:21:23.260Z",
+      "city": "KEPULAUAN TALAUD, INDONESIA",
+      "description": "Earthquake of magnitude M4.5 near KEPULAUAN TALAUD, INDONESIA at depth 35 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T08:41:38.680Z",
+      "city": "OFFSHORE SUCRE, VENEZUELA",
+      "description": "Earthquake of magnitude M4.5 near OFFSHORE SUCRE, VENEZUELA at depth 130 km."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-07-03T15:13:57.000Z",
+      "city": "Democratic Republic of the Congo & Uganda",
+      "description": "The Bundibugyo virus disease (BVD) outbreak in the Democratic Republic of the Congo continues to evolve rapidly, with sustained transmission and increasing numbers of reported cases. As of 1 July, a cumulative of 1460 confirmed cases, including 452 deaths, have been reported from the Democratic Republic of the Congo. As of 2 July, Uganda has reported 20 confirmed cases including two deaths, as well as one probable case who has died. In addition, on 24 June 2026, French authorities notified WHO of a laboratory-confirmed case of Ebola disease caused by Bundibugyo virus in a medical doctor returning from the Democratic Republic of the Congo. In Uganda, the outbreak remains epidemiologically linked to transmission originating in the Democratic Republic of the Congo, with evidence of both imported infections and secondary transmission among contacts and healthcare workers. Uganda has not reported any new cases since 21 June 2026. National authorities in the two affected countries, in collaboration with WHO and partners, are implementing an extensive set of response measures. A regional preparedness and prioritization framework continues to guide readiness activities across the African Region."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-07-02T18:00:00.000Z",
+      "city": "Multi-locations",
+      "description": "This is the fifth Disease Outbreak News posting on the Andes hantavirus (ANDV) outbreak linked to the cruise ship M/V Hondius. The outbreak identification followed the notification to the World Health Organization (WHO) on 2 May 2026 of severe acute respiratory illness cases onboard. Since the previous Disease Outbreak News was published on 28 May 2026, one of the probable cases from Tristan da Cunha, an Overseas Territory of the United Kingdom of Great Britain and Northern Ireland (hereafter referred to as the United Kingdom), was laboratory confirmed. As of 2 July, a total of 13 cases, including three deaths, have been notified (case fatality ratio 23%). Twelve cases have been laboratory-confirmed for ANDV infection, and one is a probable case. All confirmed cases are among individuals who travelled onboard the M/V Hondius. Among the ten cases admitted to hospitals, eight have recovered and have been discharged, while two are still undergoing medical treatment. All identified contacts have completed the 42 day follow-up period by local health authorities in line with WHO guidance. The completion of the contact follow up without detection of additional secondary cases demonstrates effective interruption of transmission and confirms outbreak containment. This outbreak no longer poses a public health risk and no further related transmission is expected."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-06-25T18:00:00.000Z",
+      "city": "India",
+      "description": "On 11 June 2026, the Kerala State Health Department confirmed one laboratory confirmed case of Nipah virus (NiV) infection in Kozhikode district, Kerala State, India. The case is an adult male who developed symptoms on 30 May 2026 and was hospitalized on 10 June 2026. He presented with neurological manifestations and at the time of reporting is on ventilatory support in an intensive care unit (ICU). As of 18 June 2026, a total of 104 contacts had been identified and were under monitoring, including health and care workers, with no reported secondary cases to date. NiV is a zoonotic disease transmitted to humans through infected animals, or through consumption of fruits or fruit products, such as raw date palm juice contaminated with the saliva, urine, or excreta of infected bats, as well as close contact with infected individuals. The current event involves a single confirmed case, with no secondary transmission identified to date. Public health measures are in place, including isolation, contact tracing, and enhanced surveillance. However, as the source of infection has not yet been identified and given the known presence of animal reservoirs, additional cases cannot be excluded."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-06-24T18:00:00.000Z",
+      "city": "Global",
+      "description": "Yellow fever is a viral disease found in areas of Africa and the Americas, spread by infected mosquitoes. Following an increase of cases in the Americas in 2025, transmission activity remained into 2026. From 1 January to 26 May 2026, six countries reported a total of 79 human infections along with multiple epizootics, indicating active sylvatic circulation. In Africa, sustained activity continued across parts of the region, affecting 13 high-risk countries (as per classification in the Eliminate Yellow fever Epidemics (EYE) Strategy). From January to May 2026, three countries in Africa reported 16 confirmed human cases, with an additional 32 suspected cases under investigation in five other countries. The recent rapid risk assessment assessed geographical variations in vaccination coverage, evidence of viral circulation, and the presence of competent vectors, concluding that unvaccinated populations in countries or areas with a history of yellow fever transmission remain at greatest risk. Transmission dynamics are further influenced by seasonal ecological factors, particularly rainfall, temperature, and mosquito abundance. Outbreaks reported from October 2025 through May 2026 in countries or areas with a history of yellow fever transmission were generally consistent with seasonal patterns or reflected gaps in immunization coverage. In contrast, cases detected in previously unaffected areas suggest viral introduction and an increased risk of urban transmission. No imported cases were detected outside the two affected WHO regions, but expanding vector suitability, rapid urbanization, climate shifts, and increased mobility continue to create conditions conducive to international spread. WHO emphasizes the importance of active surveillance, timely laboratory testing, cross-border coordination, and information sharing. Vaccination remains the primary means for the prevention and control of yellow fever. WHO continues to support countries in expanding vaccination coverage through routine immunization programmes and preventive vaccination campaigns to enhance population immunity and reduce the risk of outbreaks."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-06-19T12:10:23.000Z",
+      "city": "Democratic Republic of the Congo & Uganda",
+      "description": "The Bundibugyo virus disease (BVD) outbreak in the Democratic Republic of the Congo continues to evolve rapidly, with sustained transmission and increasing numbers of reported cases. As of 17 June, a cumulative of 896 confirmed cases, including 232 deaths, have been reported from the Democratic Republic of the Congo. As of 18 June, Uganda has reported 19 confirmed cases including two deaths, as well as one probable case who has died. In Uganda, the outbreak remains epidemiologically linked to transmission originating in the Democratic Republic of the Congo, with evidence of both imported infections and secondary transmission among contacts and healthcare workers. Uganda has not reported any new cases since 5 June 2026. National authorities in the two affected countries, in collaboration with WHO and partners, are implementing an extensive set of response measures. A regional preparedness and prioritization framework continues to guide readiness activities across the African Region."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-06-13T08:06:15.000Z",
+      "city": "Democratic Republic of the Congo & Uganda",
+      "description": "The Bundibugyo virus disease (BVD) outbreak in the Democratic Republic of the Congo continues to evolve rapidly, with increasing case numbers and geographic spread. As of 10 June, a cumulative of 676 confirmed cases, including 136 deaths, have been reported from the Democratic Republic of the Congo. As of 11 June, Uganda has reported 19 confirmed cases including two deaths, as well as one probable case who has died. In Uganda, the outbreak remains epidemiologically linked to transmission originating in the Democratic Republic of the Congo, with evidence of both imported infections and secondary transmission among contacts and healthcare workers. Uganda has not reported any new cases in the past six days. National authorities in the two affected countries, in collaboration with WHO and partners, are implementing a comprehensive package of response measures. A regional preparedness and prioritization framework continues to guide readiness activities across the African Region."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-06-08T12:35:09.000Z",
+      "city": "Democratic Republic of the Congo & Uganda",
+      "description": "The Bundibugyo virus disease (BVD) outbreak in the Democratic Republic of the Congo continues to evolve rapidly, with increasing case numbers, geographic spread, and cross-border transmission to Uganda. As of 6 June, a total of 515 confirmed cases, with 91 deaths among these confirmed cases, have been reported from the Democratic Republic of the Congo; Uganda has reported 19 confirmed cases including two deaths, as well as one probable case who has died. In Uganda, the outbreak remains epidemiologically linked to transmission originating in the Democratic Republic of the Congo, with evidence of both imported infections and secondary transmission among contacts and healthcare workers. National authorities, in collaboration with WHO and partners, are undertaking a wide-ranging package of response measures. On 5 June, the Africa Centres for Disease Control and Prevention (Africa CDC) and WHO, together with partners, launched a joint Ebola continental preparedness and response plan, with an ask of US$ 518 million to support African countries to prepare for, rapidly detect and respond to the outbreak."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-05-29T15:58:00.000Z",
+      "city": "Democratic Republic of the Congo & Uganda",
+      "description": "The Bundibugyo virus disease (BVD) outbreak in the Democratic Republic of the Congo and Uganda continues to evolve rapidly, with increasing case numbers, geographic spread, and ongoing cross-border transmission. As of 27 May, a total of 906 suspected cases and 223 deaths among suspected cases have been reported in the Democratic Republic of the Congo. As of 29 May, a total of 134 confirmed cases, including nine in Uganda, with 18 deaths among the confirmed cases, have been reported across both countries. This is an additional 49 confirmed cases, eight confirmed deaths, 160 suspected cases and 47 suspected deaths since the last update on 21 May. In addition, there is one confirmed case, an individual from the United States of America, who had treated patients in the Democratic Republic of the Congo and is currently receiving care in Germany. In the Democratic Republic of the Congo, transmission is concentrated in Ituri, as well as North Kivu and South Kivu provinces, with challenges in contact tracing and follow-up, insecurity, inadequate isolation, care, and referral systems for patients complicating response efforts. National authorities, in collaboration with WHO and partners, are implementing response measures including deployment of rapid response teams, delivery of medical supplies, strengthened surveillance, laboratory confirmation, infection prevention and control, the set-up of safe and optimized treatment centers, and community engagement."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-05-28T18:00:00.000Z",
+      "city": "Multi-locations",
+      "description": "This is the fourth Disease Outbreak News report on the Andes hantavirus outbreak linked to cruise ship travel, following the notification to the World Health Organization (WHO) on 2 May 2026 of severe respiratory illness cases aboard M/V Hondius, a cruise ship. Since the last DON was published on 13 May, three additional confirmed cases were reported, from Canada, the Netherlands, and Spain. The previously reported inconclusive case from the United States of America was subsequently determined to be negative following further laboratory testing and has been removed from the total case count. All cases to date have been passengers or crew members on the ship. As of 27 May, a total of 13 cases, including three deaths, have been reported (case fatality ratio 23%). Eleven cases have been laboratory-confirmed for Andes virus (ANDV) infection, and two are probable cases. Given the long incubation period of up to six weeks, it is not unexpected that cases continue to be reported until the end of the six weeks since last exposure. Through the International Health Regulations (2005) (IHR) channels, National IHR Focal Points (NFPs) have all been informed and are supporting international contact tracing and monitoring efforts. WHO has assessed the risk posed by this event to the global population as low and will continue to monitor the epidemiological situation and update the risk assessment as needed."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-05-21T22:00:47.000Z",
+      "city": "Democratic Republic of the Congo",
+      "description": "On 15 May 2026, the Ministry of Public Health, Hygiene and Social Welfare, Democratic Republic of the Congo (DRC), and the Ministry of Health of Uganda declared an outbreak of Ebola Disease following the confirmation of Bundibugyo virus disease (BVD) in both countries. On 17 May 2026, the World Health Organization (WHO) Director-General determined that the Ebola disease caused by Bundibugyo virus in DRC and Uganda constitutes a public health emergency of international concern (PHEIC), as defined in the provisions of IHR. On 19 May 2026, the Director-General of WHO convened the first meeting of the IHR Emergency Committee, and temporary recommendations were issued to State Parties. As of 21 May, 746 suspected cases and 176 deaths among suspected cases were reported in DRC. So far 85 confirmed cases, including two in Uganda, and ten deaths, with one in Uganda, among confirmed cases were reported across both countries. In DRC, transmission is concentrated in Ituri, North Kivu and South Kivu provinces, with challenges in contact follow-up, insecure conditions, and inadequate isolation and referral systems complicating response efforts. Uganda has reported two imported cases with no confirmed local transmission. An American national who was working in DRC has also been confirmed positive and transferred to Germany for care. National authorities, in collaboration with WHO and partners, are implementing response measures including deployment of rapid response teams, delivery of medical supplies, strengthened surveillance, laboratory confirmation, infection prevention and control assessments, the set-up of safe and optimized treatment centers, and community engagement."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-05-16T22:00:00.000Z",
+      "city": "Democratic Republic of the Congo & Uganda",
+      "description": "On 5 May 2026, the World Health Organization (WHO) was alerted of a high-mortality outbreak of unknown illness in Mongbwalu Health Zone, Ituri Province, Democratic Republic of the Congo (DRC), including deaths among health workers. On 14 May 2026, the Institut national de recherche biomédicale (INRB) Kinshasa analyzed 13 blood samples from Rwampara Health Zone, Ituri Province. Laboratory analysis confirmed Bundibugyo virus disease (BVD) in eight of these samples on 15 May, a species of Ebola. The case fatality rates in the past two BVD outbreaks have ranged from 30% to 50%. Unlike Ebola virus disease, there is no licensed vaccine or specific therapeutics against Bundibugyo virus, though early supportive care is lifesaving. On 15 May 2026, the Ministry of Public Health, Hygiene and Social Welfare, DRC, officially declared the 17th Ebola Disease outbreak in DRC. Concurrently, the Uganda Ministry of Health confirmed an outbreak of BVD following the identification of one imported case from DRC, a Congolese man who died in the capital city of Kampala. On 17 May 2026, WHO Director-General, after having consulted the States Parties where the event is known to be currently occurring, determined that the Ebola disease caused by Bundibugyo virus in DRC and Uganda constitutes a public health emergency of international concern (PHEIC), as defined in the provisions of IHR. Response measures include deployment of rapid response teams, delivery of medical supplies, strengthened surveillance, laboratory confirmation, infection prevention and control assessments, the set-up of safe treatment centers, and community engagement. WHO is supporting the coordination of the response, case management, and cross-border preparedness. WHO advice has been issued to countries."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-05-13T18:00:00.000Z",
+      "city": "Multi-country",
+      "description": "This is the third Disease Outbreak News report on the hantavirus cluster, following the notification to the World Health Organization (WHO) on 2 May 2026 of severe respiratory illness cases aboard MV Hondius, a cruise ship. Since the last DON was published on 8 May, two additional confirmed cases were reported from France and Spain. In addition, there is one inconclusive result for a case in the United States of America. All were passengers on the ship. As of 13 May, a total of 11 cases, including three deaths, have been reported (case fatality ratio 27%). Eight cases were laboratory-confirmed for Andes virus (ANDV) infection, two are probable, and one case remains inconclusive and undergoing further testing. Through the International Health Regulations (2005) (IHR) channels, National IHR Focal Points (NFPs) have all been informed and are supporting international contact tracing efforts. WHO has assessed the risk posed by this event to the global population as low and will continue to monitor the epidemiological situation and update the risk assessment as needed."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-05-08T18:00:00.000Z",
+      "city": "Multi-country",
+      "description": "On 2 May 2026, a cluster of passengers with severe respiratory illness aboard a cruise ship was reported to the World Health Organization (WHO). At that time, according to the ship operator, 147 passengers and crew were onboard, and 34 passengers and crew had previously disembarked. Since the last Disease Outbreak News published on 4 May, three of the suspected cases were confirmed, and one additional confirmed case was reported. As of 8 May, a total of eight cases, including three deaths (case fatality ratio 38%), have been reported. Six cases have been laboratory-confirmed as hantavirus infections, with all identified as Andes virus (ANDV). Through the International Health Regulations (2005) (IHR) channel, National IHR Focal Points (NFPs) have all been informed and are supporting international contact tracing. WHO assesses the risk to the global population posed by this event as low and will continue to monitor the epidemiological situation and update the risk assessment. The risk for passengers and crew on the ship is considered moderate."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-05-04T18:00:00.000Z",
+      "city": "Multi-country",
+      "description": "On 2 May 2026, a cluster of passengers with severe respiratory illness aboard a cruise ship was reported to the World Health Organization. The ship is carrying 147 passengers and crew. As of 4 May 2026, seven cases (two laboratory confirmed cases of hantavirus and five suspected cases) have been identified, including three deaths, one critically ill patient and three individuals reporting mild symptoms. Illness onset occurred between 6 and 28 April 2026 and was characterized by fever, gastrointestinal symptoms, rapid progression to pneumonia, acute respiratory distress syndrome and shock. Further investigations are ongoing. The outbreak is being managed through coordinated international response, and includes in-depth investigations, case isolation and care, medical evacuation and laboratory investigations. Human hantavirus infection is primarily acquired through contact with the urine, faeces, or saliva of infected rodents. It is a rare but severe disease that can be deadly. Although uncommon, limited human to human transmission has been reported in previous outbreaks of Andes virus (a specific species of hantavirus). WHO currently assesses the risk to the global population from this event as low and will continue to monitor the epidemiological situation and update the risk assessment."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-04-23T12:58:07.000Z",
+      "city": "Bangladesh",
+      "description": "On 4 April 2026, the National International Health Regulations (IHR) Focal Point for Bangladesh notified WHO of a nationwide increase in measles cases, geographically affecting 58 out of 64 districts across all eight divisions in Bangladesh. A total of 19 161 suspected measles cases and 2897 laboratory-confirmed measles cases have been reported between 15 March and 14 April 2026, including 166 measles related deaths (CFR 0.9%). The majority (79%) of the reported cases are children aged under 5 years. A targeted measles-rubella (MR) vaccination campaign started on 5 April, and various outbreak response measures are ongoing including strengthening nationwide surveillance and epidemiological analysis to enhance case detection and reporting. Based on currently available information, WHO assesses the risk at the national level as high due to ongoing transmission across multiple divisions, the large number of susceptible children, documented immunity gaps, and the occurrence of suspected measles-related deaths."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-04-10T13:51:44.000Z",
+      "city": "Italy",
+      "description": "On 21 March 2026, the National International Health Regulations (IHR) Focal Point for Italy notified the World Health Organization (WHO) of the identification of a human case of avian influenza A(H9) in an adult male returning from Senegal. Next generation sequencing confirmed Influenza A(H9N2). According to epidemiological investigations, the patient had no known history of exposure to poultry or any person with similar symptoms prior to the onset of symptoms. Authorities in Italy have implemented a series of measures aimed at monitoring, preventing and controlling the situation. According to the IHR (2005), a human infection caused by a novel influenza A virus subtype is an event that has the potential for high public health impact and must be notified to the WHO. This is the first imported human case of avian Influenza A(H9N2) reported in the European Region. Based on currently available information, WHO assesses the current risk to the general population posed by A(H9N2) viruses as low but continues to monitor these viruses and the situation globally."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-03-13T19:00:00.000Z",
+      "city": "Multi-country",
+      "description": "Multi-country recalls of infant formula and other products have been initiated after cereulide toxin, was detected in batches of multiple internationally distributed brands. Investigations have identified arachidonic acid (ARA) oil, used as an ingredient in the implicated products, as the source of contamination. However, the full root cause analysis and complete traceability of all affected batches remains under investigation. Contaminated formulae, nutritional products, and oil mixes have been distributed to 99 countries and territories across six WHO Regions, with the first product recalls initiated on 10 December 2025. Between 1 January and 25 February 2026, 144 suspected and confirmed cases were reported across ten countries in three WHO Regions, with investigations ongoing. Based on the available information, WHO assesses the overall public health risk as moderate due to the vulnerability of the affected population (infants), the ongoing uncertainty regarding the full extent of distribution and exposure, and remaining gaps in case detection and root cause information."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-02-14T19:00:00.000Z",
+      "city": "Global situation",
+      "description": "Recombination of monkeypox virus (MPXV) strains has been documented in recent months, with two cases of a recombinant strain comprising clade Ib and IIb MPXV reported. Recombination is a known natural process that can occur when two related viruses infecting the same individual exchange genetic material, producing a new virus. The first case was detected in the United Kingdom of Great Britain and Northern Ireland (hereafter “United Kingdom”), with travel history to a country in South-East Asia, and the second in India, with travel history to a country in the Arabian Peninsula. Detailed analysis of the virus genomes shows that the two individuals fell ill several weeks apart with the same recombinant strain, suggesting that there may be further cases than are currently reported. Both cases had similar clinical presentation to that observed for other clades. Neither patient experienced severe outcomes. Contact tracing for both cases in the reporting countries has been completed; no secondary cases were detected. Based on available information, the overall WHO public health risk assessment for mpox remains unchanged: the risk is assessed as moderate for men who have sex with men with new and/or multiple partners and for sex workers or others with multiple casual sexual partners, and low for the general population without specific risk factors."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-02-06T19:00:00.000Z",
+      "city": "Bangladesh",
+      "description": "On 3 February 2026, the International Health Regulations National Focal Point (IHR NFP) for Bangladesh notified WHO of one confirmed case of Nipah virus (NiV) infection in Rajshahi Division. The patient developed fever and neurological symptoms on 21 January. Nipah virus infection was laboratory-confirmed on 29 January. The patient reported no travel history but had a history of consuming raw date palm sap. All 35 contact-persons are being monitored and have tested negative for NiV and no further cases have been detected to date. Bangladesh regularly has small NiV outbreaks, with cases reported at different times of the year, though outbreaks tend to occur between December and April corresponding with the harvesting and consumption of date palm sap. The Ministry of Health and Family Welfare in Bangladesh has implemented several public health measures. WHO assesses the overall public health risk posed by NiV to be low at the national, the regional and global level. The risk of international disease spread is considered low."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-01-30T19:00:00.000Z",
+      "city": "India",
+      "description": "On 26 January 2026, the National IHR Focal Point for India notified WHO of two laboratory‑confirmed cases of Nipah virus (NiV) infection in West Bengal State. Both are healthcare workers at the same private hospital in Barasat (North 24 Parganas district). NiV infection was confirmed at the National Institute of Virology in Pune on 13 January. One case remains on mechanical ventilation as of 21 January, the other case experienced severe neurological illness but has since improved. Authorities have identified and tested over 190 contacts, who all tested negative for NiV with support from a mobile BSL‑3 laboratory deployed by the National Institute of Virology, Pune. No further cases have been detected to date. This event represents the third NiV infection outbreak reported in West Bengal (previous outbreaks reported in Siliguri in 2001 and Nadia in 2007). Enhanced surveillance and infection prevention and control (IPC) measures are in place while investigations into the source of exposure are ongoing. NiV infection is a serious but rare zoonotic disease transmitted to humans through infected animals (such as bats), or food contaminated with saliva, urine, and excreta of infected animals. It can also be transmitted directly from person to person through close contact with an infected person. There are currently no licensed medicines or vaccines for NiV infection, however early supportive care can improve survival. WHO assesses the risk posed by Nipah to be moderate at the sub-national level, and low at the national, the regional and global levels."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-01-26T19:00:00.000Z",
+      "city": "Marburg virus disease- Ethiopia",
+      "description": "On 26 January 2026, the Ministry of Health of Ethiopia declared the end of the Marburg virus disease (MVD) outbreak. This declaration came after two consecutive incubation periods (a total of 42 days) since the last person confirmed with MVD died and was given a safe and dignified burial, in accordance with WHO recommendations on 14 December 2025. As of 25 January 2026, a cumulative total of 19 cases, including 14 confirmed (including nine deaths) and five probable cases (all deaths), were reported. A total of 857 contacts listed for monitoring all had completed their 21-day follow-up as of 25 January 2026. WHO, through its country office and partners, provided technical, operational and financial support to the government to contain this outbreak."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2025-12-24T05:38:07.000Z",
+      "city": "Global update",
+      "description": "Since the beginning of 2025 and as of 21 December 2025, a total of 19 cases of Middle East respiratory syndrome coronavirus (MERS- CoV), including four deaths have been reported to WHO globally. Of the 19 cases, 17 were reported by the Kingdom of Saudi Arabia (KSA), and two were reported from France. Between 4 June and 21 December 2025, the Ministry of Health (MoH) of KSA reported a total of seven cases of MERS-CoV infection, including two deaths. In addition, at the beginning of December 2025, the National IHR Focal Point (IHR NFP) for France also reported two MERS-CoV travel – associated cases; involving individuals with recent travel to countries in the Arabian Peninsula. The notification of these latest cases does not change the overall risk assessment, which remains moderate at both the global and regional levels. These cases show that the virus continues to pose a threat in countries where it is circulating in dromedary camels, with regular spillover into the human population. WHO recommends implementation of targeted infection, prevention and control (IPC) measures to prevent the spread of health care-associated infections of MERS-CoV and onward human transmission."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2025-12-10T19:00:00.000Z",
+      "city": "Global situation",
+      "description": "Seasonal influenza (‘the flu’) is an acute respiratory infection caused by influenza viruses that circulate globally and year-round. It can cause illness ranging from mild to severe, sometimes resulting in hospitalization or death. Seasonal influenza activity has increased globally in recent months, with an increased proportion of seasonal influenza A(H3N2) viruses being detected. This rise coincides with the onset of winter in the northern hemisphere and an increase in acute respiratory infections caused by influenza and other respiratory viruses typically observed at this time of year. Although global activity remains within expected seasonal ranges, early increases and higher activity than typical at this time of year have been observed in some regions. Seasonal influenza viruses, including A(H3N2) viruses, continually evolve over time. Since August 2025, there has been a rapid increase of A(H3N2) J.2.4.1 alias K subclade viruses detected from several countries based on available genetic sequence data. These subclade K viruses have several changes from related A(H3N2) viruses. Current epidemiological data do not indicate an increase in disease severity, although this subclade marks a notable evolution in influenza A(H3N2) viruses. Early estimates suggest that the influenza vaccine continues to provide protection against hospital attendance in both children and adults, even though its effectiveness against clinical disease during the current season remains uncertain. Vaccines remain essential, especially for people at high risk of influenza complications and their care givers. Even if there are some genetic differences between the circulating influenza viruses and the strains included in the vaccines, the seasonal influenza vaccine may still provide protection against drifted viruses and the other virus strains included in the vaccine. Vaccination is still expected to protect against severe illness and remains one of the most effective public health measures. WHO continues to monitor global influenza activity and influenza viruses, supports countries in surveillance capacity and updates guidance as needed."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2025-12-05T19:00:00.000Z",
+      "city": "Global situation",
+      "description": "The purpose of this report is to raise awareness about the local transmission of clade Ib monkeypox virus (MPXV) among men who have sex with men (MSM) in countries previously unaffected or to date reporting only cases linked to travel. This report summarizes recent epidemiological developments, response activities, and the associated global public health risk. The second declaration of a public health emergency of international concern (PHEIC) for mpox was lifted on 5 September 2025. As both MPXV clades I and II and their subclades continue to circulate globally, leading to substantial outbreaks in African countries, WHO continues to advise emergency preparedness and response activities. Multiple modes of transmission underlie ongoing virus circulation, with sexual contact remaining the primary amplifier of transmission in most settings. Since 5 September 2025, several countries across four of six WHO regions have confirmed clade Ib MPXV infection in individuals with no recent travel reported (WHO African Region, Region of the Americas, the European Region and the Western Pacific Region), most of which are being detected among men who have sex with men, suggesting local transmission, particularly given that infections often manifest with few or no symptoms (paucisymptomatic or asymptomatic cases) leading to undetected onward transmission. Overall, the surveillance data in most countries is sufficient to detect and respond effectively to mpox outbreaks. However, thorough epidemiological investigation, contact tracing and implementation of public health interventions to control spread remain challenging. Mpox is known to resolve on its own over two to four weeks in most cases. However, timely access to quality healthcare is essential to identify, prevent and manage secondary bacterial infections and other complications. Individuals living with immune suppressive conditions remain at high risk of more severe mpox disease and death, most notably people living with undetected and/or untreated, uncontrolled human immunodeficiency virus (HIV) infection. Men who have sex with men with new and/or multiple partners remain at increased risk of clade Ib and also IIb MPXV infection. WHO assesses the public health risk posed by clade Ib MPXV to men who have sex with men as moderate and the risk to the general population as low in most countries."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2025-12-05T16:36:27.000Z",
+      "city": "Avian Influenza A(H5N5)- United States of America",
+      "description": "On 15 November 2025, WHO was notified of the 71st confirmed human case with influenza A(H5) since early 2024 in the United States of America— the first human case reported in the United States of America since February 2025. On 20 November, U.S. Centers for Disease Control and Prevention (CDC) laboratory sequencing verified the virus as influenza A(H5N5), representing the first globally reported human case caused by an influenza A(H5N5) virus. The investigation by health authorities in the United States of America is ongoing. Contact tracing identified no further cases amongst contacts, and there is currently no evidence of human-to-human transmission. Due to the constantly evolving nature of influenza viruses, WHO continues to stress the importance of global surveillance to detect and monitor virological (including genomics), epidemiological and clinical changes associated with emerging or circulating influenza viruses that may affect human health and timely virus sharing for risk assessment. Based on available information, the WHO currently assesses the overall public health risk posed by A(H5) viruses as low. However, for individuals with occupational risk of exposure, the risk of infection is considered low to moderate."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-07-08T09:57:19.869Z",
+      "city": "India",
+      "description": "COVID-19 situation in India — active cases: 44501823; new cases today: 0; critical: 0; deaths: 533570; population: 1406631776."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-07-08T09:57:19.877Z",
+      "city": "Japan",
+      "description": "COVID-19 situation in Japan — active cases: 33728878; new cases today: 0; critical: 0; deaths: 74694; population: 125584838."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-07-08T09:57:19.883Z",
+      "city": "Turkey",
+      "description": "COVID-19 situation in Turkey — active cases: 17129892; new cases today: 0; critical: 0; deaths: 102174; population: 85561976."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-07-08T09:57:19.896Z",
+      "city": "Iran",
+      "description": "COVID-19 situation in Iran — active cases: 7480375; new cases today: 0; critical: 0; deaths: 146811; population: 86022837."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-07-08T09:57:19.899Z",
+      "city": "Poland",
+      "description": "COVID-19 situation in Poland — active cases: 6541393; new cases today: 0; critical: 0; deaths: 120598; population: 37739785."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-07-08T09:57:19.902Z",
+      "city": "Greece",
+      "description": "COVID-19 situation in Greece — active cases: 6063510; new cases today: 0; critical: 0; deaths: 37869; population: 10316637."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-07-08T09:57:19.936Z",
+      "city": "Bangladesh",
+      "description": "COVID-19 situation in Bangladesh — active cases: 2019884; new cases today: 0; critical: 0; deaths: 29493; population: 167885689."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-07-08T09:57:19.938Z",
+      "city": "Georgia",
+      "description": "COVID-19 situation in Georgia — active cases: 1844533; new cases today: 0; critical: 0; deaths: 17132; population: 3968738."
+    },
+    {
+      "event": "Economic indicator update",
+      "date": "2025-01-01T00:00:00.000Z",
+      "city": "Saudi Arabia",
+      "description": "التضخم — السعودية — أحدث قيمة 2.08420853585036%؛ السلسلة الأخيرة: 2025: 2.08، 2024: 1.69، 2023: 2.33، 2022: 2.47، 2021: 3.06."
+    },
+    {
+      "event": "Economic indicator update",
+      "date": "2025-01-01T00:00:00.000Z",
+      "city": "World",
+      "description": "التضخم — عالمي — أحدث قيمة 3.0414132155654%؛ السلسلة الأخيرة: 2025: 3.04، 2024: 3.01، 2023: 5.80، 2022: 8.08، 2021: 3.48."
+    },
+    {
+      "event": "Economic indicator update",
+      "date": "2025-01-01T00:00:00.000Z",
+      "city": "Saudi Arabia",
+      "description": "نمو الناتج — السعودية — أحدث قيمة 4.50246560191663%؛ السلسلة الأخيرة: 2025: 4.50، 2024: 2.65، 2023: 0.54، 2022: 12.00، 2021: 6.52."
+    },
+    {
+      "event": "Economic indicator update",
+      "date": "2025-01-01T00:00:00.000Z",
+      "city": "World",
+      "description": "نمو الاقتصاد العالمي — أحدث قيمة 2.92127318539153%؛ السلسلة الأخيرة: 2025: 2.92، 2024: 2.90، 2023: 2.86، 2022: 3.44، 2021: 6.49."
+    },
+    {
+      "event": "Gold price update",
+      "date": "2026-07-08T09:57:53.454Z",
+      "city": "غير متوفر",
+      "description": "الذهب (XAU/USD) — القيمة الحالية 4059.3، التغيّر -2.07%؛ سلسلة 7 أيام: 4022.3، 4022.9، 4068.3، 4112.7، 4155.1، 4145.3، 4059.3."
+    },
+    {
+      "event": "Arrested or in prison in New Zealand",
+      "date": "2026-07-08T09:35:49.000Z",
+      "city": "المملكة المتحدة",
+      "description": "This guide provides information about being arrested in New Zealand including prison conditions."
+    },
+    {
+      "event": "FCDO summons Iranian Chargé d'Affaires over attack on Iran international journalist",
+      "date": "2026-07-07T16:57:00.000Z",
+      "city": "المملكة المتحدة",
+      "description": "The Foreign, Commonwealth and Development Office has today summoned the Iranian Chargé d'Affaires in London in response to the sentencing of two individuals for their role in the attack on an Iran International journalist in 2024."
+    },
+    {
+      "event": "UN Human Rights Council 62: UK General Comment on the draft resolution on child, early and forced marriage",
+      "date": "2026-07-07T16:00:12.000Z",
+      "city": "المملكة المتحدة",
+      "description": "UK General Comment on the draft resolution on child, early and forced marriage. Delivered by UK Human Rights Ambassador, Eleanor Sanders."
+    },
+    {
+      "event": "UN Human Rights Council 62: UK General Comment on the draft resolution on women in humanitarian settings",
+      "date": "2026-07-07T15:58:44.000Z",
+      "city": "المملكة المتحدة",
+      "description": "UK General Comment on the draft resolution on women in humanitarian settings. Delivered by UK Human Rights Ambassador, Eleanor Sanders."
+    },
+    {
+      "event": "UN Human Rights Council 62: UK General Comment on the draft resolution on freedom of expression",
+      "date": "2026-07-07T15:53:44.000Z",
+      "city": "المملكة المتحدة",
+      "description": "UK General Comment on the draft resolution on freedom of expression. Delivered by UK Human Rights Ambassador, Eleanor Sanders."
+    },
+    {
+      "event": "UN Human Rights Council 62: UK General Comment on the draft resolution on disinformation",
+      "date": "2026-07-07T15:52:37.000Z",
+      "city": "المملكة المتحدة",
+      "description": "UK General Comment on the draft resolution on disinformation. Delivered by UK Human Rights Ambassador, Eleanor Sanders."
+    },
+    {
+      "event": "France travel advice",
+      "date": "2026-07-07T15:46:10.000Z",
+      "city": "المملكة المتحدة",
+      "description": "FCDO travel advice for France. Includes safety and security, insurance, entry requirements and legal differences."
+    },
+    {
+      "event": "National Statement of the United Kingdom at the OPCW 112th Executive Council",
+      "date": "2026-07-07T14:48:45.000Z",
+      "city": "المملكة المتحدة",
+      "description": "National Statement of the United Kingdom of Great Britain and Northern Ireland at the OPCW 112th Executive Council"
+    },
+    {
+      "event": "UN Human Rights Council 62: UK Explanation of Position on the draft resolution on Rohingya Muslims and other minorities in Myanmar",
+      "date": "2026-07-07T14:03:25.000Z",
+      "city": "المملكة المتحدة",
+      "description": "UK Explanation of Position on the draft resolution on Rohingya Muslims and other minorities in Myanmar. Delivered by UK Chargé d'Affaires ad Interim to Myanmar, Andrew Jackson"
+    },
+    {
+      "event": "Climate-Resilient Water in Mozambique programme: expressions of interest",
+      "date": "2026-07-07T13:18:45.000Z",
+      "city": "المملكة المتحدة",
+      "description": "The FCDO invites expressions of interest by 10 July 2026 for a grant to support climate-resilient water services in Mozambique."
+    },
+    {
+      "event": "Aruba travel advice",
+      "date": "2026-07-07T13:03:43.000Z",
+      "city": "المملكة المتحدة",
+      "description": "FCDO travel advice for Aruba. Includes safety and security, insurance, entry requirements and legal differences."
+    },
+    {
+      "event": "New coalition puts children’s rights at the centre of the AI age",
+      "date": "2026-07-07T12:00:00.000Z",
+      "city": "الأمم المتحدة",
+      "description": "A new international coalition launched in Geneva on Tuesday is setting out to make sure children s safety and rights are not an afterthought as artificial intelligence reshapes how they learn, play and grow up."
+    },
+    {
+      "event": "Southwest Pacific’s last tropical glacier could vanish within months",
+      "date": "2026-07-07T12:00:00.000Z",
+      "city": "الأمم المتحدة",
+      "description": "The Southwest Pacific is facing mounting climate risks as its vast ocean expanse becomes hotter, more acidic and more dangerous for coastal communities, the World Meteorological Organization (WMO) said in a report published on Tuesday. nbsp"
+    },
+    {
+      "event": "‘Shared blueprint for peace’: Development goals deliver for billions, but challenges remain",
+      "date": "2026-07-07T12:00:00.000Z",
+      "city": "الأمم المتحدة",
+      "description": "With fewer than five years left to achieve the nbsp;Sustainable Development Goals (SDGs), a new UN report says sustained investment and international cooperation have improved billions of lives, but warns that governments must urgently acce"
+    },
+    {
+      "event": "Peace hinges on people-centred policing, global summit hears",
+      "date": "2026-07-07T12:00:00.000Z",
+      "city": "الأمم المتحدة",
+      "description": "Policing is the cornerstone of peace, said top UN officials ahead of the fifth UN Chiefs of Police Summit, which began on Tuesday."
+    },
+    {
+      "event": "When AI hurts people, who’s to blame? Global experts grapple with accountability",
+      "date": "2026-07-07T12:00:00.000Z",
+      "city": "الأمم المتحدة",
+      "description": "Who is legally responsible when Artificial Intelligence causes harm? The issue took centre stage on Tuesday – day two of the first ever UN summit on AI governance, where leading experts warned of mounting evidence of human rights violations"
+    },
+    {
+      "event": "Young people value partnership and parenthood but barriers block their dreams",
+      "date": "2026-07-07T12:00:00.000Z",
+      "city": "الأمم المتحدة",
+      "description": "Fertility rates are falling worldwide not because young people are rejecting marriage, children or family life but because many are facing economic and housing constraints. nbsp;"
+    },
+    {
+      "event": "General Assembly LIVE: Debating US sanctions against Cuba",
+      "date": "2026-07-07T12:00:00.000Z",
+      "city": "الأمم المتحدة",
+      "description": "The UN General Assembly overwhelming voted to debate United States sanctions against Cuba in a meeting on Tuesday, at Havana’s request, to discuss the decades-long embargo amid warnings of increasing suffering on the Caribbean island."
+    },
+    {
+      "event": "Ebola continues to spread in DRC as death toll passes 500, WHO warns",
+      "date": "2026-07-07T12:00:00.000Z",
+      "city": "الأمم المتحدة",
+      "description": "The outbreak of the deadly Bundibugyo species of Ebola in the eastern Democratic Republic of the Congo (DRC) is expanding, while the push to accelerate testing and identify effective treatment options continues, the UN World Health Organiza"
+    },
+    {
+      "event": "Russia: list of designations and sanctions notices",
+      "date": "2026-07-07T11:56:53.000Z",
+      "city": "المملكة المتحدة",
+      "description": "List of designated persons and notices issued about new designations, revocations, delistings and other changes to the UK Sanctions List."
+    },
+    {
+      "event": "Afghanistan among the world’s largest displacement crises",
+      "date": "2026-07-06T12:00:00.000Z",
+      "city": "الأمم المتحدة",
+      "description": "Afghanistan faces one of the world’s biggest displacement crises amid poverty, drought and earthquakes, UN agencies warned on Monday."
+    },
+    {
+      "event": "Occupied Palestinian Territory: Aid restrictions in Gaza, ‘senseless’ infant deaths in the West Bank",
+      "date": "2026-07-06T12:00:00.000Z",
+      "city": "الأمم المتحدة",
+      "description": "Ongoing restrictions and closures of border crossings continue to hamper delivery of critical supplies into the Gaza Strip, amid mounting concern for children there and in the West Bank, the United Nations said on Monday. nbsp;"
+    },
+    {
+      "event": "Venezuela quake: UN continues to scale up as damage estimate reaches $37 billion",
+      "date": "2026-07-06T12:00:00.000Z",
+      "city": "الأمم المتحدة",
+      "description": "The UN and its partners are ramping up assistance for people affected by the earthquakes in Venezuela, working alongside the Government s response effort, as a new UN estimate puts direct physical damage at $37 billion."
+    },
+    {
+      "event": "UN maritime agency seeks release of 44 detained seafarers as food runs low",
+      "date": "2026-07-06T12:00:00.000Z",
+      "city": "الأمم المتحدة",
+      "description": "The UN’s International Maritime Organization (IMO) nbsp;appealed on Monday for the urgent release of 44 seafarers held captive in Somali waters by pirates and armed robbers."
+    }
+  ],
+  "validation": {
+    "containsOnlyEventDateCityDescription": true,
+    "containsMockData": false,
+    "generatedFromRealSourcesOnly": true
+  }
+}

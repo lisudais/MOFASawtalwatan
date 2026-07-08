@@ -1,0 +1,103 @@
+{
+  "generatedAt": "2026-07-08T10:27:15.789Z",
+  "datasetType": "clean_event_date_city_description_dataset",
+  "sourceFile": "dashboard/datasets/dashboard-real-data.json",
+  "records": [
+    {
+      "event": "Travel advisory",
+      "date": "2026-06-03T21:00:00.000Z",
+      "city": "الكونغو الديمقراطية",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة الكونغو الديمقراطية: Level 4: Do Not Travel (مؤشر الخطورة 87، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-04-27T21:00:00.000Z",
+      "city": "تشاد",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة تشاد: Level 4: Do Not Travel (مؤشر الخطورة 83، CRITICAL)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2026-01-19T21:00:00.000Z",
+      "city": "بنغلاديش",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة بنغلاديش: Level 3: Reconsider Travel (مؤشر الخطورة 65، HIGH)."
+    },
+    {
+      "event": "Travel advisory",
+      "date": "2025-04-20T21:00:00.000Z",
+      "city": "المغرب",
+      "description": "تحذير سفر صادر عن وزارة الخارجية الأمريكية للدولة المغرب: Level 2: Exercise Increased Caution (مؤشر الخطورة 41، MEDIUM)."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T20:37:40.097Z",
+      "city": "7 km SSE of Calatagan, Philippines",
+      "description": "Earthquake of magnitude M4.5 near 7 km SSE of Calatagan, Philippines at depth 155.427 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-06T20:25:12.410Z",
+      "city": "216 km NE of Port Mathurin, Mauritius",
+      "description": "Earthquake of magnitude M4.9 near 216 km NE of Port Mathurin, Mauritius at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-05T15:53:33.718Z",
+      "city": "106 km NW of Coquimbo, Chile",
+      "description": "Earthquake of magnitude M5 near 106 km NW of Coquimbo, Chile at depth 10 km."
+    },
+    {
+      "event": "Storm",
+      "date": "2026-07-08T00:00:00.000Z",
+      "city": "Super Typhoon Bavi",
+      "description": "Storm reported at Super Typhoon Bavi (NASA EONET category: Severe Storms); EONET magnitude value: 135."
+    },
+    {
+      "event": "Wildfire",
+      "date": "2026-06-27T15:03:00.000Z",
+      "city": "Doe Canyon, Dolores, Colorado",
+      "description": "Wildfire reported at Doe Canyon, Dolores, Colorado (NASA EONET category: Wildfires); EONET magnitude value: 1046."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-08T04:21:46.860Z",
+      "city": "JAN MAYEN ISLAND REGION",
+      "description": "Earthquake of magnitude M4.7 near JAN MAYEN ISLAND REGION at depth 10 km."
+    },
+    {
+      "event": "Earthquake",
+      "date": "2026-07-07T17:25:36.980Z",
+      "city": "VIRGIN ISLANDS REGION",
+      "description": "Earthquake of magnitude M4.7 near VIRGIN ISLANDS REGION at depth 10 km."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2026-05-16T22:00:00.000Z",
+      "city": "Democratic Republic of the Congo & Uganda",
+      "description": "On 5 May 2026, the World Health Organization (WHO) was alerted of a high-mortality outbreak of unknown illness in Mongbwalu Health Zone, Ituri Province, Democratic Republic of the Congo (DRC), including deaths among health workers. On 14 May 2026, the Institut national de recherche biomédicale (INRB) Kinshasa analyzed 13 blood samples from Rwampara Health Zone, Ituri Province. Laboratory analysis confirmed Bundibugyo virus disease (BVD) in eight of these samples on 15 May, a species of Ebola. The case fatality rates in the past two BVD outbreaks have ranged from 30% to 50%. Unlike Ebola virus disease, there is no licensed vaccine or specific therapeutics against Bundibugyo virus, though early supportive care is lifesaving. On 15 May 2026, the Ministry of Public Health, Hygiene and Social Welfare, DRC, officially declared the 17th Ebola Disease outbreak in DRC. Concurrently, the Uganda Ministry of Health confirmed an outbreak of BVD following the identification of one imported case from DRC, a Congolese man who died in the capital city of Kampala. On 17 May 2026, WHO Director-General, after having consulted the States Parties where the event is known to be currently occurring, determined that the Ebola disease caused by Bundibugyo virus in DRC and Uganda constitutes a public health emergency of international concern (PHEIC), as defined in the provisions of IHR. Response measures include deployment of rapid response teams, delivery of medical supplies, strengthened surveillance, laboratory confirmation, infection prevention and control assessments, the set-up of safe treatment centers, and community engagement. WHO is supporting the coordination of the response, case management, and cross-border preparedness. WHO advice has been issued to countries."
+    },
+    {
+      "event": "Disease outbreak",
+      "date": "2025-12-05T19:00:00.000Z",
+      "city": "Global situation",
+      "description": "The purpose of this report is to raise awareness about the local transmission of clade Ib monkeypox virus (MPXV) among men who have sex with men (MSM) in countries previously unaffected or to date reporting only cases linked to travel. This report summarizes recent epidemiological developments, response activities, and the associated global public health risk. The second declaration of a public health emergency of international concern (PHEIC) for mpox was lifted on 5 September 2025. As both MPXV clades I and II and their subclades continue to circulate globally, leading to substantial outbreaks in African countries, WHO continues to advise emergency preparedness and response activities. Multiple modes of transmission underlie ongoing virus circulation, with sexual contact remaining the primary amplifier of transmission in most settings. Since 5 September 2025, several countries across four of six WHO regions have confirmed clade Ib MPXV infection in individuals with no recent travel reported (WHO African Region, Region of the Americas, the European Region and the Western Pacific Region), most of which are being detected among men who have sex with men, suggesting local transmission, particularly given that infections often manifest with few or no symptoms (paucisymptomatic or asymptomatic cases) leading to undetected onward transmission. Overall, the surveillance data in most countries is sufficient to detect and respond effectively to mpox outbreaks. However, thorough epidemiological investigation, contact tracing and implementation of public health interventions to control spread remain challenging. Mpox is known to resolve on its own over two to four weeks in most cases. However, timely access to quality healthcare is essential to identify, prevent and manage secondary bacterial infections and other complications. Individuals living with immune suppressive conditions remain at high risk of more severe mpox disease and death, most notably people living with undetected and/or untreated, uncontrolled human immunodeficiency virus (HIV) infection. Men who have sex with men with new and/or multiple partners remain at increased risk of clade Ib and also IIb MPXV infection. WHO assesses the public health risk posed by clade Ib MPXV to men who have sex with men as moderate and the risk to the general population as low in most countries."
+    },
+    {
+      "event": "Economic indicator update",
+      "date": "2025-01-01T00:00:00.000Z",
+      "city": "World",
+      "description": "نمو الاقتصاد العالمي — أحدث قيمة 2.92127318539153%؛ السلسلة الأخيرة: 2025: 2.92، 2024: 2.90، 2023: 2.86، 2022: 3.44، 2021: 6.49."
+    },
+    {
+      "event": "New coalition puts children’s rights at the centre of the AI age",
+      "date": "2026-07-07T12:00:00.000Z",
+      "city": "الأمم المتحدة",
+      "description": "A new international coalition launched in Geneva on Tuesday is setting out to make sure children s safety and rights are not an afterthought as artificial intelligence reshapes how they learn, play and grow up."
+    }
+  ],
+  "validation": {
+    "containsOnlyEventDateCityDescription": true,
+    "containsMockData": false,
+    "generatedFromRealSourcesOnly": true
+  },
+  "description": "Sample (15 records) for human review."
+}
