@@ -1521,6 +1521,103 @@ body {
 .feed-chevron { flex-shrink: 0; color: var(--text-muted); opacity: 0.6; align-self: center; }
 .feed-item:hover .feed-chevron { opacity: 1; color: var(--text-secondary); }
 
+/* ─── Pipeline card rows (Stages 1-6 output) ──────────────────────────────
+   Additive only: .feed-item / .feed-title / .feed-meta / .score-bar / .score-num
+   / .feed-time above are reused unchanged. */
+.feed-eventtype { font-size: 9px; font-weight: 500; color: var(--text-muted); }
+
+/* Stage 6 summary, directly beneath the country name */
+.feed-summary {
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.feed-summary-ai { flex-shrink: 0; color: var(--saudi-gold); position: relative; top: 1px; }
+
+/* Stage 3 tier badge */
+.feed-tier-badge {
+  font-size: 8px; font-weight: 700;
+  border: 1px solid var(--border);
+  border-radius: 6px; padding: 1px 6px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.feed-tier-badge.tier-1 { color: var(--saudi-light); border-color: rgba(0,160,80,0.5); }
+.feed-tier-badge.tier-2 { color: var(--saudi-gold); border-color: var(--border-gold); }
+.feed-tier-badge.tier-none { color: var(--text-muted); border-style: dashed; }
+
+/* Stage 4/5 corroboration tag */
+.feed-tag {
+  font-size: 8px; font-weight: 700;
+  border-radius: 6px; padding: 1px 6px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.feed-tag.corroborated { color: var(--danger-low); border-color: rgba(0,230,118,0.4); background: rgba(0,230,118,0.08); }
+.feed-tag.unconfirmed  { color: var(--text-muted); border-color: var(--border); }
+.feed-tag.official     { color: var(--saudi-gold-light); border-color: var(--border-gold); background: var(--saudi-gold-dim); }
+
+.feed-tag.provisional { color: var(--text-muted); border-style: dashed; border-color: var(--border); }
+
+/* Source link */
+.feed-link {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 8.5px; color: var(--saudi-gold-light);
+  text-decoration: none; margin-inline-start: auto;
+}
+.feed-link:hover { color: var(--saudi-gold); }
+.feed-link svg { flex-shrink: 0; }
+
+/* ─── Card-layer rollup (grouping option B) ───────────────────────────────
+   One card per country + eventType; the distinct threats inside it expand
+   below. The pipeline, clusters and scores are untouched. */
+.feed-group { display: flex; flex-direction: column; }
+
+.feed-count-chip {
+  font-size: 8px; font-weight: 700;
+  color: var(--saudi-gold);
+  background: var(--saudi-gold-dim);
+  border: 1px solid var(--border-gold);
+  border-radius: 8px; padding: 0 5px;
+  margin-inline-start: 6px;
+}
+
+.feed-expand-btn {
+  align-self: flex-start;
+  display: flex; align-items: center; gap: 4px;
+  background: none; border: none; padding: 2px 0;
+  font-size: 9px; font-weight: 600;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  color: var(--text-muted); cursor: pointer;
+}
+.feed-expand-btn:hover { color: var(--text-secondary); }
+
+.feed-threat-list {
+  display: flex; flex-direction: column; gap: 3px;
+  margin: 2px 8px 6px 8px;
+}
+.feed-threat-row {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; text-align: start; font: inherit;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-inline-start: 2px solid var(--text-muted);
+  border-radius: 6px; cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.feed-threat-row:hover { background: rgba(255,255,255,0.05); }
+.feed-threat-row.selected { background: rgba(201,168,76,0.08); border-color: var(--border-gold); }
+.feed-threat-score { font-size: 11px; font-weight: 700; flex-shrink: 0; min-width: 22px; text-align: end; }
+.feed-threat-summary {
+  font-size: 9.5px; color: var(--text-secondary); line-height: 1.45;
+  overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
+  -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+}
+
 /* ─── Panel (shared) ─────────────────────────────────────── */
 .panel {
   background: rgba(10,22,40,0.72);
