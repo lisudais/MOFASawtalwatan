@@ -7,6 +7,8 @@ import { getStatements } from './netlify/lib/statementsCore.mjs'
 import { getSecurityProfiles } from './netlify/lib/securityCore.mjs'
 // @ts-ignore — plain-JS backend core (no types)
 import { getGold } from './netlify/lib/goldCore.mjs'
+// @ts-ignore — plain-JS backend core (no types) — flight monitoring (isolated)
+import { getOpenSkyStates } from './netlify/lib/openskyCore.mjs'
 
 // Serves the backend proxy endpoints during `vite dev` so the frontend hits the
 // exact same routes locally as in production (Netlify Functions).
@@ -51,6 +53,19 @@ function backendApiDev(): Plugin {
           res.statusCode = 502
           res.setHeader('content-type', 'application/json; charset=utf-8')
           res.end(JSON.stringify({ error: 'gold-proxy-failure' }))
+        }
+      })
+
+      server.middlewares.use('/api/opensky', async (_req, res) => {
+        try {
+          const data = await getOpenSkyStates()
+          res.statusCode = 200
+          res.setHeader('content-type', 'application/json; charset=utf-8')
+          res.end(JSON.stringify(data))
+        } catch {
+          res.statusCode = 502
+          res.setHeader('content-type', 'application/json; charset=utf-8')
+          res.end(JSON.stringify({ error: 'opensky-proxy-failure', time: 0, states: [] }))
         }
       })
     },

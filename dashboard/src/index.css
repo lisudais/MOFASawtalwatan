@@ -128,6 +128,10 @@ body {
   align-items: center;
   filter: drop-shadow(0 0 10px rgba(201,168,76,0.25));
 }
+/* Flatten the logo's own colors to pure white so it reads on the dark header. */
+.logo-block img {
+  filter: brightness(0) invert(1);
+}
 
 /* Center block */
 .header-center {
@@ -916,6 +920,49 @@ body {
 }
 .map-section .leaflet-container { width: 100%; height: 100%; background: #050b16; }
 .map-section .leaflet-control-attribution { display: none; }
+
+/* ─── Flight monitoring (isolated feature) ───────────────────────────────
+   Toggle control on the map, styled to match the dashboard; aircraft markers
+   are visually distinct from the round risk markers. */
+.flight-toggle-btn {
+  position: absolute;
+  top: 12px; left: 12px;
+  z-index: 1000;
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  font-size: 11px; font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-gold);
+  border-radius: 9px; padding: 7px 12px; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.flight-toggle-btn:hover { color: var(--saudi-gold); border-color: var(--saudi-gold); }
+.flight-toggle-btn.active {
+  color: #7DD3FC; border-color: rgba(125,211,252,0.6);
+  background: rgba(125,211,252,0.08);
+}
+.flight-toggle-btn svg { flex-shrink: 0; }
+
+.aircraft-map-icon { background: none; border: none; }
+.aircraft-glyph {
+  filter: drop-shadow(0 0 4px rgba(125,211,252,0.9));
+  transition: transform 0.3s ease; /* smooth reorientation on position refresh */
+}
+
+.flight-popup { font-size: 11px; line-height: 1.6; }
+.flight-popup strong { color: #0A1628; }
+
+/* Pulse for CRITICAL/HIGH event-type risk markers (see eventDivIcon in
+   WorldMap.tsx) — opacity/scale pulse, distinct from the older unused
+   .map-marker-pulse box-shadow-ring animation below. */
+@keyframes eventIconPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.7; transform: scale(1.15); }
+}
+
 .map-marker-pulse {
   border-radius: 50%;
   box-shadow: 0 0 0 rgba(255,23,68,0.5);
@@ -942,6 +989,287 @@ body {
 .event-detail-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; padding-right: 24px; }
 .event-detail-row { display: flex; gap: 8px; font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; }
 .event-detail-action { font-size: 11px; color: var(--saudi-gold-light); line-height: 1.6; margin-top: 8px; }
+
+/* --- Right-sidebar alert details overlay (AlertDetailsPanel) --------------
+   Owned entirely by the Global Alert Feed flow. A large panel absolutely
+   positioned over the map and RIGHT-aligned, so it sits beside the right
+   sidebar without pushing, resizing or moving the map. Header and footer are
+   pinned; only the body scrolls. Completely separate from the left sidebar's
+   .health-detail-* panels, which stay anchored to the left. */
+.alert-details-panel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  left: auto;
+  width: clamp(340px, 42vw, 600px);
+  max-width: calc(100% - 32px);
+  background: rgba(6,13,26,0.97);
+  border: 1px solid var(--border-gold);
+  border-top: 3px solid transparent; /* severity colour, set inline */
+  border-radius: 14px;
+  z-index: 1001;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -16px 16px 56px rgba(0,0,0,0.55);
+  overflow: hidden;
+  animation: alertPanelSlideIn 0.22s ease-out;
+}
+@keyframes alertPanelSlideIn {
+  from { opacity: 0; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.adp-header {
+  flex-shrink: 0;
+  padding: 16px 16px 12px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.adp-header-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.adp-subtitle { font-size: 10px; color: var(--text-muted); line-height: 1.5; }
+
+.adp-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+.adp-body::-webkit-scrollbar { width: 5px; }
+.adp-body::-webkit-scrollbar-track { background: transparent; }
+.adp-body::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 6px; }
+.adp-body::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+.adp-footer {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.event-type-tag {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+  border: 1px solid; padding: 2px 8px; border-radius: 4px;
+  display: inline-block; align-self: flex-start;
+}
+.adp-title { font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1.4; margin: 0; }
+
+.close-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer; padding: 5px;
+  display: flex; align-items: center; flex-shrink: 0;
+}
+.close-btn:hover { background: rgba(255,255,255,0.12); color: var(--text-primary); }
+
+/* Severity - circular arc + score card */
+.event-risk-row { display: flex; align-items: center; gap: 12px; }
+.score-visual { width: 52px; height: 52px; flex-shrink: 0; }
+.score-arc {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+}
+.score-arc > * {
+  background: var(--bg-card); border-radius: 50%;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+}
+.risk-level-display {
+  flex: 1; border: 1px solid; border-radius: 8px; padding: 10px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+}
+.risk-score { margin-inline-start: auto; font-size: 10px; }
+
+.severity-bar-track {
+  width: 100%; height: 5px; border-radius: 3px;
+  background: rgba(255,255,255,0.06); overflow: hidden;
+}
+.severity-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+/* Metadata rows */
+.event-detail-body { display: flex; flex-direction: column; gap: 6px; }
+.detail-row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-secondary); }
+.detail-row svg { flex-shrink: 0; }
+
+.event-description {
+  font-size: 11px; color: var(--text-muted); line-height: 1.55;
+  background: rgba(255,255,255,0.025); border-radius: 6px; padding: 10px;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+.event-recommendation { border: 1px solid; border-radius: 8px; padding: 10px; }
+.rec-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+.rec-text { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+
+/* Sources & related resources */
+.cw-sources-section { display: flex; flex-direction: column; gap: 8px; }
+.cw-sources-header {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; color: var(--text-primary);
+  font-family: 'IBM Plex Sans Arabic', inherit;
+}
+
+/* Saudi presence */
+.cw-presence-section { display: flex; flex-direction: column; gap: 8px; }
+.cw-presence-header { display: flex; align-items: center; justify-content: space-between; }
+.stat-label-en { font-size: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+.presence-grid-v2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.presence-citizens-card {
+  background: rgba(0,108,53,0.08);
+  border: 1px solid rgba(0,108,53,0.3);
+  border-radius: 8px; padding: 10px;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+  text-align: right; position: relative;
+  font: inherit; color: inherit; cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.presence-citizens-card:hover {
+  background: rgba(0,108,53,0.15);
+  border-color: var(--saudi-light);
+  box-shadow: 0 0 0 1px rgba(0,160,80,0.18);
+}
+.presence-citizens-card.open {
+  background: rgba(0,108,53,0.18);
+  border-color: var(--saudi-light);
+  box-shadow: 0 0 0 1px rgba(0,160,80,0.28);
+}
+.presence-citizens-card > svg:first-child { position: absolute; top: 10px; left: 10px; color: var(--saudi-light); }
+.presence-chevron { position: absolute; bottom: 10px; left: 10px; color: var(--text-muted); }
+
+/* Citizens dropdown — opens inline inside the right alert details panel,
+   directly under the "Saudi Citizens in Region" card. */
+.citizens-menu {
+  margin-top: 8px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px;
+  display: flex; flex-direction: column; gap: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,160,80,0.10);
+  animation: feedItemIn 0.18s ease;
+}
+.citizens-menu-list {
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 220px; overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+.citizens-menu-list::-webkit-scrollbar { width: 5px; }
+.citizens-menu-list::-webkit-scrollbar-track { background: transparent; }
+.citizens-menu-list::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 6px; }
+.citizens-menu-list::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+.citizens-menu-empty {
+  font-size: 11px; color: var(--text-muted); line-height: 1.6;
+  text-align: center; padding: 12px 6px;
+}
+.citizens-menu-notice {
+  font-size: 10px; font-weight: 700; color: var(--danger-medium);
+  background: rgba(255,214,0,0.08);
+  border: 1px solid rgba(255,214,0,0.28);
+  border-radius: 7px; padding: 6px 9px; text-align: center;
+}
+
+.citizen-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px; border-radius: 7px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.citizen-row:hover { background: rgba(255,255,255,0.05); }
+.citizen-row.selected {
+  background: rgba(201,168,76,0.08);
+  border-color: var(--saudi-gold);
+  box-shadow: 0 0 0 1px rgba(201,168,76,0.22);
+}
+.citizen-info { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.citizen-field { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.citizen-field-label {
+  font-size: 9px; color: var(--text-muted);
+  flex-shrink: 0; min-width: 46px;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+}
+.citizen-field-value {
+  font-size: 11px; color: var(--text-primary); font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.citizen-track-btn {
+  flex-shrink: 0; display: flex; align-items: center; gap: 4px;
+  padding: 5px 9px; border-radius: 6px;
+  font-size: 10px; font-weight: 700;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  background: rgba(201,168,76,0.12);
+  border: 1px solid var(--saudi-gold);
+  color: var(--saudi-gold);
+  cursor: pointer; transition: background 0.15s ease;
+}
+.citizen-track-btn:hover { background: rgba(201,168,76,0.24); }
+.presence-citizens-count { font-size: 20px; font-weight: 800; color: var(--text-primary); line-height: 1; }
+.presence-citizens-label {
+  font-size: 9px; color: var(--text-secondary); line-height: 1.4;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.presence-visa-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.presence-visa-count { font-size: 20px; font-weight: 800; color: var(--text-primary); line-height: 1; }
+.presence-visa-label {
+  font-size: 9px; color: var(--text-secondary); line-height: 1.4;
+  display: flex; flex-direction: column; gap: 1px;
+}
+
+/* Editable alert message */
+.editable-message-section { display: flex; flex-direction: column; gap: 6px; }
+.editable-message-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; color: var(--text-primary);
+  font-family: 'IBM Plex Sans Arabic', inherit;
+}
+.editable-message-textarea {
+  width: 100%; resize: vertical; min-height: 80px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px; color: var(--text-primary);
+  font-size: 12px; line-height: 1.5; font-family: 'IBM Plex Sans Arabic', inherit;
+  outline: none;
+}
+.editable-message-textarea:focus { border-color: var(--saudi-gold); }
+.editable-message-charcount { align-self: flex-end; font-size: 9px; color: var(--text-muted); }
+
+/* Bottom action button */
+.btn-alert-all {
+  width: 100%; padding: 10px; border: none; border-radius: 8px;
+  color: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
+  letter-spacing: 0.5px; transition: opacity 0.2s;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+}
+.btn-alert-all:hover { opacity: 0.85; }
+.btn-alert-all:disabled { opacity: 0.6; cursor: default; }
+
+/* Selected right-sidebar card - severity-neutral gold glow, feed rows only. */
+.alert-feed-rtl .feed-item.selected {
+  border-color: var(--border-gold);
+  box-shadow: 0 0 0 1px rgba(201,168,76,0.25), 0 4px 18px rgba(0,0,0,0.35);
+}
+
+@media (max-width: 1200px) {
+  .alert-details-panel { width: clamp(300px, 60vw, 480px); }
+}
 
 /* ─── Health country detail — compact floating card over the map (same
    overlay slot as .event-detail-card), anchored top-left with margin from
@@ -1163,12 +1491,35 @@ body {
   overflow: hidden;
   border-left: 1px solid rgba(255,255,255,0.06);
 }
-.right-column .traveler-panel {
+.right-column .alert-feed {
   flex: 1;
-  border-left: none;
-  border-right: none;
   min-height: 0;
+  border-right: none;
+  border-left: none;
 }
+
+/* Global Alert Feed — Arabic-first RTL header + trailing chevron on each row.
+   Row-level classes (.feed-item, .feed-title, .risk-badge, .score-bar, …) are
+   shared with the styles above, so they are not duplicated here. */
+.feed-header-title-ar {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--saudi-gold);
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  text-transform: none;
+  letter-spacing: 0;
+  direction: rtl;
+}
+.feed-header-title-en {
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+.alert-feed-rtl .panel-badge { margin-left: 0; margin-right: auto; }
+
+.feed-chevron { flex-shrink: 0; color: var(--text-muted); opacity: 0.6; align-self: center; }
+.feed-item:hover .feed-chevron { opacity: 1; color: var(--text-secondary); }
 
 /* ─── Panel (shared) ─────────────────────────────────────── */
 .panel {

@@ -3,16 +3,15 @@ import Header from './components/Header';
 import WorldMap from './components/WorldMap';
 import IntelSidebar from './components/IntelSidebar';
 import SidebarResizeHandle from './components/SidebarResizeHandle';
-import TravelerPanel from './components/TravelerPanel';
 import EventDetail from './components/EventDetail';
+import GlobalAlertFeed from './components/GlobalAlertFeed';
+import AlertDetailsPanel from './components/AlertDetailsPanel';
 import HealthCountryDetailPanel from './components/HealthCountryDetailPanel';
 import DisasterDetailPanel from './components/DisasterDetailPanel';
 import OfficialStatementDetailPanel from './components/OfficialStatementDetailPanel';
 import SecurityDetailPanel from './components/SecurityDetailPanel';
 import EconomyDetailPanel from './components/EconomyDetailPanel';
 import NotificationToast from './components/NotificationToast';
-import RegisterModal from './components/RegisterModal';
-import CommitteePanel from './components/CommitteePanel';
 import CommitteeView from './components/CommitteeView';
 import { loadFirebaseConfig, initFirebase } from './services/firebaseRt';
 import { fetchGDACSEvents } from './services/gdacs';
@@ -70,17 +69,22 @@ export default function App() {
   if (IS_COMMITTEE_VIEW) return <CommitteeView />;
 
   const [events, setEvents] = useState<GeoEvent[]>([]);
-  const [travelers, setTravelers] = useState<Traveler[]>(() => {
+  const [travelers] = useState<Traveler[]>(() => {
     const saved = loadSavedTraveler();
     return saved ? [saved, ...MOCK_TRAVELERS] : MOCK_TRAVELERS;
   });
   const [selectedEvent, setSelectedEvent] = useState<GeoEvent | null>(null);
+  // Right sidebar (Global Alert Feed) selection — deliberately separate from
+  // `selectedEvent`, which drives the left sidebar / map / EventDetail flow.
+  const [selectedRightAlert, setSelectedRightAlert] = useState<GeoEvent | null>(null);
+  // Citizen tracked from the right-sidebar details panel — feeds the map's
+  // existing selectedTraveler fly-to only; no marker layer is altered.
+  const [trackedCitizen, setTrackedCitizen] = useState<Traveler | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<CountryHealthEntry | null>(null);
   const [selectedDisaster, setSelectedDisaster] = useState<NaturalDisaster | null>(null);
   const [selectedStatement, setSelectedStatement] = useState<OfficialStatement | null>(null);
   const [selectedSecurity, setSelectedSecurity] = useState<SecurityProfile | null>(null);
   const [selectedIndicator, setSelectedIndicator] = useState<EconomicIndicator | null>(null);
-  const [selectedTraveler, setSelectedTraveler] = useState<Traveler | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,7 +92,6 @@ export default function App() {
   // empty state. No mock fallback is ever used.
   const [feedError, setFeedError] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
   const [sidebarWidthPct, setSidebarWidthPct] = useState(loadSidebarWidthPct);
   const autoAlertedRef = useRef(new Set<string>());
 
@@ -175,55 +178,13 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleRegister = useCallback((traveler: Traveler) => {
-    setTravelers((prev) => {
-      const without = prev.filter((t) => !t.id.startsWith('my-device'));
-      return [traveler, ...without];
-    });
-    setPushEnabled(true);
-  }, []);
-
   const dismissNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
-  const sendAlert = useCallback(async (travelerId: string) => {
-    const traveler = travelers.find((t) => t.id === travelerId);
-    if (!traveler) return;
-
-    // Use the selected event, fall back to the traveler's first alert event, then the most critical event
-    const event =
-      selectedEvent ??
-      (traveler.alerts.length > 0 ? events.find((e) => e.id === traveler.alerts[0]) : null) ??
-      [...events].sort((a, b) => {
-        const p: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3, SAFE: 4 };
-        return (p[a.riskLevel] ?? 5) - (p[b.riskLevel] ?? 5);
-      })[0];
-
-    if (!event) return;
-
-    const aiSug = generateAiSuggestion(event, traveler);
-    const steps = generateActionSteps(event);
-    const notif: Notification = {
-      id: `notif-${travelerId}-${event.id}-${Date.now()}`,
-      travelerId,
-      travelerName: traveler.nameEn,
-      eventId: event.id,
-      eventTitle: event.title,
-      riskLevel: event.riskLevel,
-      message: generateNotificationMessage(event, traveler),
-      messageAr: generateNotificationMessageAr(event, traveler),
-      aiSuggestion: aiSug.en,
-      aiSuggestionAr: aiSug.ar,
-      actionSteps: steps.en,
-      actionStepsAr: steps.ar,
-      timestamp: new Date(),
-      sent: true,
-    };
-
-    setNotifications((prev) => [notif, ...prev]);
-    if (pushEnabled) await sendPushNotification(event, traveler);
-  }, [selectedEvent, travelers, events, pushEnabled]);
+  const travelersAtRiskForEvent = selectedEvent
+    ? travelers.filter((t) => t.countryCode === selectedEvent.countryCode).length
+    : 0;
 
   const stats: DashboardStats = {
     totalEvents: events.length,
@@ -233,10 +194,6 @@ export default function App() {
     notificationsSent: notifications.filter((n) => n.sent).length,
     activeAlerts: events.filter((e) => e.riskLevel === 'CRITICAL' || e.riskLevel === 'HIGH').length,
   };
-
-  const travelersAtRiskForEvent = selectedEvent
-    ? travelers.filter((t) => t.countryCode === selectedEvent.countryCode).length
-    : 0;
 
   return (
     <div className="app">
@@ -280,12 +237,16 @@ export default function App() {
         />
 
         <div className="map-section">
+          {/* The map shares the RIGHT sidebar's event identity: a card click
+              flies to + selects its marker, a marker click selects + scrolls to
+              its card, and both open the same right-side details panel. The
+              left sidebar's own `selectedEvent` flow is untouched. */}
           <WorldMap
             events={events}
             travelers={travelers}
-            selectedEvent={selectedEvent}
-            onSelectEvent={setSelectedEvent}
-            selectedTraveler={selectedTraveler}
+            selectedEvent={selectedRightAlert}
+            onSelectEvent={setSelectedRightAlert}
+            selectedTraveler={trackedCitizen}
           />
           {/* Empty / error state — shown ONLY when there are no real events.
               No mock fallback is ever displayed. */}
@@ -323,31 +284,28 @@ export default function App() {
             indicator={selectedIndicator}
             onClose={() => setSelectedIndicator(null)}
           />
+          {/* Right-sidebar-only details overlay — driven solely by the Global
+              Alert Feed's own state; never touches the left sidebar's panels. */}
+          {selectedRightAlert && (
+            <AlertDetailsPanel
+              alert={selectedRightAlert}
+              travelers={travelers}
+              onClose={() => setSelectedRightAlert(null)}
+              onTrackCitizen={setTrackedCitizen}
+            />
+          )}
         </div>
 
         <div className="right-column">
-          <TravelerPanel
-            travelers={travelers}
+          <GlobalAlertFeed
             events={events}
-            onSendAlert={sendAlert}
-            onRegisterClick={() => setShowRegister(true)}
-            onSelectTraveler={setSelectedTraveler}
-          />
-          <CommitteePanel
-            selectedEvent={selectedEvent}
-            travelersAtRisk={travelersAtRiskForEvent}
+            selectedAlert={selectedRightAlert}
+            onSelectAlert={setSelectedRightAlert}
           />
         </div>
       </main>
 
       <NotificationToast notifications={notifications} onDismiss={dismissNotification} />
-
-      {showRegister && (
-        <RegisterModal
-          onRegister={handleRegister}
-          onClose={() => setShowRegister(false)}
-        />
-      )}
     </div>
   );
 }
