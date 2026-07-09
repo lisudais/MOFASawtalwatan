@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { X, MapPin, Clock, Radio, Link2, Send, AlertTriangle, Pencil, ChevronDown, ChevronUp, Navigation } from 'lucide-react';
+import { RISK_COLORS, RISK_LABEL_AR, TYPE_LABEL_AR } from '../constants';
 import { X, MapPin, Clock, Radio, Link2, Send, AlertTriangle, Pencil, Shield, ChevronDown, ChevronUp, Navigation } from 'lucide-react';
 import { TYPE_LABEL_AR } from '../constants';
 import { countryNameAr } from '../services/feed/countryNames';
@@ -272,8 +274,7 @@ export default function AlertDetailsPanel({ card, event, travelers, onClose, onT
               aria-expanded={isCitizensMenuOpen}
               title="عرض المواطنين في المنطقة"
             >
-              <Shield size={14} />
-              <div className="presence-citizens-count">{citizensHere > 0 ? citizensHere : '—'}</div>
+              <div className="presence-citizens-count">{citizensHere}</div>
               <div className="presence-citizens-label">
                 Saudi Citizens in Region
                 <span className="panel-header-ar" style={{ marginRight: 0 }}>مواطنون في المنطقة</span>
@@ -282,7 +283,7 @@ export default function AlertDetailsPanel({ card, event, travelers, onClose, onT
             </button>
             <div className="presence-visa-card">
               {/* No visa-holder field exists on the alert object — never invented. */}
-              <div className="presence-visa-count">—</div>
+              <div className="presence-visa-count">0</div>
               <div className="presence-visa-label">
                 Visa Holders
                 <span className="panel-header-ar" style={{ marginRight: 0 }}>حاملو التأشيرات</span>
