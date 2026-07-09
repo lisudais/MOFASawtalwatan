@@ -6,6 +6,7 @@ import SidebarResizeHandle from './components/SidebarResizeHandle';
 import EventDetail from './components/EventDetail';
 import GlobalAlertFeed from './components/GlobalAlertFeed';
 import AlertDetailsPanel from './components/AlertDetailsPanel';
+import { fetchFastFeedCards, fetchFeedStatus, fetchFeedCards, type FeedCard } from './services/feed/feedCards';
 import HealthCountryDetailPanel from './components/HealthCountryDetailPanel';
 import DisasterDetailPanel from './components/DisasterDetailPanel';
 import OfficialStatementDetailPanel from './components/OfficialStatementDetailPanel';
@@ -77,6 +78,13 @@ export default function App() {
   // Right sidebar (Global Alert Feed) selection — deliberately separate from
   // `selectedEvent`, which drives the left sidebar / map / EventDetail flow.
   const [selectedRightAlert, setSelectedRightAlert] = useState<GeoEvent | null>(null);
+  // Global Alert Feed cards now come from the Stages 1-6 pipeline (/api/feed),
+  // not from the legacy `events` array. `events` still drives the map markers
+  // and the detail panel, so nothing that previously rendered was removed.
+  const [feedCards, setFeedCards] = useState<FeedCard[]>([]);
+  const [cardsLoading, setCardsLoading] = useState(true);
+  const [cardsError, setCardsError] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<FeedCard | null>(null);
   // Citizen tracked from the right-sidebar details panel — feeds the map's
   // existing selectedTraveler fly-to only; no marker layer is altered.
   const [trackedCitizen, setTrackedCitizen] = useState<Traveler | null>(null);
@@ -177,6 +185,84 @@ export default function App() {
     const interval = setInterval(loadLiveData, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  /**
+   * Progressive load. The full pipeline is ~530s cold, which cannot block a page
+   * load, so the feed streams in two tiers:
+   *
+   *   1. /api/feed/fast   deterministic stages only (~2s). Geophysical + security
+   *                       cards paint immediately, tagged `provisional`. Their
+   *                       scores are conservative — uncorroborated, so capped.
+   *   2. /api/feed        the AI-scored run. Requesting the fast tier warms it in
+   *                       the background; we poll /api/feed/status and swap the
+   *                       cards in the moment it is ready.
+   *
+   * A provisional card can only under-state a score, never over-state it.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    let pollId: ReturnType<typeof setInterval> | undefined;
+
+    async function loadFull() {
+      try {
+        const full = await fetchFeedCards();
+        if (cancelled || !full.ok) return;
+        setFeedCards(full.cards);
+        setCardsError(false);
+      } catch {
+        // The fast cards stay on screen; the next refresh retries.
+      }
+    }
+
+    async function start() {
+      try {
+        const fast = await fetchFastFeedCards();
+        if (cancelled) return;
+        setFeedCards(fast.cards);
+        setCardsError(!fast.ok);
+        setCardsLoading(false);
+
+        if (fast.fullReady) { loadFull(); return; }
+
+        // The background warm is running server-side. Poll cheaply for it.
+        pollId = setInterval(async () => {
+          if (cancelled) return;
+          const { fullReady } = await fetchFeedStatus();
+          if (!fullReady) return;
+          clearInterval(pollId);
+          loadFull();
+        }, 15_000);
+      } catch {
+        if (!cancelled) { setCardsError(true); setCardsLoading(false); }
+      }
+    }
+
+    start();
+    const refresh = setInterval(start, 5 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(refresh);
+      if (pollId) clearInterval(pollId);
+    };
+  }, []);
+
+  /**
+   * Clicking a card selects it. When the cluster contains a signal that came
+   * from a geophysical GeoEvent, we also select that event, so the existing
+   * map fly-to and the right-side details panel keep working exactly as before.
+   * Clusters with no GeoEvent behind them (security / statements / GDELT) simply
+   * highlight — nothing that used to work has been taken away.
+   */
+  const handleSelectCard = useCallback((card: FeedCard) => {
+    setSelectedCard(card);
+    // When the cluster contains a geophysical signal that maps back to a
+    // GeoEvent, also select it so the map fly-to keeps working. Cards with no
+    // GeoEvent behind them (security / statements / GDELT) still open the
+    // details panel — it now renders from the card itself.
+    const geoIds = card.signalIds.map((id) => id.slice(id.indexOf(':') + 1));
+    const match = events.find((e) => geoIds.includes(e.id));
+    setSelectedRightAlert(match ?? null);
+  }, [events]);
 
   const dismissNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
@@ -286,11 +372,12 @@ export default function App() {
           />
           {/* Right-sidebar-only details overlay — driven solely by the Global
               Alert Feed's own state; never touches the left sidebar's panels. */}
-          {selectedRightAlert && (
+          {selectedCard && (
             <AlertDetailsPanel
-              alert={selectedRightAlert}
+              card={selectedCard}
+              event={selectedRightAlert}
               travelers={travelers}
-              onClose={() => setSelectedRightAlert(null)}
+              onClose={() => { setSelectedCard(null); setSelectedRightAlert(null); }}
               onTrackCitizen={setTrackedCitizen}
             />
           )}
@@ -298,9 +385,11 @@ export default function App() {
 
         <div className="right-column">
           <GlobalAlertFeed
-            events={events}
-            selectedAlert={selectedRightAlert}
-            onSelectAlert={setSelectedRightAlert}
+            cards={feedCards}
+            loading={cardsLoading}
+            error={cardsError}
+            selectedCardId={selectedCard?.id ?? null}
+            onSelectCard={handleSelectCard}
           />
         </div>
       </main>

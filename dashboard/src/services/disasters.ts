@@ -1,4 +1,5 @@
 import type { GeoEvent } from '../types';
+import { resilientFetch } from './resilientFetch';
 import { scoreEvent, scoreToRiskLevel, getRecommendedAction } from './riskEngine';
 
 const EONET_URL = 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=30';
@@ -15,7 +16,7 @@ const EONET_CATEGORY_TYPE: Record<string, GeoEvent['type']> = {
 
 async function fetchEonetEvents(): Promise<GeoEvent[]> {
   try {
-    const res = await fetch(EONET_URL, { signal: AbortSignal.timeout(8000) });
+    const res = await resilientFetch(EONET_URL);
     const data = await res.json();
 
     return (data.events as any[]).map((ev, i) => {
@@ -56,7 +57,7 @@ async function fetchEonetEvents(): Promise<GeoEvent[]> {
 
 async function fetchEmscQuakes(): Promise<GeoEvent[]> {
   try {
-    const res = await fetch(EMSC_URL, { signal: AbortSignal.timeout(8000) });
+    const res = await resilientFetch(EMSC_URL);
     const data = await res.json();
 
     return (data.features as any[]).map((f, i) => {

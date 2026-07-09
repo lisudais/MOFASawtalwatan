@@ -1,4 +1,5 @@
 import type { GeoEvent } from '../types';
+import { resilientFetch } from './resilientFetch';
 import { scoreToRiskLevel, getRecommendedAction } from './riskEngine';
 
 const USGS_URL =
@@ -31,7 +32,7 @@ function magToScore(mag: number): number {
 
 export async function fetchUSGSEarthquakes(): Promise<GeoEvent[]> {
   try {
-    const res = await fetch(USGS_URL, { signal: AbortSignal.timeout(8000) });
+    const res = await resilientFetch(USGS_URL);
     const data = await res.json();
 
     return (data.features as any[]).slice(0, 30).map((f, i) => {

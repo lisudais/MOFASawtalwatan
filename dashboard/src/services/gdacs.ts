@@ -1,4 +1,5 @@
 import type { GeoEvent } from '../types';
+import { resilientFetch } from './resilientFetch';
 import { scoreEvent, scoreToRiskLevel, getRecommendedAction } from './riskEngine';
 
 const GDACS_RSS = 'https://api.allorigins.win/raw?url=https://www.gdacs.org/xml/rss.xml';
@@ -41,7 +42,7 @@ function parseRSSItem(item: Element): Partial<GeoEvent> | null {
 
 export async function fetchGDACSEvents(): Promise<GeoEvent[]> {
   try {
-    const res = await fetch(GDACS_RSS, { signal: AbortSignal.timeout(8000) });
+    const res = await resilientFetch(GDACS_RSS, { timeoutMs: 25000 });
     const text = await res.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(text, 'application/xml');
