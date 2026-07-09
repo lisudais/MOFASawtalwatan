@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Share2, RefreshCw, TrendingUp, TrendingDown, Minus, Siren, AlertTriangle } from 'lucide-react';
+import { Share2, RefreshCw, TrendingUp, TrendingDown, Minus, AlertTriangle } from 'lucide-react';
 import {
   computeRegionalForecast,
   HEALTH_REGION_LABEL_AR,
@@ -64,18 +64,11 @@ export default function HealthCategoryCard({ onSelectCountry }: HealthCategoryCa
     return () => clearInterval(interval);
   }, [load]);
 
-  const anyTriggered = countries.some((c) => c.analysis.early_warning.triggered);
   const regional = countries.length > 0 ? computeRegionalForecast(countries) : null;
 
   return (
     <div className="region-card health-card">
       <div className="region-accent-bar" />
-
-      {anyTriggered && (
-        <div className="health-early-warning-badge" title="تنبيه مبكر نشط لإحدى الدول">
-          <Siren size={9} />
-        </div>
-      )}
 
       <div className="region-card-header">
         <span className="region-count mono-num">{countries.length}</span>

@@ -746,7 +746,9 @@ body {
   flex: 1;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* always 2 columns — never reflows to 1 or 4 as the sidebar resizes */
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); /* reflows to more columns as the sidebar widens, falls back to 1 when squeezed, instead of a rigid 2-up grid */
+  grid-auto-rows: min-content; /* each row's height is driven purely by its own row's content, so a resize can never leave a stale/mismatched row height behind */
+  align-items: start; /* aspect-ratio items should size from their own ratio, not the row's stretch height — avoids the cross-browser stretch+aspect-ratio sizing bugs that caused cards to bleed into each other on resize */
   gap: 8px;
   padding: 8px;
 }
@@ -761,6 +763,7 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0; /* lets the card shrink below its content's intrinsic size instead of forcing the grid row taller than the aspect-ratio box, which is what let it overlap the next row */
 }
 .region-accent-bar { height: 3px; background: var(--text-muted); flex-shrink: 0; }
 .region-accent-bar.critical { background: var(--danger-critical); }
@@ -1144,7 +1147,6 @@ body {
   border-color: var(--saudi-light);
   box-shadow: 0 0 0 1px rgba(0,160,80,0.28);
 }
-.presence-citizens-card > svg:first-child { position: absolute; top: 10px; left: 10px; color: var(--saudi-light); }
 .presence-chevron { position: absolute; bottom: 10px; left: 10px; color: var(--text-muted); }
 
 /* Citizens dropdown — opens inline inside the right alert details panel,
@@ -1653,19 +1655,6 @@ body {
    text is caption-only (see the "one glance" note in the task
    that produced this). Font sizes use the same clamp()+cqw
    progressive-enhancement pattern as the rest of this grid. ── */
-.health-early-warning-badge {
-  position: absolute;
-  top: 6px; right: 6px;
-  z-index: 5;
-  width: 16px; height: 16px;
-  border-radius: 50%;
-  background: rgba(255,23,68,0.15);
-  border: 1px solid var(--danger-critical);
-  color: var(--danger-critical);
-  display: flex; align-items: center; justify-content: center;
-  cursor: help;
-  animation: livePulse 1.4s ease-in-out infinite;
-}
 
 .health-card-body {
   flex: 1;
