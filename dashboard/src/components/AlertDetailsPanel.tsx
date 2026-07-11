@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X, MapPin, Clock, Radio, Link2, Send, AlertTriangle, Pencil, ChevronDown, ChevronUp, Navigation } from 'lucide-react';
+import { RISK_COLORS, RISK_LABEL_AR, TYPE_LABEL_AR } from '../constants';
+import { X, MapPin, Clock, Radio, Link2, Send, AlertTriangle, Pencil, Shield, ChevronDown, ChevronUp, Navigation } from 'lucide-react';
 import { TYPE_LABEL_AR } from '../constants';
 import { countryNameAr } from '../services/feed/countryNames';
 import type { FeedCard } from '../services/feed/feedCards';
