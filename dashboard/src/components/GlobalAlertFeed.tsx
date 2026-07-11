@@ -130,7 +130,6 @@ export default function GlobalAlertFeed({
       <div className="panel-header" dir="rtl">
         <Radar size={14} />
         <span className="feed-header-title-ar">التنبيهات العالمية</span>
-        <span className="feed-header-title-en">GLOBAL ALERT FEED</span>
         <span className="panel-badge">{groups.length}</span>
       </div>
 

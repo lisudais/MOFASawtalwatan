@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
-import { X, Send, ExternalLink, Loader2, Sparkles, AlertTriangle, Globe, ShieldAlert, ClipboardList } from 'lucide-react';
+import { X, Send, ExternalLink, Sparkles, AlertTriangle, Globe, ShieldAlert, ClipboardList } from 'lucide-react';
 import type { CountryHealthEntry } from '../services/healthAnalysis';
-import { analyzeHealthOutbreak, type HealthAiAnalysis, type HealthRisk, type HealthConfidence } from '../services/healthAi';
+import { analyzeHealthOutbreak, healthAiCacheKey, type HealthRisk, type HealthConfidence } from '../services/healthAi';
+import { useAiAnalysis } from '../services/ai/useAiAnalysis';
+import AiProgressiveLine from './AiProgressiveLine';
+import SafeSourceLink from './SafeSourceLink';
 import { RISK_LEVEL_BAR_COLORS, RISK_LABEL_AR } from '../constants';
 
 interface HealthCountryDetailPanelProps {
   country: CountryHealthEntry | null;
   onClose: () => void;
 }
-
-type Status = 'loading' | 'ready' | 'unavailable';
 
 const RISK_COLOR: Record<HealthRisk, string> = {
   CRITICAL: RISK_LEVEL_BAR_COLORS.CRITICAL,
@@ -27,25 +28,21 @@ const CONFIDENCE_LABEL: Record<HealthConfidence, string> = { HIGH: 'ثقة عا�
 // show the raw WHO data with a clear warning (never a fabricated analysis).
 export default function HealthCountryDetailPanel({ country, onClose }: HealthCountryDetailPanelProps) {
   const [displayed, setDisplayed] = useState<CountryHealthEntry | null>(null);
-  const [ai, setAi] = useState<HealthAiAnalysis | null>(null);
-  const [status, setStatus] = useState<Status>('loading');
   const [sent, setSent] = useState(false);
 
   useEffect(() => {
-    if (!country) return;
-    setDisplayed(country);
-    setSent(false);
-    setAi(null);
-    setStatus('loading');
-    let cancelled = false;
-    // → send the real WHO data to gpt-oss and render its output (or fall back).
-    analyzeHealthOutbreak(country).then((result) => {
-      if (cancelled) return;
-      if (result) { setAi(result); setStatus('ready'); }
-      else setStatus('unavailable');
-    });
-    return () => { cancelled = true; };
+    if (country) { setDisplayed(country); setSent(false); }
   }, [country]);
+
+  // The raw WHO data (below) renders instantly and unconditionally — the AI
+  // analysis is a pure upgrade layered on top, never a gate on showing the
+  // country. Reopening the same country|disease within 10 minutes reuses the
+  // cached analysis; opening a different one cancels the in-flight request.
+  const { result: ai, loading: aiLoading, loadingMessage, unavailable } = useAiAnalysis({
+    key: country ? healthAiCacheKey(country) : null,
+    input: country,
+    fetcher: (entry, signal) => analyzeHealthOutbreak(entry, signal),
+  });
 
   const isOpen = country !== null;
   const d = displayed;
@@ -66,21 +63,43 @@ export default function HealthCountryDetailPanel({ country, onClose }: HealthCou
             {/* Real WHO/disease.sh identity (not AI) */}
             <div className="health-detail-disease-block">
               <div className="health-detail-disease-name">{d.disease}</div>
-              {status === 'ready' && ai && (
+              {ai && (
                 <div className="health-detail-disease-definition">{ai.diseaseType}</div>
               )}
             </div>
 
-            {/* ── LOADING: gpt-oss is generating the analysis ── */}
-            {status === 'loading' && (
-              <div className="health-ai-loading">
-                <Loader2 size={18} className="spin-icon" />
-                <span>جارِ توليد التحليل بواسطة الذكاء الاصطناعي…</span>
-              </div>
+            {/* ── Raw WHO data — shown immediately, never waits on the AI call.
+                Superseded (not gated) by the AI section once it's ready. ── */}
+            {!ai && (
+              <>
+                {unavailable && (
+                  <div className="health-ai-warning">
+                    <AlertTriangle size={13} /> تحليل الذكاء الاصطناعي غير متاح حالياً — يُعرض النص الأصلي من المصدر.
+                  </div>
+                )}
+                {d.sourceTitle && (
+                  <div className="health-detail-section">
+                    <div className="health-detail-section-title-standalone">العنوان الأصلي</div>
+                    <div className="health-detail-status-text">{d.sourceTitle}</div>
+                  </div>
+                )}
+                {d.sourceText && (
+                  <div className="health-detail-section">
+                    <div className="health-detail-section-title-standalone">التفاصيل الأصلية</div>
+                    <div className="health-detail-status-text">{d.sourceText}</div>
+                    {aiLoading && <AiProgressiveLine message={loadingMessage} />}
+                  </div>
+                )}
+                {aiLoading && !d.sourceText && (
+                  <div className="health-detail-section">
+                    <AiProgressiveLine message={loadingMessage} />
+                  </div>
+                )}
+              </>
             )}
 
             {/* ── READY: gpt-oss analysis of the real WHO data ── */}
-            {status === 'ready' && ai && (
+            {ai && (
               <>
                 <div className="health-detail-section">
                   <div className="health-detail-section-header">
@@ -133,27 +152,6 @@ export default function HealthCountryDetailPanel({ country, onClose }: HealthCou
               </>
             )}
 
-            {/* ── UNAVAILABLE: model down → raw WHO data + warning (no fake analysis) ── */}
-            {status === 'unavailable' && (
-              <>
-                <div className="health-ai-warning">
-                  <AlertTriangle size={13} /> تحليل الذكاء الاصطناعي غير متاح حالياً — يُعرض النص الأصلي من المصدر.
-                </div>
-                {d.sourceTitle && (
-                  <div className="health-detail-section">
-                    <div className="health-detail-section-title-standalone">العنوان الأصلي</div>
-                    <div className="health-detail-status-text">{d.sourceTitle}</div>
-                  </div>
-                )}
-                {d.sourceText && (
-                  <div className="health-detail-section">
-                    <div className="health-detail-section-title-standalone">التفاصيل الأصلية</div>
-                    <div className="health-detail-status-text">{d.sourceText}</div>
-                  </div>
-                )}
-              </>
-            )}
-
             {/* Saudi presence — no real per-country dataset (allowed mock exception) */}
             <div className="health-detail-section">
               <div className="health-detail-section-title">التواجد السعودي في {d.country}</div>
@@ -172,18 +170,16 @@ export default function HealthCountryDetailPanel({ country, onClose }: HealthCou
             </div>
 
             {/* Real source link (WHO / disease.sh) */}
-            {d.sourceUrl && (
-              <a className="os-source-link" href={d.sourceUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink size={13} />
-                المصدر الأصلي · {d.sourceName ?? 'المصدر'}
-              </a>
-            )}
+            <SafeSourceLink className="os-source-link" href={d.sourceUrl} fallbackHint={d.sourceName}>
+              <ExternalLink size={13} />
+              المصدر الأصلي · {d.sourceName ?? 'المصدر'}
+            </SafeSourceLink>
 
             <button
               className="health-detail-send-btn"
               style={{ background: color }}
               onClick={() => setSent(true)}
-              disabled={sent || status === 'loading'}
+              disabled={sent}
             >
               <Send size={13} />
               {sent ? 'تم الإرسال' : 'أرسل إشعاراً للمواطنين'}

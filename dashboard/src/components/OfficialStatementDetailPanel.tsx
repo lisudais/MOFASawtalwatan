@@ -7,6 +7,7 @@ import {
   formatDateTimeAr,
   type OfficialStatement,
 } from '../services/officialStatements';
+import SafeSourceLink from './SafeSourceLink';
 
 interface OfficialStatementDetailPanelProps {
   statement: OfficialStatement | null;
@@ -114,10 +115,10 @@ export default function OfficialStatementDetailPanel({ statement, onClose }: Off
             )}
 
             {/* المصدر الأصلي */}
-            <a className="os-source-link" href={displayed.sourceUrl} target="_blank" rel="noopener noreferrer">
+            <SafeSourceLink className="os-source-link" href={displayed.sourceUrl} fallbackHint={displayed.sourceName}>
               <ExternalLink size={13} />
               المصدر الأصلي · {displayed.sourceName}
-            </a>
+            </SafeSourceLink>
           </>
         )}
       </div>

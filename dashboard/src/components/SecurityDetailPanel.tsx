@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
-import { X, Clock, ExternalLink, ShieldAlert, History, Sparkles, Users } from 'lucide-react';
+import { X, Clock, ExternalLink, ShieldAlert, History, Sparkles, Users, Radio } from 'lucide-react';
 import {
-  CATEGORY_ORDER, CATEGORY_LABEL_AR, THREAT_LABEL_AR,
+  FACTOR_ORDER, FACTOR_LABEL_AR, FACTOR_WEIGHT_PCT, RISK_LABEL_AR,
   scoreColor, timeAgoAr, formatDateTimeAr,
-  type SecurityProfile, type Severity,
+  type CountrySecurityProfile, type Severity,
 } from '../services/security';
-import { summarizeSecurity, heuristicSummary, type SecuritySummary } from '../services/securityAi';
+import { summarizeSecurity, heuristicSummary, securityAiCacheKey } from '../services/securityAi';
+import { useAiAnalysis } from '../services/ai/useAiAnalysis';
+import AiProgressiveLine from './AiProgressiveLine';
+import SafeSourceLink from './SafeSourceLink';
 
 interface SecurityDetailPanelProps {
-  profile: SecurityProfile | null;
+  profile: CountrySecurityProfile | null;
   onClose: () => void;
 }
 
@@ -21,26 +24,31 @@ const SEVERITY_LABEL_AR: Record<Severity, string> = {
   LOW: 'منخفض', MEDIUM: 'متوسط', HIGH: 'مرتفع', CRITICAL: 'حرج',
 };
 
-// Slide-in map overlay for a country's security profile — reuses the same
-// .health-detail-* shell (overlay slot, borders, glow, slide-in, RTL) as the
-// other detail popups. Content: overall score, category breakdown, Saudi
-// presence, current threats, event timeline, an AI summary, and source links.
+// Slide-in map overlay for a country's ACLED-derived security profile —
+// reuses the same .health-detail-* shell (overlay slot, borders, glow,
+// slide-in, RTL) as the other detail popups. Content: risk score, the five
+// weighted ACLED factors, current threats, event timeline, an AI summary +
+// top reasons, and the source link.
 export default function SecurityDetailPanel({ profile, onClose }: SecurityDetailPanelProps) {
-  const [displayed, setDisplayed] = useState<SecurityProfile | null>(null);
-  const [ai, setAi] = useState<SecuritySummary | null>(null);
+  const [displayed, setDisplayed] = useState<CountrySecurityProfile | null>(null);
 
   useEffect(() => {
-    if (!profile) return;
-    setDisplayed(profile);
-    setAi(heuristicSummary(profile)); // instant default…
-    let cancelled = false;
-    summarizeSecurity(profile).then((r) => { if (!cancelled) setAi(r); }); // …upgraded by AI when available
-    return () => { cancelled = true; };
+    if (profile) setDisplayed(profile);
   }, [profile]);
+
+  // Country profile (score, factors, threats, timeline) renders instantly
+  // from `displayed` above; the AI summary is a non-blocking upgrade. Same
+  // country reopened within 10 minutes reuses the cached summary.
+  const { result: ai, loading: aiLoading, loadingMessage } = useAiAnalysis({
+    key: profile ? securityAiCacheKey(profile) : null,
+    input: profile,
+    heuristic: heuristicSummary,
+    fetcher: (p, signal) => summarizeSecurity(p, signal),
+  });
 
   const isOpen = profile !== null;
   const p = displayed;
-  const color = p ? scoreColor(p.overall) : 'var(--text-muted)';
+  const color = p ? scoreColor(p.riskScore) : 'var(--text-muted)';
 
   return (
     <>
@@ -54,31 +62,38 @@ export default function SecurityDetailPanel({ profile, onClose }: SecurityDetail
               <span className="health-detail-code-badge">{p.countryCode}</span>
             </div>
 
-            {/* Country info + big overall score */}
+            {/* Country info + big risk score */}
             <div className="sec-detail-hero">
               <span className="sec-detail-flag">{flagEmoji(p.countryCode)}</span>
               <div className="sec-detail-score-block">
                 <div className="sec-detail-score mono-num" style={{ color }}>
-                  {p.overall}<span className="sec-detail-score-max"> / 100</span>
+                  {p.riskScore}<span className="sec-detail-score-max"> / 100</span>
                 </div>
-                <div className="sec-detail-level" style={{ color }}>مستوى الخطر: {THREAT_LABEL_AR[p.level]}</div>
+                <div className="sec-detail-level" style={{ color }}>مستوى الخطر: {RISK_LABEL_AR[p.riskLevel]}</div>
               </div>
-              <div className="sec-detail-updated"><Clock size={10} /> {timeAgoAr(new Date(p.lastUpdated))}</div>
+              <div className="sec-detail-updated"><Clock size={10} /> {timeAgoAr(new Date(p.latestUpdate))}</div>
             </div>
             <div className="sec-bar-track lg">
-              <div className="sec-bar-fill" style={{ width: `${p.overall}%`, background: color }} />
+              <div className="sec-bar-fill" style={{ width: `${p.riskScore}%`, background: color }} />
             </div>
 
-            {/* Threat breakdown */}
+            {/* Quick stats */}
+            <div className="sec-saudi-grid">
+              <div className="sec-saudi-box"><span className="sec-saudi-val mono-num">{p.activeIncidents}</span><span className="sec-saudi-lbl">حدث نشط</span></div>
+              <div className="sec-saudi-box"><span className="sec-saudi-val mono-num">{p.fatalities}</span><span className="sec-saudi-lbl">قتيل</span></div>
+              <div className="sec-saudi-box"><span className="sec-saudi-val mono-num">{p.sourceCount}</span><span className="sec-saudi-lbl">مصدر بيانات</span></div>
+            </div>
+
+            {/* Weighted factor breakdown */}
             <div className="health-detail-section">
-              <div className="health-detail-section-title-standalone">تفصيل المخاطر</div>
+              <div className="health-detail-section-title-standalone">تفصيل العوامل الموزونة</div>
               <div className="sec-breakdown">
-                {CATEGORY_ORDER.map((c) => {
-                  const v = p.categories[c];
+                {FACTOR_ORDER.map((f) => {
+                  const v = p.factors[f];
                   const cc = scoreColor(v);
                   return (
-                    <div key={c} className="sec-cat-row">
-                      <span className="sec-cat-label">{CATEGORY_LABEL_AR[c]}</span>
+                    <div key={f} className="sec-cat-row">
+                      <span className="sec-cat-label">{FACTOR_LABEL_AR[f]} <span className="sec-cat-weight">({FACTOR_WEIGHT_PCT[f]}%)</span></span>
                       <div className="sec-cat-track">
                         <div className="sec-cat-fill" style={{ width: `${v}%`, background: cc }} />
                       </div>
@@ -140,7 +155,7 @@ export default function SecurityDetailPanel({ profile, onClose }: SecurityDetail
                   {p.timeline.slice(0, 8).map((e, i) => {
                     const sc = scoreColor(e.severity === 'CRITICAL' ? 90 : e.severity === 'HIGH' ? 65 : e.severity === 'MEDIUM' ? 45 : 20);
                     return (
-                      <a key={i} className="sec-tl-item" href={e.url} target="_blank" rel="noopener noreferrer">
+                      <SafeSourceLink key={i} className="sec-tl-item" href={e.url} fallbackHint={e.source}>
                         <span className="sec-tl-dot" style={{ background: sc }} />
                         <div className="sec-tl-body">
                           <div className="sec-tl-title">{e.title}</div>
@@ -148,17 +163,17 @@ export default function SecurityDetailPanel({ profile, onClose }: SecurityDetail
                             {formatDateTimeAr(new Date(e.date))} · المصدر: {e.source}
                           </div>
                         </div>
-                      </a>
+                      </SafeSourceLink>
                     );
                   })}
                 </div>
               </div>
             )}
 
-            {/* AI summary */}
+            {/* AI summary + top reasons */}
             <div className="health-detail-section">
               <div className="health-detail-section-header">
-                <span className="health-detail-ai-badge">{ai?.aiEnriched ? 'AI' : 'تلقائي'}</span>
+                <span className="health-detail-ai-badge">{ai?.aiEnriched ? 'ذكاء اصطناعي' : 'تلقائي'}</span>
                 <span className="health-detail-section-title"><Sparkles size={11} style={{ marginInlineEnd: 4, verticalAlign: '-1px' }} />ملخص الوضع الأمني</span>
               </div>
               <div className="dz-detail-text">{ai?.summary}</div>
@@ -167,17 +182,21 @@ export default function SecurityDetailPanel({ profile, onClose }: SecurityDetail
                   {ai.drivers.map((d) => <span key={d} className="sec-driver-chip">{d}</span>)}
                 </div>
               )}
+              {aiLoading && <AiProgressiveLine message={loadingMessage} />}
             </div>
 
             {/* Sources */}
             {p.sources.length > 0 && (
               <div className="health-detail-section">
-                <div className="health-detail-section-title-standalone">المصادر الأصلية</div>
+                <div className="health-detail-section-header">
+                  <Radio size={11} style={{ color, marginInlineStart: 'auto' }} />
+                  <span className="health-detail-section-title-standalone">المصادر الأصلية ({p.sources.length})</span>
+                </div>
                 <div className="sec-sources">
                   {p.sources.map((s, i) => (
-                    <a key={i} className="sec-source-link" href={s.url} target="_blank" rel="noopener noreferrer">
+                    <SafeSourceLink key={i} className="sec-source-link" href={s.url} fallbackHint={s.name}>
                       <ExternalLink size={11} /> {s.name}
-                    </a>
+                    </SafeSourceLink>
                   ))}
                 </div>
               </div>

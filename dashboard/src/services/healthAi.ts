@@ -11,9 +11,13 @@
 // "AI analysis unavailable" warning (never a fabricated analysis).
 
 import type { CountryHealthEntry } from './healthAnalysis';
+import { withTimeout } from './ai/abortHelpers';
 
 const OLLAMA_URL = import.meta.env.VITE_OLLAMA_URL ?? 'http://localhost:11434';
 const OLLAMA_MODEL = import.meta.env.VITE_OLLAMA_MODEL ?? 'gpt-oss:20b';
+
+// Sent to the LLM instead of the full WHO article body.
+const MAX_SUMMARY_CHARS = 400;
 
 export type HealthRisk = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type HealthConfidence = 'HIGH' | 'MEDIUM' | 'LOW';
@@ -33,21 +37,22 @@ export interface HealthAiAnalysis {
 const VALID_RISK: HealthRisk[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
 const VALID_CONF: HealthConfidence[] = ['HIGH', 'MEDIUM', 'LOW'];
 
-// Cache per outbreak (country|disease) so re-opening the panel doesn't re-call.
-const cache = new Map<string, HealthAiAnalysis>();
-const keyOf = (e: CountryHealthEntry) => `${e.countryCode || e.country}|${e.disease}`;
+// Cache key for the shared 10-minute AI cache (services/ai/cache.ts) — same
+// outbreak identity (country|disease) re-opened within the window reuses the
+// stored analysis with no network call.
+export const healthAiCacheKey = (e: CountryHealthEntry) => `${e.countryCode || e.country}|${e.disease}`;
 
 function buildPrompt(e: CountryHealthEntry): string {
   return [
     'أنت محلل صحي وبائي محترف. حلّل حصراً بيانات منظمة الصحة العالمية التالية،',
     'ولا تخترع أي مرض أو دولة أو رقم أو توصية غير موجودة فيها. اكتب كل المخرجات بالعربية الفصحى.',
     '',
-    'بيانات المصدر الحقيقية:',
+    'بيانات المصدر الحقيقية (ملخص مُختصر، وليس المقال الكامل):',
     `- المرض: ${e.disease}`,
     `- الدولة/المنطقة: ${e.country}`,
     `- العنوان الأصلي: ${e.sourceTitle ?? ''}`,
-    `- التفاصيل الأصلية: ${e.sourceText ?? ''}`,
-    `- المصدر: ${e.sourceName ?? ''}`,
+    `- ملخص الوضع: ${(e.sourceText ?? '').slice(0, MAX_SUMMARY_CHARS)}`,
+    `- المصدر الرسمي: ${e.sourceName ?? ''}`,
     `- تاريخ التحديث: ${e.updatedAt ?? ''}`,
     '',
     'أعد JSON صارم فقط بهذا الشكل، دون أي نص إضافي:',
@@ -66,10 +71,7 @@ function buildPrompt(e: CountryHealthEntry): string {
 
 // Sends the real WHO data to gpt-oss. Returns null on any failure (model down,
 // non-JSON, invalid shape) so the caller can fall back to raw data + warning.
-export async function analyzeHealthOutbreak(entry: CountryHealthEntry): Promise<HealthAiAnalysis | null> {
-  const cached = cache.get(keyOf(entry));
-  if (cached) return cached;
-
+export async function analyzeHealthOutbreak(entry: CountryHealthEntry, signal?: AbortSignal): Promise<HealthAiAnalysis | null> {
   try {
     const res = await fetch(`${OLLAMA_URL}/api/chat`, {
       method: 'POST',
@@ -80,7 +82,7 @@ export async function analyzeHealthOutbreak(entry: CountryHealthEntry): Promise<
         stream: false,
         format: 'json',
       }),
-      signal: AbortSignal.timeout(90000),
+      signal: withTimeout(signal),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -101,7 +103,6 @@ export async function analyzeHealthOutbreak(entry: CountryHealthEntry): Promise<
         ? parsed.sources.filter((s: any) => typeof s === 'string')
         : [entry.sourceName ?? ''].filter(Boolean),
     };
-    cache.set(keyOf(entry), result);
     return result;
   } catch {
     return null;

@@ -7,6 +7,7 @@
 // back to a deterministic template. Results are cached per indicator key.
 
 import type { EconomicIndicator } from './economy';
+import { withTimeout } from './ai/abortHelpers';
 
 const OLLAMA_URL = import.meta.env.VITE_OLLAMA_URL ?? 'http://localhost:11434';
 const OLLAMA_MODEL = import.meta.env.VITE_OLLAMA_MODEL ?? 'gpt-oss:20b';
@@ -58,16 +59,15 @@ function heuristic(ind: EconomicIndicator): EconomyReason {
 }
 
 const VALID: Confidence[] = ['HIGH', 'MEDIUM', 'LOW'];
-const cache = new Map<string, EconomyReason>();
+
+// Cache key for the shared 10-minute AI cache (services/ai/cache.ts).
+export const economyAiCacheKey = (ind: EconomicIndicator) => ind.key;
 
 export function heuristicReason(ind: EconomicIndicator): EconomyReason {
   return heuristic(ind);
 }
 
-export async function analyzeEconomy(ind: EconomicIndicator, newsHeadlines = ''): Promise<EconomyReason> {
-  const cached = cache.get(ind.key);
-  if (cached) return cached;
-
+export async function analyzeEconomy(ind: EconomicIndicator, newsHeadlines = '', signal?: AbortSignal): Promise<EconomyReason> {
   try {
     const res = await fetch(`${OLLAMA_URL}/api/chat`, {
       method: 'POST',
@@ -78,7 +78,7 @@ export async function analyzeEconomy(ind: EconomicIndicator, newsHeadlines = '')
         stream: false,
         format: 'json',
       }),
-      signal: AbortSignal.timeout(90000),
+      signal: withTimeout(signal),
     });
     if (!res.ok) return heuristic(ind);
     const data = await res.json();
@@ -90,7 +90,6 @@ export async function analyzeEconomy(ind: EconomicIndicator, newsHeadlines = '')
       confidence: VALID.includes(parsed.confidence) ? parsed.confidence : 'LOW',
       aiEnriched: true,
     };
-    cache.set(ind.key, result);
     return result;
   } catch {
     return heuristic(ind);

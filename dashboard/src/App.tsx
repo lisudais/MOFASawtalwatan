@@ -13,7 +13,11 @@ import OfficialStatementDetailPanel from './components/OfficialStatementDetailPa
 import SecurityDetailPanel from './components/SecurityDetailPanel';
 import EconomyDetailPanel from './components/EconomyDetailPanel';
 import NotificationToast from './components/NotificationToast';
+import AiChatbot from './components/AiChatbot';
 import CommitteeView from './components/CommitteeView';
+import EmbassySelector from './components/embassy/EmbassySelector';
+import EmbassyDashboard from './components/embassy/EmbassyDashboard';
+import { getEmbassyById, getCurrentAccess, canAccessEmbassy } from './services/embassies';
 import { loadFirebaseConfig, initFirebase } from './services/firebaseRt';
 import { fetchGDACSEvents } from './services/gdacs';
 import { fetchUSGSEarthquakes } from './services/usgs';
@@ -23,9 +27,9 @@ import { generateNotificationMessage, generateNotificationMessageAr, generateAiS
 import { registerServiceWorker, requestPermission, sendPushNotification, onAcknowledge } from './services/pushNotification';
 import type { GeoEvent, Traveler, Notification, DashboardStats } from './types';
 import type { CountryHealthEntry } from './services/healthAnalysis';
-import type { NaturalDisaster } from './services/naturalDisasters';
+import type { DisasterEvent } from './services/naturalDisasterFeed';
 import type { OfficialStatement } from './services/officialStatements';
-import type { SecurityProfile } from './services/security';
+import type { CountrySecurityProfile } from './services/security';
 import type { EconomicIndicator } from './services/economy';
 import './index.css';
 
@@ -66,9 +70,76 @@ function loadSavedTraveler(): Traveler | null {
   }
 }
 
+/* ─── Hash router ────────────────────────────────────────────────────────
+   Lightweight routing without adding a dependency:
+     ''                      → main command dashboard
+     #/embassies             → searchable embassy selector
+     #/embassies/:embassyId  → that embassy's scoped sub-dashboard
+   Permission is validated HERE (route layer), and the embassy page itself
+   only ever receives scope-filtered data (data layer) — not hidden in UI. */
+function useHashRoute(): string {
+  const [hash, setHash] = useState(window.location.hash);
+  useEffect(() => {
+    const onHash = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  return hash;
+}
+
 export default function App() {
+  const route = useHashRoute();
   if (IS_COMMITTEE_VIEW) return <CommitteeView />;
 
+  if (route === '#/embassies' || route === '#/embassies/') {
+    return (
+      <div className="app" dir="rtl">
+        <Header lastUpdated={null} />
+        <EmbassySelector
+          onSelect={(embassy) => { window.location.hash = `#/embassies/${embassy.id}`; }}
+          onBack={() => { window.location.hash = ''; }}
+        />
+      </div>
+    );
+  }
+
+  const embassyMatch = route.match(/^#\/embassies\/([\w-]+)$/);
+  if (embassyMatch) {
+    const embassy = getEmbassyById(embassyMatch[1]);
+    const goBack = () => { window.location.hash = '#/embassies'; };
+    if (!embassy) {
+      return (
+        <div className="app" dir="rtl">
+          <Header lastUpdated={null} />
+          <div className="embassy-selector-page">
+            <div className="panel embassy-selector-panel">
+              <div className="widget-empty-state">السفارة المطلوبة غير موجودة.</div>
+              <button type="button" className="embassy-back-link" onClick={goBack}>العودة إلى قائمة السفارات</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    if (!canAccessEmbassy(getCurrentAccess(), embassy.id)) {
+      return (
+        <div className="app" dir="rtl">
+          <Header lastUpdated={null} />
+          <div className="embassy-selector-page">
+            <div className="panel embassy-selector-panel">
+              <div className="widget-empty-state">لا تملك صلاحية الوصول إلى لوحة هذه السفارة.</div>
+              <button type="button" className="embassy-back-link" onClick={goBack}>العودة إلى قائمة السفارات</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return <EmbassyDashboard key={embassy.id} embassy={embassy} onBack={goBack} />;
+  }
+
+  return <MainDashboard />;
+}
+
+function MainDashboard() {
   const [events, setEvents] = useState<GeoEvent[]>([]);
   const [travelers] = useState<Traveler[]>(() => {
     const saved = loadSavedTraveler();
@@ -89,10 +160,16 @@ export default function App() {
   // existing selectedTraveler fly-to only; no marker layer is altered.
   const [trackedCitizen, setTrackedCitizen] = useState<Traveler | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<CountryHealthEntry | null>(null);
-  const [selectedDisaster, setSelectedDisaster] = useState<NaturalDisaster | null>(null);
+  const [selectedDisaster, setSelectedDisaster] = useState<DisasterEvent | null>(null);
   const [selectedStatement, setSelectedStatement] = useState<OfficialStatement | null>(null);
-  const [selectedSecurity, setSelectedSecurity] = useState<SecurityProfile | null>(null);
+  const [selectedSecurity, setSelectedSecurity] = useState<CountrySecurityProfile | null>(null);
   const [selectedIndicator, setSelectedIndicator] = useState<EconomicIndicator | null>(null);
+  // Live lists surfaced by the Security/Health cards' own onDataLoaded
+  // callbacks — used only to fold real cross-widget risk data into the
+  // sidebar's aggregate stats below (see `stats`). Each card still owns and
+  // fetches its own data; this is just a read-only mirror of the latest load.
+  const [securityCountries, setSecurityCountries] = useState<CountrySecurityProfile[]>([]);
+  const [healthCountries, setHealthCountries] = useState<CountryHealthEntry[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
@@ -272,25 +349,47 @@ export default function App() {
     ? travelers.filter((t) => t.countryCode === selectedEvent.countryCode).length
     : 0;
 
+  // Aggregate stats across every live risk source on the dashboard — not just
+  // the natural-disasters feed. Security (State Dept/ACLED/GDELT) and Health
+  // (WHO/disease.sh) use the same LOW/MEDIUM/HIGH/CRITICAL scale as GeoEvent,
+  // so they fold in directly rather than needing a separate normalization step.
+  const disasterCritical = events.filter((e) => e.riskLevel === 'CRITICAL');
+  const disasterHigh = events.filter((e) => e.riskLevel === 'HIGH');
+  const securityCritical = securityCountries.filter((c) => c.riskLevel === 'CRITICAL');
+  const securityHigh = securityCountries.filter((c) => c.riskLevel === 'HIGH');
+  const healthCritical = healthCountries.filter((c) => c.analysis.risk_level.category === 'CRITICAL');
+  const healthHigh = healthCountries.filter((c) => c.analysis.risk_level.category === 'HIGH');
+
+  // Any country carrying a CRITICAL or HIGH signal from any source — used to
+  // recognize an "at risk" traveler by real location, not just their manually
+  // set status.
+  const highRiskCountryCodes = new Set(
+    [...disasterCritical, ...disasterHigh].map((e) => e.countryCode)
+      .concat([...securityCritical, ...securityHigh].map((c) => c.countryCode))
+      .concat([...healthCritical, ...healthHigh].map((c) => c.countryCode))
+      .filter(Boolean)
+  );
+
   const stats: DashboardStats = {
-    totalEvents: events.length,
-    criticalEvents: events.filter((e) => e.riskLevel === 'CRITICAL').length,
-    affectedCountries: new Set(events.map((e) => e.countryCode).filter(Boolean)).size,
-    travelersAtRisk: travelers.filter((t) => t.status === 'ALERTED' || t.status === 'EVACUATED').length,
+    totalEvents: events.length + securityCountries.reduce((s, c) => s + c.activeIncidents, 0) + healthCountries.length,
+    criticalEvents: disasterCritical.length + securityCritical.length + healthCritical.length,
+    affectedCountries: new Set([
+      ...events.map((e) => e.countryCode),
+      ...securityCountries.map((c) => c.countryCode),
+      ...healthCountries.map((c) => c.countryCode),
+    ].filter(Boolean)).size,
+    travelersAtRisk: travelers.filter((t) =>
+      t.status === 'ALERTED' || t.status === 'EVACUATED' || highRiskCountryCodes.has(t.countryCode)
+    ).length,
     notificationsSent: notifications.filter((n) => n.sent).length,
-    activeAlerts: events.filter((e) => e.riskLevel === 'CRITICAL' || e.riskLevel === 'HIGH').length,
+    activeAlerts: disasterCritical.length + disasterHigh.length + securityCritical.length + securityHigh.length + healthCritical.length + healthHigh.length,
   };
 
   return (
     <div className="app">
       <Header
-        notificationCount={notifications.length}
         lastUpdated={lastUpdated}
-        pushEnabled={pushEnabled}
-        onEnablePush={async () => {
-          const granted = await requestPermission();
-          setPushEnabled(granted);
-        }}
+        onOpenEmbassies={() => { window.location.hash = '#/embassies'; }}
       />
       {loading && (
         <div className="loading-bar">
@@ -309,6 +408,16 @@ export default function App() {
           onSelectDisaster={(d) => { setSelectedCountry(null); setSelectedStatement(null); setSelectedSecurity(null); setSelectedIndicator(null); setSelectedDisaster(d); }}
           onSelectStatement={(s) => { setSelectedCountry(null); setSelectedDisaster(null); setSelectedSecurity(null); setSelectedIndicator(null); setSelectedStatement(s); }}
           onSelectSecurity={(p) => { setSelectedCountry(null); setSelectedDisaster(null); setSelectedStatement(null); setSelectedIndicator(null); setSelectedSecurity(p); }}
+          onSecurityDataLoaded={(countries) => {
+            setSecurityCountries(countries);
+            // Keeps an already-open detail panel showing the SAME country
+            // but with fresh data after a background refresh, instead of
+            // freezing on the snapshot it was opened with. If that country
+            // no longer has active threats, keep the last known snapshot
+            // rather than abruptly closing the panel.
+            setSelectedSecurity((prev) => (prev ? countries.find((c) => c.id === prev.id) ?? prev : prev));
+          }}
+          onHealthDataLoaded={setHealthCountries}
           onSelectIndicator={(ind) => { setSelectedCountry(null); setSelectedDisaster(null); setSelectedStatement(null); setSelectedSecurity(null); setSelectedIndicator(ind); }}
         />
 
@@ -381,6 +490,7 @@ export default function App() {
               onTrackCitizen={setTrackedCitizen}
             />
           )}
+          <AiChatbot />
         </div>
 
         <div className="right-column">

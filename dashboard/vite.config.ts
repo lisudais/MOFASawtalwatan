@@ -13,6 +13,8 @@ import { getOpenSkyStates } from './netlify/lib/openskyCore.mjs'
 import { getGdeltFeed } from './netlify/lib/gdeltFeedCore.mjs'
 // @ts-ignore — plain-JS backend core (no types) — Global Alert Feed, Stages 1-6 cards
 import { getFeedCards, getFastFeedCards, fullFeedIsReady } from './netlify/lib/feedCardsCore.mjs'
+// @ts-ignore — plain-JS backend core (no types) — source-link HTTP validation
+import { checkUrl } from './netlify/lib/linkCheckCore.mjs'
 
 // Serves the backend proxy endpoints during `vite dev` so the frontend hits the
 // exact same routes locally as in production (Netlify Functions).
@@ -136,6 +138,26 @@ function backendApiDev(): Plugin {
         res.statusCode = 200
         res.setHeader('content-type', 'application/json; charset=utf-8')
         res.end(JSON.stringify(payload))
+      })
+
+      server.middlewares.use('/api/link-check', async (req, res) => {
+        try {
+          const url = new URL(req.url ?? '', 'http://localhost').searchParams.get('url')
+          if (!url) {
+            res.statusCode = 400
+            res.setHeader('content-type', 'application/json; charset=utf-8')
+            res.end(JSON.stringify({ ok: false, status: 0, error: 'missing url' }))
+            return
+          }
+          const result = await checkUrl(url)
+          res.statusCode = 200
+          res.setHeader('content-type', 'application/json; charset=utf-8')
+          res.end(JSON.stringify(result))
+        } catch {
+          res.statusCode = 502
+          res.setHeader('content-type', 'application/json; charset=utf-8')
+          res.end(JSON.stringify({ ok: false, status: 0 }))
+        }
       })
 
       server.middlewares.use('/api/opensky', async (_req, res) => {

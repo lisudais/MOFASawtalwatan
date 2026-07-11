@@ -1,51 +1,68 @@
 import { useEffect, useState } from 'react';
-import { X, MapPin, Clock, Timer, Activity, Mountain, Wind, CloudRain, Flame, Radio, Sparkles } from 'lucide-react';
+import { X, MapPin, Clock, Activity, Mountain, Wind, CloudRain, Flame, Radio, Sparkles, ExternalLink } from 'lucide-react';
 import {
-  ND_TYPE_LABEL_AR,
-  ND_RISK_LABEL_AR,
-  ND_RISK_COLOR,
-  timeAgoAr,
-  type NaturalDisaster,
-  type NDType,
-} from '../services/naturalDisasters';
-import { analyzeDisaster, heuristicDisaster, type DisasterAnalysis } from '../services/disasterAi';
+  DISASTER_TYPE_LABEL_AR,
+  SEVERITY_LABEL_AR,
+  SEVERITY_COLOR,
+  type DisasterEvent,
+  type DisasterType,
+} from '../services/naturalDisasterFeed';
+import { analyzeDisaster, heuristicDisaster } from '../services/disasterAi';
+import { useAiAnalysis } from '../services/ai/useAiAnalysis';
+import AiProgressiveLine from './AiProgressiveLine';
+import SafeSourceLink from './SafeSourceLink';
 
 interface DisasterDetailPanelProps {
-  disaster: NaturalDisaster | null;
+  disaster: DisasterEvent | null;
   onClose: () => void;
 }
 
-const TYPE_ICON: Record<NDType, React.ElementType> = {
+const TYPE_ICON: Record<DisasterType, React.ElementType> = {
   EARTHQUAKE: Activity,
   VOLCANO:    Mountain,
-  STORM:      Wind,
+  HURRICANE:  Wind,
   FLOOD:      CloudRain,
   WILDFIRE:   Flame,
 };
+
+// Arabic relative-time label, e.g. "منذ 15 دقيقة".
+function timeAgoAr(iso: string): string {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 60) return `منذ ${mins} دقيقة`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `منذ ${hrs} ساعة`;
+  return `منذ ${Math.floor(hrs / 24)} يوم`;
+}
 
 // Slide-in map overlay for a selected natural-disaster event — deliberately
 // reuses the same .health-detail-* shell as HealthCountryDetailPanel (same
 // overlay slot, borders, glow, slide-in and RTL layout) so it reads as a
 // native part of the dashboard. Content is disaster-specific: which places are
-// hit and how long the incident is expected to last. This is NOT a traveler
-// alert — no send-notification action here. Keeps the last-opened disaster
-// rendered while closing so the slide-out doesn't blank mid-animation.
+// hit and the original source link. This is NOT a traveler alert — no
+// send-notification action here. Keeps the last-opened disaster rendered
+// while closing so the slide-out doesn't blank mid-animation.
 export default function DisasterDetailPanel({ disaster, onClose }: DisasterDetailPanelProps) {
-  const [displayed, setDisplayed] = useState<NaturalDisaster | null>(null);
-  const [ai, setAi] = useState<DisasterAnalysis | null>(null);
+  const [displayed, setDisplayed] = useState<DisasterEvent | null>(null);
 
   useEffect(() => {
-    if (!disaster) return;
-    setDisplayed(disaster);
-    setAi(heuristicDisaster(disaster)); // instant Arabic default…
-    let cancelled = false;
-    analyzeDisaster(disaster).then((r) => { if (!cancelled) setAi(r); }); // …upgraded by gpt-oss
-    return () => { cancelled = true; };
+    if (disaster) setDisplayed(disaster);
   }, [disaster]);
 
+  // Event data (title/country/severity/etc.) renders immediately from
+  // `displayed` above — the AI call below only ever upgrades the analysis
+  // text, it never blocks the rest of the panel. Same event reopened within
+  // 10 minutes reuses the cached analysis with no network call; opening a
+  // different event cancels whatever gpt-oss request was still in flight.
+  const { result: ai, loading: aiLoading, loadingMessage } = useAiAnalysis({
+    key: disaster?.id,
+    input: disaster,
+    heuristic: heuristicDisaster,
+    fetcher: (d, signal) => analyzeDisaster(d, signal),
+  });
+
   const isOpen = disaster !== null;
-  const color = displayed ? ND_RISK_COLOR[displayed.risk] : 'var(--text-muted)';
-  const TypeIcon = displayed ? TYPE_ICON[displayed.type] : Activity;
+  const color = displayed ? SEVERITY_COLOR[displayed.severity] : 'var(--text-muted)';
+  const TypeIcon = displayed ? TYPE_ICON[displayed.disasterType] : Activity;
 
   return (
     <>
@@ -57,14 +74,14 @@ export default function DisasterDetailPanel({ disaster, onClose }: DisasterDetai
               <button className="health-detail-close" onClick={onClose} title="إغلاق">
                 <X size={15} />
               </button>
-              <span className="health-detail-country">{displayed.country}</span>
-              <span className="health-detail-code-badge">{displayed.countryCode}</span>
+              <span className="health-detail-country">{displayed.country || 'غير محدّد'}</span>
+              {displayed.countryCode && <span className="health-detail-code-badge">{displayed.countryCode}</span>}
             </div>
 
             <div className="health-detail-disease-block">
               <div className="health-detail-disease-name">
                 <TypeIcon size={13} style={{ verticalAlign: '-2px', marginInlineEnd: 5, color }} />
-                {ND_TYPE_LABEL_AR[displayed.type]}{displayed.value ? ` · ${displayed.value}` : ''}
+                {DISASTER_TYPE_LABEL_AR[displayed.disasterType]}
               </div>
               <div className="health-detail-disease-definition">{displayed.title}</div>
             </div>
@@ -73,7 +90,7 @@ export default function DisasterDetailPanel({ disaster, onClose }: DisasterDetai
             <div className="health-detail-section">
               <div className="health-detail-section-header">
                 <span className="health-detail-risk-pill" style={{ borderColor: color, color }}>
-                  الخطورة · {ND_RISK_LABEL_AR[displayed.risk]}
+                  الخطورة · {SEVERITY_LABEL_AR[displayed.severity]}
                 </span>
                 <span className="health-detail-ai-badge">
                   <Clock size={9} style={{ verticalAlign: '-1px', marginInlineEnd: 3 }} />
@@ -89,36 +106,17 @@ export default function DisasterDetailPanel({ disaster, onClose }: DisasterDetai
                 <span className="health-detail-subheading" style={{ marginInlineStart: 'auto' }}>الوضع الحالي</span>
               </div>
               <div className="dz-detail-text">{ai?.analysis ?? displayed.description}</div>
-              {ai?.aiSummary && <div className="dz-detail-summary"><Sparkles size={10} /> {ai.aiSummary}</div>}
+              <div className="dz-detail-summary"><Sparkles size={10} /> {ai?.aiSummary ?? displayed.aiSummary}</div>
+              {aiLoading && <AiProgressiveLine message={loadingMessage} />}
             </div>
 
-            {/* الأماكن المتضررة — only when the source provides a region/places */}
-            {(displayed.city || (displayed.affectedPlaces && displayed.affectedPlaces.length > 0)) && (
+            {/* الأماكن المتضررة — only when the source provides a region/place */}
+            {displayed.city && (
               <div className="health-detail-section">
                 <div className="health-detail-section-title-standalone">الأماكن المتضررة</div>
-                {displayed.city && (
-                  <div className="dz-detail-region">
-                    <MapPin size={11} style={{ color, flexShrink: 0 }} />
-                    <span>المنطقة المتأثرة: <strong>{displayed.city}</strong></span>
-                  </div>
-                )}
-                {displayed.affectedPlaces && displayed.affectedPlaces.length > 0 && (
-                  <div className="dz-place-chips">
-                    {displayed.affectedPlaces.map((place) => (
-                      <span key={place} className="dz-place-chip">{place}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* المدة المتوقعة — only if the source provides it (these APIs don't) */}
-            {displayed.expectedDuration && (
-              <div className="health-detail-section">
-                <div className="health-detail-section-title-standalone">المدة المتوقعة</div>
-                <div className="dz-detail-duration">
-                  <Timer size={13} style={{ color, flexShrink: 0 }} />
-                  <span>{displayed.expectedDuration}</span>
+                <div className="dz-detail-region">
+                  <MapPin size={11} style={{ color, flexShrink: 0 }} />
+                  <span>المنطقة المتأثرة: <strong>{displayed.city}</strong></span>
                 </div>
               </div>
             )}
@@ -134,6 +132,9 @@ export default function DisasterDetailPanel({ disaster, onClose }: DisasterDetai
             {/* المصدر */}
             <div className="dz-detail-source">
               <Radio size={11} style={{ flexShrink: 0 }} /> المصدر: {displayed.source}
+              <SafeSourceLink href={displayed.sourceUrl} fallbackHint={displayed.source} className="dz-detail-source-link">
+                <ExternalLink size={10} /> عرض التقرير الأصلي
+              </SafeSourceLink>
             </div>
           </>
         )}
