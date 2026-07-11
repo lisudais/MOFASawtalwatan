@@ -96,15 +96,14 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function fetchAlphaVantage(): Promise<EconomicIndicator[]> {
   if (!AV_KEY) return [];
-  const key = AV_KEY;
   const out: EconomicIndicator[] = [];
-  const oil = await avCommodity('WTI', key, 'النفط', 'دولار/برميل');
+  const oil = await avCommodity('WTI', 'oil', 'النفط', 'دولار/برميل');
   if (oil) out.push(oil);
   await delay(1300);
-  const gas = await avCommodity('NATURAL_GAS', key, 'الغاز', 'دولار/MMBtu');
+  const gas = await avCommodity('NATURAL_GAS', 'gas', 'الغاز', 'دولار/MMBtu');
   if (gas) out.push(gas);
   await delay(1300);
-  const sar = await avFx('USD', 'SAR', key, 'الدولار/الريال', 'ريال');
+  const sar = await avFx('USD', 'SAR', 'usd-sar', 'الدولار/الريال', 'ريال');
   if (sar) out.push(sar);
   return out;
 }

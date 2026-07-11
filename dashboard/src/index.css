@@ -193,30 +193,6 @@ body {
 
 .header-updated { font-size: 9px; color: var(--text-muted); }
 
-.header-btn {
-  display: flex; align-items: center; gap: 6px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border-gold);
-  color: var(--text-secondary);
-  font-size: 10px; font-weight: 600;
-  padding: 6px 12px; border-radius: 8px; cursor: pointer;
-}
-.header-btn:hover { color: var(--saudi-gold); border-color: var(--saudi-gold); }
-.header-btn.active { color: var(--saudi-light); border-color: var(--saudi-light); }
-.header-notif-badge {
-  position: relative;
-  display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 8px;
-  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
-  color: var(--text-secondary);
-}
-.header-notif-count {
-  position: absolute; top: -4px; right: -4px;
-  background: var(--danger-critical); color: #fff;
-  font-size: 9px; font-weight: 700; border-radius: 8px;
-  padding: 1px 5px; min-width: 16px; text-align: center;
-}
-
 /* ─── Loading bar ────────────────────────────────────────── */
 .loading-bar { height: 2px; background: rgba(255,255,255,0.04); overflow: hidden; flex-shrink: 0; }
 .loading-fill {
@@ -923,6 +899,190 @@ body {
 }
 .map-section .leaflet-container { width: 100%; height: 100%; background: #050b16; }
 .map-section .leaflet-control-attribution { display: none; }
+
+/* ─── AI chatbot (floating launcher + panel over the map) ────────────────
+   Anchored to the map section's lower-right corner, immediately left of the
+   global alerts sidebar. The panel opens ABOVE the launcher, inside the map
+   area, so it never covers the right sidebar. */
+.ai-chatbot-root {
+  /* Anchored inside .map-section (position:relative), so the launcher and
+     panel always sit OVER the map in its bottom corner next to the alerts
+     sidebar — and can never overlap the sidebar itself, since the map
+     section ends exactly where the right column begins. */
+  position: absolute;
+  bottom: 18px; right: 18px;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.ai-chat-launcher {
+  position: relative;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(10,22,40,0.92);
+  border: 1px solid rgba(37,99,168,0.55);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(45,212,218,0.22), 0 4px 14px rgba(0,0,0,0.45);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+.ai-chat-launcher:hover,
+.ai-chat-launcher.open {
+  border-color: rgba(45,212,218,0.65);
+  box-shadow: 0 0 20px rgba(45,212,218,0.45), 0 4px 16px rgba(0,0,0,0.5);
+}
+.ai-chat-launcher:hover { transform: translateY(-1px); }
+.ai-launcher-status-dot {
+  position: absolute;
+  bottom: 3px; right: 3px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #2bd97a;
+  border: 2px solid rgba(10,22,40,0.95);
+}
+.ai-launcher-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 50%; transform: translateX(50%);
+  background: rgba(10,22,40,0.95);
+  border: 1px solid rgba(45,212,218,0.35);
+  color: var(--text-primary);
+  font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  border-radius: 6px; padding: 4px 9px;
+  white-space: nowrap;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.ai-chat-launcher:hover .ai-launcher-tooltip { opacity: 1; }
+.ai-chat-launcher.open .ai-launcher-tooltip { opacity: 0; }
+
+.ai-chat-panel {
+  /* fixed + JS-anchored to the launcher so .map-section's overflow:hidden
+     can't clip it; right/bottom come from inline style */
+  position: fixed;
+  width: 300px;
+  height: 380px;
+  max-height: calc(100vh - 220px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: rgba(10,22,40,0.94);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(37,99,168,0.5);
+  border-radius: 12px;
+  box-shadow: 0 0 22px rgba(45,212,218,0.16), 0 10px 30px rgba(0,0,0,0.5);
+}
+.ai-chat-header {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 11px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+.ai-chat-avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(45,212,218,0.1);
+  border: 1px solid rgba(45,212,218,0.4);
+  color: #fff;
+  flex-shrink: 0;
+}
+.ai-chat-title {
+  font-size: 12px; font-weight: 700; color: var(--text-primary);
+  font-family: 'IBM Plex Sans Arabic', inherit;
+}
+.ai-chat-status {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 9px; color: var(--text-muted);
+  font-family: 'IBM Plex Sans Arabic', inherit;
+}
+.ai-status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #2bd97a;
+}
+.ai-chat-close {
+  margin-inline-start: auto;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted);
+  display: flex; align-items: center;
+}
+.ai-chat-close:hover { color: var(--text-primary); }
+
+.ai-chat-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+.ai-chat-msg {
+  max-width: 85%;
+  font-size: 11px; line-height: 1.6;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  border-radius: 10px;
+  padding: 7px 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ai-chat-msg.assistant {
+  align-self: flex-start;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.07);
+  color: var(--text-primary);
+}
+.ai-chat-msg.user {
+  align-self: flex-end;
+  background: rgba(45,212,218,0.1);
+  border: 1px solid rgba(45,212,218,0.3);
+  color: var(--text-primary);
+}
+.ai-chat-typing { display: flex; gap: 3px; align-items: center; }
+.ai-chat-typing span {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--text-muted);
+  animation: aiTypingBlink 1.2s ease-in-out infinite;
+}
+.ai-chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+.ai-chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes aiTypingBlink { 0%,100% { opacity: 0.25; } 50% { opacity: 1; } }
+
+.ai-chat-input-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+.ai-chat-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  padding: 7px 10px;
+  outline: none;
+}
+.ai-chat-input:focus { border-color: rgba(45,212,218,0.45); }
+.ai-chat-input::placeholder { color: var(--text-muted); }
+.ai-chat-send {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(45,212,218,0.12);
+  border: 1px solid rgba(45,212,218,0.4);
+  color: #fff; cursor: pointer;
+  flex-shrink: 0;
+}
+.ai-chat-send:hover:not(:disabled) { background: rgba(45,212,218,0.22); }
+.ai-chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ─── Flight monitoring (isolated feature) ───────────────────────────────
    Toggle control on the map, styled to match the dashboard; aircraft markers

@@ -1,13 +1,8 @@
-import { Bell, BellOff } from 'lucide-react';
-
 interface HeaderProps {
-  notificationCount: number;
   lastUpdated: Date | null;
-  pushEnabled: boolean;
-  onEnablePush: () => void;
 }
 
-export default function Header({ notificationCount, lastUpdated, pushEnabled, onEnablePush }: HeaderProps) {
+export default function Header({ lastUpdated }: HeaderProps) {
   return (
     <header className="header">
       <div className="header-left">
@@ -35,14 +30,6 @@ export default function Header({ notificationCount, lastUpdated, pushEnabled, on
             Updated {lastUpdated.toLocaleTimeString()}
           </span>
         )}
-        <button className={`header-btn${pushEnabled ? ' active' : ''}`} onClick={onEnablePush}>
-          {pushEnabled ? <Bell size={13} /> : <BellOff size={13} />}
-          {pushEnabled ? 'Alerts On' : 'Enable Alerts'}
-        </button>
-        <div className="header-notif-badge">
-          <Bell size={15} />
-          {notificationCount > 0 && <span className="header-notif-count">{notificationCount}</span>}
-        </div>
       </div>
     </header>
   );

@@ -12,6 +12,7 @@ import OfficialStatementDetailPanel from './components/OfficialStatementDetailPa
 import SecurityDetailPanel from './components/SecurityDetailPanel';
 import EconomyDetailPanel from './components/EconomyDetailPanel';
 import NotificationToast from './components/NotificationToast';
+import AiChatbot from './components/AiChatbot';
 import CommitteeView from './components/CommitteeView';
 import { loadFirebaseConfig, initFirebase } from './services/firebaseRt';
 import { fetchGDACSEvents } from './services/gdacs';
@@ -197,15 +198,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header
-        notificationCount={notifications.length}
-        lastUpdated={lastUpdated}
-        pushEnabled={pushEnabled}
-        onEnablePush={async () => {
-          const granted = await requestPermission();
-          setPushEnabled(granted);
-        }}
-      />
+      <Header lastUpdated={lastUpdated} />
       {loading && (
         <div className="loading-bar">
           <div className="loading-fill" />
@@ -294,6 +287,7 @@ export default function App() {
               onTrackCitizen={setTrackedCitizen}
             />
           )}
+          <AiChatbot />
         </div>
 
         <div className="right-column">
