@@ -22,14 +22,35 @@ const WELCOME: ChatMessage = {
 const OFFLINE_REPLY =
   'عذرًا، خدمة المساعد الذكي غير متاحة حاليًا. يرجى المحاولة لاحقًا.';
 
-async function askOllama(history: ChatMessage[]): Promise<string> {
+/** Optional embassy scope: restricts the assistant to one mission's area and
+ *  feeds it the already-scope-filtered situation summary. The permission
+ *  boundary holds because ONLY scoped data ever reaches the prompt — the
+ *  assistant is never handed global data to "promise" not to reveal. */
+export interface ChatbotScope {
+  embassyNameAr: string;
+  hostCountryAr: string;
+  contextSummaryAr: string;
+}
+
+function systemPrompt(scope?: ChatbotScope): string {
+  if (!scope) return SYSTEM_PROMPT;
+  return (
+    `أنت المساعد الذكي للوحة عمليات ${scope.embassyNameAr} التابعة لوزارة الخارجية السعودية. ` +
+    `نطاقك محصور في ${scope.hostCountryAr} والمناطق التابعة للسفارة فقط — هذه صلاحية وصول محدودة. ` +
+    'إذا سُئلت عن دول أو سفارات أو بيانات خارج هذا النطاق فاعتذر بأدب ووضّح أن ذلك خارج صلاحيات هذه اللوحة. ' +
+    'أجب بالعربية الفصحى بإيجاز ومهنية.\n\n' +
+    `ملخص الوضع الحالي ضمن النطاق (استند إليه ولا تخترع بيانات غير مذكورة):\n${scope.contextSummaryAr}`
+  );
+}
+
+async function askOllama(history: ChatMessage[], scope?: ChatbotScope): Promise<string> {
   try {
     const res = await fetch(`${OLLAMA_URL}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: OLLAMA_MODEL,
-        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...history],
+        messages: [{ role: 'system', content: systemPrompt(scope) }, ...history],
         stream: false,
       }),
       signal: AbortSignal.timeout(90000),
@@ -44,9 +65,10 @@ async function askOllama(history: ChatMessage[]): Promise<string> {
 }
 
 // Floating AI assistant. The launcher sits in the lower-right corner of the
-// map section (just left of the global alerts sidebar); the chat panel opens
-// above it, inside the map area, so the right sidebar is never covered.
-export default function AiChatbot() {
+// map section (just left of the right panel); the chat panel opens above it,
+// inside the map area, so the right panel is never covered. Pass `scope` to
+// restrict it to one embassy's area (embassy sub-dashboard).
+export default function AiChatbot({ scope }: { scope?: ChatbotScope } = {}) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
   const [input, setInput] = useState('');
@@ -89,7 +111,7 @@ export default function AiChatbot() {
     setMessages(history);
     setInput('');
     setThinking(true);
-    const reply = await askOllama(history);
+    const reply = await askOllama(history, scope);
     setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
     setThinking(false);
   };

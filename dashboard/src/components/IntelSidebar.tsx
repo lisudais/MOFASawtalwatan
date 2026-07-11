@@ -3,9 +3,9 @@ import SidebarStatsGrid from './SidebarStatsGrid';
 import AlertFeed from './AlertFeed';
 import type { GeoEvent, Traveler, DashboardStats } from '../types';
 import type { CountryHealthEntry } from '../services/healthAnalysis';
-import type { NaturalDisaster } from '../services/naturalDisasters';
+import type { DisasterEvent } from '../services/naturalDisasterFeed';
 import type { OfficialStatement } from '../services/officialStatements';
-import type { SecurityProfile } from '../services/security';
+import type { CountrySecurityProfile } from '../services/security';
 import type { EconomicIndicator } from '../services/economy';
 
 interface IntelSidebarProps {
@@ -15,9 +15,11 @@ interface IntelSidebarProps {
   selectedEvent: GeoEvent | null;
   onSelectEvent: (e: GeoEvent) => void;
   onSelectCountry: (entry: CountryHealthEntry) => void;
-  onSelectDisaster: (d: NaturalDisaster) => void;
+  onHealthDataLoaded?: (countries: CountryHealthEntry[]) => void;
+  onSelectDisaster: (d: DisasterEvent) => void;
   onSelectStatement: (s: OfficialStatement) => void;
-  onSelectSecurity: (p: SecurityProfile) => void;
+  onSelectSecurity: (p: CountrySecurityProfile) => void;
+  onSecurityDataLoaded?: (countries: CountrySecurityProfile[]) => void;
   onSelectIndicator: (ind: EconomicIndicator) => void;
 }
 
@@ -28,12 +30,12 @@ interface IntelSidebarProps {
 // re-added one at a time in later phases, reusing the existing data-fetching
 // logic untouched — see DisasterWidget.tsx, EconomyWidget.tsx, HealthWidget.tsx,
 // NewsWidget.tsx (currently unreferenced, not deleted).
-export default function IntelSidebar({ events, travelers: _travelers, stats, selectedEvent, onSelectEvent, onSelectCountry, onSelectDisaster, onSelectStatement, onSelectSecurity, onSelectIndicator }: IntelSidebarProps) {
+export default function IntelSidebar({ events, travelers: _travelers, stats, selectedEvent, onSelectEvent, onSelectCountry, onHealthDataLoaded, onSelectDisaster, onSelectStatement, onSelectSecurity, onSecurityDataLoaded, onSelectIndicator }: IntelSidebarProps) {
   return (
     <div className="intel-sidebar">
       <SaudisAbroadSection />
       <SidebarStatsGrid stats={stats} />
-      <AlertFeed events={events} selectedEvent={selectedEvent} onSelectEvent={onSelectEvent} onSelectCountry={onSelectCountry} onSelectDisaster={onSelectDisaster} onSelectStatement={onSelectStatement} onSelectSecurity={onSelectSecurity} onSelectIndicator={onSelectIndicator} />
+      <AlertFeed events={events} selectedEvent={selectedEvent} onSelectEvent={onSelectEvent} onSelectCountry={onSelectCountry} onHealthDataLoaded={onHealthDataLoaded} onSelectDisaster={onSelectDisaster} onSelectStatement={onSelectStatement} onSelectSecurity={onSelectSecurity} onSecurityDataLoaded={onSecurityDataLoaded} onSelectIndicator={onSelectIndicator} />
     </div>
   );
 }

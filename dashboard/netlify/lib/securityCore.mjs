@@ -1,24 +1,33 @@
-// Backend proxy + scoring engine for the Security Threats panel.
+// Security-intelligence engine for the Security Threats panel.
 //
-// Runs server-side (Netlify Function + Vite dev middleware). The browser never
-// calls the sources directly. Data comes from trusted, real-time sources:
-//   • U.S. Department of State Travel Advisories (official government data —
-//     authoritative per-country threat LEVEL 1–4 + explicit risk indicators)
-//   • GDELT DOC 2.0 (global event monitoring — recent security headlines,
-//     matched to a country by title mention) — best-effort, fails soft.
-//   (OSAC / ReliefWeb / WHO / UN OCHA are wired the same way when their
-//    keys/feeds are available — add a fetcher and merge; the schema is stable.)
+// U.S. State Department travel advisories are the REQUIRED backbone — a
+// free, public, key-less RSS feed covering essentially every country, so the
+// widget shows real data immediately with zero configuration. ACLED (armed-
+// conflict events) and GDELT (breaking security headlines) are merged in as
+// bonus enrichment when available; ACLED needs credentials (see acled.mjs),
+// GDELT needs none. If the advisory feed itself is down, getSecurityProfiles
+// throws (caught by the Netlify function → 502) — everything else is
+// best-effort and fails soft (Promise.allSettled).
 //
-// The overall threat score is NOT taken raw from any API. It is COMPUTED here
-// from weighted category signals extracted from the official advisory text.
-// Nothing is invented: every threat/timeline item traces to a real source item.
+// Nothing is invented: every score traces to real advisory text, a real
+// ACLED record, or a real GDELT headline. The output shape (riskScore,
+// riskLevel, factors, topReasons, activeIncidents, fatalities, sourceCount,
+// latestUpdate, currentThreats, timeline, sources) is unchanged from the
+// ACLED-only version — this file only changes WHERE the numbers come from,
+// not what the frontend/UI consumes (see security.ts, SecurityCategoryCard.tsx,
+// SecurityDetailPanel.tsx — none of them needed to change).
+//
+// Only countries with an elevated advisory (Level ≥ 2) OR real merged ACLED/
+// GDELT signal are included — this is a "Security Threats" list, not a
+// roster of all ~200 countries at baseline "exercise normal precautions".
 
-import { fetchAcledEvents, acledConfigured } from './acled.mjs';
+import { fetchAcledEvents, acledConfigured, classifyAcled } from './acled.mjs';
+import { countryEntries } from './countryIso.mjs';
 
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const FETCH_TIMEOUT_MS = 10000;
+const WINDOW_DAYS = 14; // recency window for ACLED/GDELT signals
 
-// Arabic labels for common ACLED event types (title stays source-faithful).
 const ACLED_TYPE_AR = {
   'Battles': 'اشتباكات مسلحة',
   'Explosions/Remote violence': 'تفجيرات/هجمات عن بُعد',
@@ -28,60 +37,34 @@ const ACLED_TYPE_AR = {
   'Strategic developments': 'تطورات استراتيجية',
 };
 
-/* ─── Curated watchlist (Saudi-relevant) — English name must match the State
-   advisory title; ar + iso2 drive the Arabic label + flag. Extend freely. ── */
-const WATCHLIST = [
-  { en: 'Yemen', ar: 'اليمن', iso2: 'YE' }, { en: 'Syria', ar: 'سوريا', iso2: 'SY' },
-  { en: 'Iraq', ar: 'العراق', iso2: 'IQ' }, { en: 'Iran', ar: 'إيران', iso2: 'IR' },
-  { en: 'Lebanon', ar: 'لبنان', iso2: 'LB' }, { en: 'Jordan', ar: 'الأردن', iso2: 'JO' },
-  { en: 'Kuwait', ar: 'الكويت', iso2: 'KW' }, { en: 'Oman', ar: 'عُمان', iso2: 'OM' },
-  { en: 'Qatar', ar: 'قطر', iso2: 'QA' }, { en: 'Bahrain', ar: 'البحرين', iso2: 'BH' },
-  { en: 'United Arab Emirates', ar: 'الإمارات', iso2: 'AE' },
-  { en: 'Egypt', ar: 'مصر', iso2: 'EG' }, { en: 'Sudan', ar: 'السودان', iso2: 'SD' },
-  { en: 'South Sudan', ar: 'جنوب السودان', iso2: 'SS' }, { en: 'Libya', ar: 'ليبيا', iso2: 'LY' },
-  { en: 'Tunisia', ar: 'تونس', iso2: 'TN' }, { en: 'Algeria', ar: 'الجزائر', iso2: 'DZ' },
-  { en: 'Morocco', ar: 'المغرب', iso2: 'MA' }, { en: 'Mauritania', ar: 'موريتانيا', iso2: 'MR' },
-  { en: 'Somalia', ar: 'الصومال', iso2: 'SO' }, { en: 'Djibouti', ar: 'جيبوتي', iso2: 'DJ' },
-  { en: 'Turkey', ar: 'تركيا', iso2: 'TR' }, { en: 'Israel', ar: 'إسرائيل', iso2: 'IL' },
-  { en: 'Afghanistan', ar: 'أفغانستان', iso2: 'AF' }, { en: 'Pakistan', ar: 'باكستان', iso2: 'PK' },
-  { en: 'India', ar: 'الهند', iso2: 'IN' }, { en: 'Bangladesh', ar: 'بنغلاديش', iso2: 'BD' },
-  { en: 'Nigeria', ar: 'نيجيريا', iso2: 'NG' }, { en: 'Mali', ar: 'مالي', iso2: 'ML' },
-  { en: 'Niger', ar: 'النيجر', iso2: 'NE' }, { en: 'Burkina Faso', ar: 'بوركينا فاسو', iso2: 'BF' },
-  { en: 'Chad', ar: 'تشاد', iso2: 'TD' }, { en: 'Ethiopia', ar: 'إثيوبيا', iso2: 'ET' },
-  { en: 'Democratic Republic of the Congo', ar: 'الكونغو الديمقراطية', iso2: 'CD' },
-  { en: 'Central African Republic', ar: 'أفريقيا الوسطى', iso2: 'CF' },
-  { en: 'Ukraine', ar: 'أوكرانيا', iso2: 'UA' }, { en: 'Russia', ar: 'روسيا', iso2: 'RU' },
-  { en: 'Venezuela', ar: 'فنزويلا', iso2: 'VE' }, { en: 'Haiti', ar: 'هايتي', iso2: 'HT' },
-  { en: 'Burma', ar: 'ميانمار', iso2: 'MM' }, { en: 'North Korea', ar: 'كوريا الشمالية', iso2: 'KP' },
-  { en: 'Colombia', ar: 'كولومبيا', iso2: 'CO' }, { en: 'Mexico', ar: 'المكسيك', iso2: 'MX' },
-  { en: 'Philippines', ar: 'الفلبين', iso2: 'PH' }, { en: 'Indonesia', ar: 'إندونيسيا', iso2: 'ID' },
-];
-
-/* ─── Category ← risk-indicator keywords (matched in official advisory text) ── */
-const CATEGORY_KEYWORDS = {
-  security:          ['wrongful detention', 'detention', 'landmines', 'piracy', 'security'],
-  terrorism:         ['terrorism', 'terrorist'],
-  militaryConflict:  ['armed conflict', 'war', 'military', 'hostilities', 'missile', 'airstrike'],
-  civilUnrest:       ['civil unrest', 'unrest', 'protest', 'demonstration', 'political instability', 'coup'],
-  crime:             ['crime', 'violent crime', 'kidnapping', 'robbery', 'gang'],
-  naturalDisasters:  ['earthquake', 'flood', 'cyclone', 'hurricane', 'volcano', 'storm', 'typhoon', 'wildfire'],
-  healthRisks:       ['outbreak', 'disease', 'ebola', 'cholera', 'virus', 'pandemic', 'epidemic'],
-  economicRisks:     ['fuel shortage', 'food shortage', 'inflation', 'sanction', 'economic collapse', 'currency'],
+const FACTOR_LABEL_AR = {
+  volume: 'عدد الأحداث النشطة',
+  fatalities: 'الضحايا (القتلى)',
+  severity: 'شدة تحذير السفر الرسمي',
+  recency: 'حداثة الأحداث',
+  intensity: 'كثافة النزاع المسلح',
 };
-const CATEGORY_KEYS = Object.keys(CATEGORY_KEYWORDS);
+
+// Five factors, weighted to 100%. `severity` now reads the official U.S.
+// travel-advisory level (always available); the other four still read real
+// ACLED/GDELT event data when present.
 const WEIGHTS = {
-  security: 0.20, terrorism: 0.18, militaryConflict: 0.17, civilUnrest: 0.13,
-  crime: 0.12, naturalDisasters: 0.07, healthRisks: 0.07, economicRisks: 0.06,
+  volume: 0.20, fatalities: 0.15, severity: 0.40, recency: 0.10, intensity: 0.15,
 };
-const LEVEL_SCORE = { 1: 15, 2: 42, 3: 68, 4: 90 };
 
-// Arabic labels for the specific reasons we surface as "current threats".
-const REASON_AR = [
-  ['armed conflict', 'نزاع مسلح'], ['terrorism', 'تحذير من الإرهاب'], ['terrorist', 'تحذير من الإرهاب'],
-  ['kidnapping', 'خطر الاختطاف'], ['civil unrest', 'اضطرابات مدنية'], ['unrest', 'اضطرابات مدنية'],
-  ['protest', 'مظاهرات'], ['crime', 'جرائم عنيفة'], ['landmines', 'ألغام أرضية'],
-  ['piracy', 'قرصنة بحرية'], ['wrongful detention', 'احتجاز تعسفي'], ['political instability', 'عدم استقرار سياسي'],
-  ['health', 'مخاطر صحية'], ['outbreak', 'تفشٍّ وبائي'], ['missile', 'هجمات صاروخية'],
+// U.S. Level 1-4 → 0-100. Level 1 ("exercise normal precautions") is a low
+// baseline, not a warning — countries stuck at Level 1 with no other signal
+// are filtered out below (see MIN_ADVISORY_LEVEL / hasRealSignal).
+const LEVEL_SCORE = { 1: 15, 2: 42, 3: 68, 4: 90 };
+const MIN_ADVISORY_LEVEL = 2;
+
+// Keyword hints matched against the advisory's own text — used only to
+// enrich `intensity`/topReasons with the advisory's stated reasons, exactly
+// like the ACLED-only version's classifyAcled() enriches from event types.
+const CONFLICT_TEXT_HINTS = [
+  'armed conflict', 'civil war', 'ongoing conflict', 'hostilities', 'military conflict',
+  'airstrike', 'air strike', 'missile', 'drone attack', 'active conflict', 'war zone',
+  'terrorism', 'terrorist',
 ];
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
@@ -96,18 +79,26 @@ function tag(block, t) {
   const m = block.match(new RegExp(`<${t}(?:\\s[^>]*)?>([\\s\\S]*?)</${t}>`, 'i'));
   return m ? m[1].trim() : '';
 }
+function severityFromScore(score) {
+  return score >= 80 ? 'CRITICAL' : score >= 60 ? 'HIGH' : score >= 40 ? 'MEDIUM' : 'LOW';
+}
 function severityFromLevel(level) {
   return level >= 4 ? 'CRITICAL' : level === 3 ? 'HIGH' : level === 2 ? 'MEDIUM' : 'LOW';
 }
 
-/* ─── Source 1 · U.S. State Dept Travel Advisories (authoritative backbone) ── */
+/* ─── Source 1 · U.S. State Dept Travel Advisories — REQUIRED backbone.
+   Free, public RSS, no API key. Covers essentially every country, so the
+   widget has real data with zero configuration. ── */
 async function fetchAdvisories() {
+  console.log('[StateDept] fetching travel advisories RSS...');
   const res = await timedFetch('https://travel.state.gov/_res/rss/TAsTWs.xml', {
     headers: { 'User-Agent': 'nawatai-dashboard/1.0' },
   });
-  if (!res.ok) throw new Error(`advisory feed ${res.status}`);
+  console.log(`[StateDept] response status=${res.status}`);
+  if (!res.ok) throw new Error(`advisory feed responded ${res.status}`);
   const xml = await res.text();
   const items = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? [];
+  console.log(`[StateDept] parsed ${items.length} RSS items`);
 
   const map = new Map(); // enNameLower → { level, label, link, pubDate, desc }
   for (const it of items) {
@@ -126,20 +117,23 @@ async function fetchAdvisories() {
       desc,
     });
   }
+  console.log(`[StateDept] matched ${map.size} country advisory entries`);
   return map;
 }
 
-/* ─── Source 2 · GDELT (recent security events; title-matched to country) ─── */
+/* ─── Source 2 · GDELT — recent security headlines, title-matched to country.
+   Free, best-effort, fails soft. ── */
 async function fetchGdeltSecurity() {
   const query = encodeURIComponent('(security OR attack OR terrorism OR protest OR conflict OR clashes)');
   const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${query}` +
-    `&mode=ArtList&maxrecords=200&format=json&sort=DateDesc&timespan=5d`;
+    `&mode=ArtList&maxrecords=200&format=json&sort=DateDesc&timespan=${WINDOW_DAYS}d`;
   try {
     const res = await timedFetch(url);
+    console.log(`[GDELT] response status=${res.status}`);
     if (!res.ok) return [];
     const data = await res.json();
     if (!Array.isArray(data?.articles)) return [];
-    return data.articles.map((a) => {
+    const articles = data.articles.map((a) => {
       const m = String(a.seendate ?? '').match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
       return {
         title: String(a.title ?? '').trim(),
@@ -148,156 +142,197 @@ async function fetchGdeltSecurity() {
         at: m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6])) : new Date(),
       };
     }).filter((a) => a.title && a.url);
-  } catch {
+    console.log(`[GDELT] parsed ${articles.length} articles`);
+    return articles;
+  } catch (err) {
+    console.error('[GDELT] fetch failed (non-fatal, best-effort source):', err);
     return [];
   }
 }
 
-function scoreCountry(entry, adv, gdelt) {
-  const desc = adv.desc.toLowerCase();
-  const levelScore = LEVEL_SCORE[adv.level];
+function topReasonsFor(factors) {
+  return Object.entries(factors)
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([k]) => FACTOR_LABEL_AR[k]);
+}
 
-  const categories = {};
-  const reasons = [];
-  for (const cat of CATEGORY_KEYS) {
-    if (cat === 'security') { categories[cat] = levelScore; continue; }
-    // Deterministic: base on the official advisory level, then scale by how many
-    // distinct risk indicators of this category the advisory actually names.
-    const hits = CATEGORY_KEYWORDS[cat].filter((k) => desc.includes(k)).length;
-    categories[cat] = hits > 0
-      ? clamp(Math.round(0.55 * levelScore + hits * 11 + 18), 25, 97)
-      : clamp(Math.round(levelScore * 0.3), 5, 45);
-    if (hits > 0) reasons.push(cat);
+// Builds one country's profile from its advisory (required) + any matched
+// ACLED events + any matched GDELT articles. Same output shape as the
+// ACLED-only version's buildProfile().
+function buildProfile(entry, adv, acledEvents, gdeltMatches) {
+  const fatalities = acledEvents.reduce((s, e) => s + e.fatalities, 0);
+  const desc = (adv.desc ?? '').toLowerCase();
+  const textHits = CONFLICT_TEXT_HINTS.filter((k) => desc.includes(k)).length;
+
+  const totalSignals = acledEvents.length + gdeltMatches.length;
+  const hardSignals = acledEvents.filter((e) => {
+    const c = classifyAcled(e.eventType);
+    return c === 'armedConflict' || c === 'terrorism';
+  }).length + (textHits > 0 ? 1 : 0);
+
+  const now = Date.now();
+  const recentDates = [
+    ...acledEvents.map((e) => new Date(e.eventDate).getTime()),
+    ...gdeltMatches.map((a) => a.at.getTime()),
+  ].filter((t) => Number.isFinite(t));
+  const avgAgeDays = recentDates.length > 0
+    ? recentDates.reduce((s, t) => s + Math.max(0, (now - t) / 86_400_000), 0) / recentDates.length
+    : null;
+
+  const factors = {
+    volume: totalSignals === 0 ? 0 : totalSignals >= 16 ? 100 : totalSignals >= 9 ? 85 : totalSignals >= 4 ? 60 : 30,
+    fatalities: fatalities >= 100 ? 100 : fatalities >= 40 ? 85 : fatalities >= 15 ? 65 : fatalities >= 5 ? 45 : fatalities > 0 ? 25 : 0,
+    severity: LEVEL_SCORE[adv.level] ?? 0,
+    recency: avgAgeDays === null ? 0 : clamp(Math.round(100 - (avgAgeDays / WINDOW_DAYS) * 100), 0, 100),
+    intensity: totalSignals === 0 ? (textHits > 0 ? clamp(textHits * 25, 0, 100) : 0) : clamp(Math.round((hardSignals / totalSignals) * 100), 0, 100),
+  };
+
+  const riskScore = clamp(Math.round(
+    WEIGHTS.volume * factors.volume +
+    WEIGHTS.fatalities * factors.fatalities +
+    WEIGHTS.severity * factors.severity +
+    WEIGHTS.recency * factors.recency +
+    WEIGHTS.intensity * factors.intensity
+  ), 0, 100);
+
+  const riskLevel = severityFromScore(riskScore);
+  const advSeverity = severityFromLevel(adv.level);
+
+  // Current threats — real ACLED events first (most fatalities), then the
+  // advisory update itself if it names a concrete reason.
+  const currentThreats = [...acledEvents]
+    .sort((a, b) => b.fatalities - a.fatalities)
+    .slice(0, 3)
+    .map((e) => ({
+      title: ACLED_TYPE_AR[e.eventType] ?? e.eventType,
+      severity: e.severity,
+      time: new Date(e.eventDate).toISOString(),
+      source: 'ACLED',
+      url: e.sourceUrl,
+    }));
+  if (adv.level >= MIN_ADVISORY_LEVEL) {
+    currentThreats.push({
+      title: `تحذير سفر أمريكي — ${adv.label}`,
+      severity: advSeverity,
+      time: adv.pubDate.toISOString(),
+      source: 'وزارة الخارجية الأمريكية',
+      url: adv.link,
+    });
   }
 
-  const weighted = CATEGORY_KEYS.reduce((sum, c) => sum + WEIGHTS[c] * categories[c], 0);
-  const overall = clamp(Math.round(0.45 * levelScore + 0.55 * weighted), 0, 100);
-  const level = overall >= 75 ? 'CRITICAL' : overall >= 55 ? 'HIGH' : overall >= 30 ? 'MEDIUM' : 'LOW';
-  const sev = severityFromLevel(adv.level);
-
-  // Current threats — derived ONLY from the official advisory's stated reasons.
-  const seen = new Set();
-  const currentThreats = [];
-  for (const [kw, arLabel] of REASON_AR) {
-    if (desc.includes(kw) && !seen.has(arLabel)) {
-      seen.add(arLabel);
-      currentThreats.push({
-        title: arLabel, severity: sev, time: adv.pubDate.toISOString(),
-        source: 'وزارة الخارجية الأمريكية — تحذيرات السفر', url: adv.link,
-      });
-    }
-  }
-
-  // Timeline — the advisory update + any GDELT headline mentioning the country.
+  // Timeline — advisory update + every matched ACLED event + GDELT headline.
   const timeline = [{
-    date: adv.pubDate.toISOString(), title: `تحديث التصنيف الأمني: ${adv.label}`,
-    severity: sev, source: 'U.S. Department of State', url: adv.link,
+    date: adv.pubDate.toISOString(),
+    title: `تحديث تحذير السفر: ${adv.label}`,
+    severity: advSeverity,
+    source: 'وزارة الخارجية الأمريكية',
+    url: adv.link,
   }];
-  const gMatches = gdelt.filter((a) => a.title.toLowerCase().includes(entry.en.toLowerCase())).slice(0, 6);
-  const gSources = new Set();
-  for (const a of gMatches) {
+  for (const e of [...acledEvents].sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate)).slice(0, 8)) {
+    const typeAr = ACLED_TYPE_AR[e.eventType] ?? e.eventType;
+    const fatal = e.fatalities > 0 ? ` — ${e.fatalities} قتيل` : '';
+    timeline.push({
+      date: new Date(e.eventDate).toISOString(),
+      title: `${typeAr}${e.location ? ` · ${e.location}` : ''}${fatal}`,
+      severity: e.severity, source: 'ACLED', url: e.sourceUrl,
+    });
+  }
+  for (const a of gdeltMatches.slice(0, 6)) {
     timeline.push({ date: a.at.toISOString(), title: a.title, severity: 'MEDIUM', source: a.domain, url: a.url });
-    gSources.add(a.domain);
   }
   timeline.sort((x, y) => new Date(y.date).getTime() - new Date(x.date).getTime());
-
-  const lastUpdated = timeline.reduce((mx, t) => Math.max(mx, new Date(t.date).getTime()), adv.pubDate.getTime());
+  // The detail panel only ever renders the first 8 — trim the rest here so
+  // the list response (all ~100+ countries, most never opened) doesn't carry
+  // timeline entries no one will see.
+  timeline.length = Math.min(timeline.length, 10);
 
   const sources = [{ name: 'وزارة الخارجية الأمريكية (تحذيرات السفر)', url: adv.link }];
-  for (const d of gSources) sources.push({ name: `GDELT · ${d}`, url: `https://${d}` });
+  if (acledEvents.length > 0) sources.push({ name: 'ACLED (بيانات النزاعات المسلحة)', url: 'https://acleddata.com/dashboard/' });
+  const gdeltDomains = new Set(gdeltMatches.map((a) => a.domain));
+  for (const d of gdeltDomains) sources.push({ name: `GDELT · ${d}`, url: `https://${d}` });
+
+  const allDates = [adv.pubDate.getTime(), ...recentDates].filter((t) => Number.isFinite(t));
+  const latestUpdate = new Date(Math.max(...allDates)).toISOString();
 
   return {
     id: `sec-${entry.iso2}`,
     country: entry.ar, countryEn: entry.en, countryCode: entry.iso2,
-    overall, level, advisoryLevel: adv.level, advisoryLabel: adv.label,
-    categories, reasons, currentThreats, timeline, sources,
-    lastUpdated: new Date(lastUpdated).toISOString(),
+    riskScore, riskLevel,
+    activeIncidents: acledEvents.length + gdeltMatches.length,
+    fatalities,
+    sourceCount: sources.length,
+    latestUpdate,
+    factors, topReasons: topReasonsFor(factors),
+    currentThreats, timeline, sources,
+    _hasRealSignal: adv.level >= MIN_ADVISORY_LEVEL || totalSignals > 0,
   };
-}
-
-// Merge real ACLED events into the matching country profiles: each event
-// becomes a source-labelled current-threat + timeline entry, and recent
-// fatalities give the country's overall score a modest, bounded boost so ACLED
-// actually influences ranking. Nothing is invented; events without a matching
-// watchlist country are dropped (this section is per-country).
-function mergeAcled(profiles, events) {
-  const byCountry = new Map(profiles.map((p) => [p.countryEn.toLowerCase(), p]));
-  const grouped = new Map();
-  for (const e of events) {
-    const p = byCountry.get(String(e.country).toLowerCase());
-    if (!p) continue;
-    if (!grouped.has(p.id)) grouped.set(p.id, []);
-    grouped.get(p.id).push(e);
-  }
-
-  for (const p of profiles) {
-    const evs = (grouped.get(p.id) ?? []).sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate));
-    if (evs.length === 0) continue;
-
-    for (const e of evs.slice(0, 8)) {
-      const typeAr = ACLED_TYPE_AR[e.eventType] ?? e.eventType;
-      const fatal = e.fatalities > 0 ? ` — ${e.fatalities} قتيل` : '';
-      const title = `${typeAr}${e.location ? ` · ${e.location}` : ''}${fatal}`;
-      p.timeline.push({ date: new Date(e.eventDate).toISOString(), title, severity: e.severity, source: 'ACLED', url: e.sourceUrl });
-    }
-    // Surface the two most severe recent events as current threats.
-    for (const e of [...evs].sort((a, b) => b.fatalities - a.fatalities).slice(0, 2)) {
-      const typeAr = ACLED_TYPE_AR[e.eventType] ?? e.eventType;
-      p.currentThreats.push({ title: typeAr, severity: e.severity, time: new Date(e.eventDate).toISOString(), source: 'ACLED', url: e.sourceUrl });
-    }
-    p.sources.push({ name: 'ACLED (أحداث النزاع)', url: 'https://acleddata.com/dashboard/' });
-
-    // Modest, bounded score boost from fatalities in the last 7 days.
-    const weekAgo = Date.now() - 7 * 86_400_000;
-    const recentFatal = evs.filter((e) => new Date(e.eventDate).getTime() >= weekAgo).reduce((s, e) => s + e.fatalities, 0);
-    if (recentFatal > 0) {
-      p.overall = clamp(p.overall + Math.min(12, Math.round(recentFatal / 5)), 0, 100);
-      p.level = p.overall >= 75 ? 'CRITICAL' : p.overall >= 55 ? 'HIGH' : p.overall >= 30 ? 'MEDIUM' : 'LOW';
-    }
-    p.timeline.sort((x, y) => new Date(y.date).getTime() - new Date(x.date).getTime());
-    p.lastUpdated = new Date(Math.max(new Date(p.lastUpdated).getTime(), new Date(evs[0].eventDate).getTime())).toISOString();
-  }
 }
 
 let cache = { at: 0, payload: null };
 
 export async function getSecurityProfiles() {
   if (cache.payload && Date.now() - cache.at < CACHE_TTL_MS) {
+    console.log(`[securityCore] serving cached result (${cache.payload.countries.length} countries, age=${Date.now() - cache.at}ms)`);
     return { ...cache.payload, cached: true };
   }
 
-  // Advisory feed is required (authoritative). GDELT + ACLED are best-effort.
+  // Advisory feed is REQUIRED (the free backbone). GDELT + ACLED are best-effort.
   const [advResult, gdelt, acled] = await Promise.allSettled([
     fetchAdvisories(),
     fetchGdeltSecurity(),
     fetchAcledEvents(),
   ]);
+
   if (advResult.status !== 'fulfilled') {
+    console.error('[securityCore] advisory source (required backbone) failed:', advResult.reason);
     throw new Error('advisory source unavailable');
   }
   const advisories = advResult.value;
   const gdeltArticles = gdelt.status === 'fulfilled' ? gdelt.value : [];
   const acledResult = acled.status === 'fulfilled' ? acled.value : { configured: acledConfigured(), ok: false, events: [] };
 
-  const profiles = WATCHLIST
-    .map((entry) => {
-      const adv = advisories.get(entry.en.toLowerCase());
-      return adv ? scoreCountry(entry, adv, gdeltArticles) : null;
-    })
-    .filter(Boolean);
+  console.log(
+    `[securityCore] sources → advisories=${advisories.size}, gdelt=${gdeltArticles.length} articles, `
+    + `acled.configured=${acledResult.configured} acled.ok=${acledResult.ok} acled.events=${acledResult.events.length}`,
+  );
 
-  // Fold in real ACLED conflict events, then rank.
-  mergeAcled(profiles, acledResult.events);
-  profiles.sort((a, b) => b.overall - a.overall);
+  const acledByCountry = new Map();
+  for (const e of acledResult.events) {
+    const key = String(e.country || '').trim().toLowerCase();
+    if (!key) continue;
+    if (!acledByCountry.has(key)) acledByCountry.set(key, []);
+    acledByCountry.get(key).push(e);
+  }
+
+  const entries = countryEntries();
+  const withAdvisory = entries.filter((entry) => advisories.has(entry.en));
+  console.log(`[securityCore] ${withAdvisory.length} of ${entries.length} known countries have a matching advisory`);
+
+  const profiles = withAdvisory.map((entry) => {
+    const adv = advisories.get(entry.en);
+    const acledEvents = acledByCountry.get(entry.en) ?? [];
+    const gdeltMatches = gdeltArticles.filter((a) => a.title.toLowerCase().includes(entry.en));
+    return buildProfile(entry, adv, acledEvents, gdeltMatches);
+  });
+
+  const countries = profiles
+    .filter((p) => p._hasRealSignal)
+    .map(({ _hasRealSignal, ...p }) => p)
+    .sort((a, b) => b.riskScore - a.riskScore);
+  console.log(`[securityCore] ${countries.length} of ${profiles.length} countries have elevated/real signal (Level ≥ ${MIN_ADVISORY_LEVEL} or ACLED/GDELT match) — final result`);
 
   const payload = {
-    profiles,
-    sources: {
-      'U.S. State Dept': { configured: true, ok: true, count: profiles.length },
+    countries,
+    // Internal diagnostics only — never rendered as an error to the user
+    // (see SecurityCategoryCard.tsx). Useful for server logs / DevTools.
+    _sources: {
+      'U.S. State Dept': { configured: true, ok: true, count: advisories.size },
       GDELT: { configured: true, ok: gdelt.status === 'fulfilled', count: gdeltArticles.length },
       ACLED: { configured: acledResult.configured, ok: acledResult.ok, count: acledResult.events.length },
     },
-    cachedAt: new Date().toISOString(),
+    generatedAt: new Date().toISOString(),
     cached: false,
   };
   cache = { at: Date.now(), payload };

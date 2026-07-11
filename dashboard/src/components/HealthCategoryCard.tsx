@@ -32,13 +32,16 @@ const REFRESH_MS = 10 * 60 * 1000;
 
 interface HealthCategoryCardProps {
   onSelectCountry: (entry: CountryHealthEntry) => void;
+  // Fired with the fresh list after every successful load — lets the parent
+  // (App.tsx) fold real health-risk data into the sidebar's aggregate stats.
+  onDataLoaded?: (countries: CountryHealthEntry[]) => void;
 }
 
 // Live global-health card. Data is fetched from real, keyless sources
 // (WHO Disease Outbreak News + disease.sh) — see services/healthFeed.ts. The
 // ranked country list + regional predictive rollup are rendered from it. The
 // detail panel is opened by the parent (App.tsx) via onSelectCountry.
-export default function HealthCategoryCard({ onSelectCountry }: HealthCategoryCardProps) {
+export default function HealthCategoryCard({ onSelectCountry, onDataLoaded }: HealthCategoryCardProps) {
   const [countries, setCountries] = useState<CountryHealthEntry[]>([]);
   const [generatedAt, setGeneratedAt] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,18 +54,20 @@ export default function HealthCategoryCard({ onSelectCountry }: HealthCategoryCa
       const data = await fetchHealthCountries();
       setCountries(data);
       setGeneratedAt(new Date());
+      onDataLoaded?.(data);
     } catch {
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [onDataLoaded]);
 
   useEffect(() => {
     load();
     const interval = setInterval(load, REFRESH_MS);
     return () => clearInterval(interval);
-  }, [load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const regional = countries.length > 0 ? computeRegionalForecast(countries) : null;
 

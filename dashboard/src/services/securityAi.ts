@@ -1,67 +1,70 @@
-// AI summary for a security profile.
+// AI summary for a country's ACLED-derived security profile.
 //
 // The model NEVER invents threats or events. It is given ONLY the already-
-// computed scores and the real advisory-derived risk list, and asked to:
+// computed weighted factors and topReasons (see securityCore.mjs) — never the
+// raw ACLED records — and asked to:
 //   • summarize the current security situation (Arabic)
-//   • identify the main contributing risks
-// Uses the project's local Ollama; falls back to a deterministic template built
-// straight from the profile data when the model is unavailable.
+//   • restate the top reasons behind the score, in the model's own words
+// Uses the project's local Ollama; falls back to a deterministic template
+// built straight from topReasons when the model is unavailable.
 
 import {
-  CATEGORY_LABEL_AR, THREAT_LABEL_AR, CATEGORY_ORDER,
-  type SecurityProfile,
+  RISK_LABEL_AR, FACTOR_LABEL_AR,
+  type CountrySecurityProfile,
 } from './security';
+import { withTimeout } from './ai/abortHelpers';
+
+// Cache key for the shared 10-minute AI cache (services/ai/cache.ts).
+export const securityAiCacheKey = (p: CountrySecurityProfile) => p.countryCode;
 
 const OLLAMA_URL = import.meta.env.VITE_OLLAMA_URL ?? 'http://localhost:11434';
 const OLLAMA_MODEL = import.meta.env.VITE_OLLAMA_MODEL ?? 'gpt-oss:20b';
 
 export interface SecuritySummary {
   summary: string;
-  drivers: string[]; // main contributing risks (Arabic labels)
+  drivers: string[]; // top reasons behind the score (Arabic), up to 3
   aiEnriched: boolean;
 }
 
-// Top contributing categories (excluding the generic "security" posture),
-// highest score first — used both for the heuristic and as AI input.
-function topDrivers(p: SecurityProfile): string[] {
-  return CATEGORY_ORDER
-    .filter((c) => c !== 'security')
-    .map((c) => ({ c, v: p.categories[c] }))
-    .sort((a, b) => b.v - a.v)
-    .slice(0, 3)
-    .filter((d) => d.v >= 40)
-    .map((d) => CATEGORY_LABEL_AR[d.c]);
+const RISK_ADVICE_AR: Record<CountrySecurityProfile['riskLevel'], string> = {
+  CRITICAL: 'يُنصح بتجنب السفر إلى المناطق المتأثرة ومتابعة التحديثات الرسمية أولاً بأول.',
+  HIGH: 'يُنصح المسافرون بتجنب المناطق المتأثرة ومتابعة التحديثات الرسمية.',
+  MEDIUM: 'يُنصح بالحذر ومتابعة التحديثات الرسمية قبل السفر.',
+  LOW: 'الوضع تحت المراقبة ولا يستدعي إجراءات استثنائية حالياً.',
+};
+
+function heuristic(p: CountrySecurityProfile): SecuritySummary {
+  const reasons = p.topReasons;
+  const reasonsText = reasons.length ? `${reasons.join('، ')} تشير إلى خطر أمني ${RISK_LABEL_AR[p.riskLevel]}.` : `الوضع الأمني مصنّف ${RISK_LABEL_AR[p.riskLevel]}.`;
+  const summary = `${reasonsText} ${RISK_ADVICE_AR[p.riskLevel]}`.trim();
+  return { summary, drivers: reasons, aiEnriched: false };
 }
 
-function heuristic(p: SecurityProfile): SecuritySummary {
-  const drivers = topDrivers(p);
-  const driversText = drivers.length ? `أبرز المخاطر: ${drivers.join('، ')}.` : '';
-  const summary =
-    `الوضع الأمني في ${p.country} مُصنّف «${THREAT_LABEL_AR[p.level]}» بمؤشر ${p.overall}/100، ` +
-    `استناداً إلى تحذيرات السفر الأمريكية (${p.advisoryLabel}). ${driversText}`.trim();
-  return { summary, drivers, aiEnriched: false };
-}
-
-function buildPrompt(p: SecurityProfile): string {
-  const cats = CATEGORY_ORDER.map((c) => `${CATEGORY_LABEL_AR[c]}: ${p.categories[c]}`).join('، ');
+function buildPrompt(p: CountrySecurityProfile): string {
+  const factorsText = Object.entries(p.factors)
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => `${FACTOR_LABEL_AR[k as keyof typeof FACTOR_LABEL_AR]}: ${v}`)
+    .join('، ');
   const threats = p.currentThreats.map((t) => t.title).join('، ') || 'لا يوجد';
   return [
     'أنت محلل أمني. لا تخترع أي حادثة أو تهديد غير مذكور في البيانات التالية.',
     `الدولة: ${p.country}`,
-    `المؤشر الأمني العام: ${p.overall}/100 (التصنيف: ${THREAT_LABEL_AR[p.level]}).`,
-    `مستوى تحذير السفر الأمريكي: ${p.advisoryLabel}.`,
-    `درجات الفئات: ${cats}.`,
+    `المؤشر الأمني: ${p.riskScore}/100 (التصنيف: ${RISK_LABEL_AR[p.riskLevel]}).`,
+    `أسباب المؤشر (مرتبة): ${p.topReasons.join('، ') || 'لا يوجد'}.`,
+    `تفصيل العوامل الموزونة: ${factorsText || 'لا يوجد'}.`,
+    `عدد الحوادث النشطة: ${p.activeIncidents}. عدد الضحايا (القتلى): ${p.fatalities}.`,
     `المخاطر المذكورة رسمياً: ${threats}.`,
+    `آخر تحديث: ${p.latestUpdate}.`,
     '',
     'اكتب بالعربية الفصحى:',
-    '- summary: تلخيص للوضع الأمني الحالي وأهم أسباب ارتفاع/انخفاض المؤشر، جملتان بحد أقصى، دون اختلاق.',
-    '- drivers: مصفوفة قصيرة بأهم المخاطر المساهمة (من الفئات أعلاه فقط).',
+    '- summary: جملتان كحد أقصى تلخصان الوضع الأمني الحالي وتوصية عملية للمسافرين، مبنية فقط على البيانات أعلاه.',
+    '- drivers: أعد نفس "أسباب المؤشر" أعلاه بصياغتك، دون إضافة سبب غير مذكور فيها.',
     '',
     'أعد JSON صارم فقط: {"summary":"...","drivers":["..."]}',
   ].join('\n');
 }
 
-export async function summarizeSecurity(p: SecurityProfile): Promise<SecuritySummary> {
+export async function summarizeSecurity(p: CountrySecurityProfile, signal?: AbortSignal): Promise<SecuritySummary> {
   try {
     const res = await fetch(`${OLLAMA_URL}/api/chat`, {
       method: 'POST',
@@ -72,7 +75,7 @@ export async function summarizeSecurity(p: SecurityProfile): Promise<SecuritySum
         stream: false,
         format: 'json',
       }),
-      signal: AbortSignal.timeout(90000),
+      signal: withTimeout(signal),
     });
     if (!res.ok) return heuristic(p);
     const data = await res.json();
@@ -82,7 +85,7 @@ export async function summarizeSecurity(p: SecurityProfile): Promise<SecuritySum
       summary: parsed.summary.trim(),
       drivers: Array.isArray(parsed.drivers)
         ? parsed.drivers.filter((d: any) => typeof d === 'string')
-        : topDrivers(p),
+        : p.topReasons,
       aiEnriched: true,
     };
   } catch {
@@ -91,6 +94,6 @@ export async function summarizeSecurity(p: SecurityProfile): Promise<SecuritySum
 }
 
 // Synchronous heuristic — used as the immediate default before AI resolves.
-export function heuristicSummary(p: SecurityProfile): SecuritySummary {
+export function heuristicSummary(p: CountrySecurityProfile): SecuritySummary {
   return heuristic(p);
 }

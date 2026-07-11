@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { X, TrendingUp, TrendingDown, Sparkles, Info, Clock } from 'lucide-react';
 import PriceSparkline from './charts/PriceSparkline';
 import type { EconomicIndicator } from '../services/economy';
-import { analyzeEconomy, heuristicReason, type EconomyReason } from '../services/economyAi';
+import { analyzeEconomy, heuristicReason, economyAiCacheKey, type EconomyReason } from '../services/economyAi';
+import { useAiAnalysis } from '../services/ai/useAiAnalysis';
+import AiProgressiveLine from './AiProgressiveLine';
 
 interface EconomyDetailPanelProps {
   indicator: EconomicIndicator | null;
@@ -31,16 +33,20 @@ function timeAgoAr(date: Date): string {
 // news) confidence is LOW and a subtle "تقدير عام" marker is shown.
 export default function EconomyDetailPanel({ indicator, onClose }: EconomyDetailPanelProps) {
   const [displayed, setDisplayed] = useState<EconomicIndicator | null>(null);
-  const [reason, setReason] = useState<EconomyReason | null>(null);
 
   useEffect(() => {
-    if (!indicator) return;
-    setDisplayed(indicator);
-    setReason(heuristicReason(indicator)); // instant default…
-    let cancelled = false;
-    analyzeEconomy(indicator).then((r) => { if (!cancelled) setReason(r); }); // …upgraded by gpt-oss
-    return () => { cancelled = true; };
+    if (indicator) setDisplayed(indicator);
   }, [indicator]);
+
+  // Value/change/sparkline render instantly from `displayed` above; the
+  // gpt-oss reason is a non-blocking upgrade. Same indicator reopened within
+  // 10 minutes reuses the cached reason.
+  const { result: reason, loading: aiLoading, loadingMessage } = useAiAnalysis({
+    key: indicator ? economyAiCacheKey(indicator) : null,
+    input: indicator,
+    heuristic: heuristicReason,
+    fetcher: (ind, signal) => analyzeEconomy(ind, '', signal),
+  });
 
   const isOpen = indicator !== null;
   const d = displayed;
@@ -97,6 +103,7 @@ export default function EconomyDetailPanel({ indicator, onClose }: EconomyDetail
               {reason?.market_context && (
                 <div className="eco-detail-context">{reason.market_context}</div>
               )}
+              {aiLoading && <AiProgressiveLine message={loadingMessage} />}
             </div>
 
             {/* Source */}

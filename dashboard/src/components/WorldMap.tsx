@@ -15,7 +15,7 @@ interface WorldMapProps {
   selectedTraveler: Traveler | null;
 }
 
-const travelerIcon = new L.DivIcon({
+export const travelerIcon = new L.DivIcon({
   className: 'traveler-map-icon',
   html: '<div style="width:12px;height:12px;border-radius:50%;background:#00A050;border:2px solid #fff;box-shadow:0 0 6px rgba(0,160,80,0.8);"></div>',
   iconSize: [12, 12],
@@ -51,7 +51,7 @@ function riskCircleSize(level: RiskLevel): number {
 
 // Type-specific icon inside a glowing, risk-colored circular marker — size and
 // glow strength scale with risk level, selected events are drawn larger.
-function eventDivIcon(event: GeoEvent, isSelected: boolean): L.DivIcon {
+export function eventDivIcon(event: GeoEvent, isSelected: boolean): L.DivIcon {
   const color = RISK_COLORS[event.riskLevel];
   const size = Math.round((isSelected ? 1.3 : 1) * riskCircleSize(event.riskLevel));
   const pulsing = event.riskLevel === 'CRITICAL' || event.riskLevel === 'HIGH';

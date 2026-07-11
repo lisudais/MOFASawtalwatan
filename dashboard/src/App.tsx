@@ -6,6 +6,7 @@ import SidebarResizeHandle from './components/SidebarResizeHandle';
 import EventDetail from './components/EventDetail';
 import GlobalAlertFeed from './components/GlobalAlertFeed';
 import AlertDetailsPanel from './components/AlertDetailsPanel';
+import { fetchFastFeedCards, fetchFeedStatus, fetchFeedCards, type FeedCard } from './services/feed/feedCards';
 import HealthCountryDetailPanel from './components/HealthCountryDetailPanel';
 import DisasterDetailPanel from './components/DisasterDetailPanel';
 import OfficialStatementDetailPanel from './components/OfficialStatementDetailPanel';
@@ -14,6 +15,9 @@ import EconomyDetailPanel from './components/EconomyDetailPanel';
 import NotificationToast from './components/NotificationToast';
 import AiChatbot from './components/AiChatbot';
 import CommitteeView from './components/CommitteeView';
+import EmbassySelector from './components/embassy/EmbassySelector';
+import EmbassyDashboard from './components/embassy/EmbassyDashboard';
+import { getEmbassyById, getCurrentAccess, canAccessEmbassy } from './services/embassies';
 import { loadFirebaseConfig, initFirebase } from './services/firebaseRt';
 import { fetchGDACSEvents } from './services/gdacs';
 import { fetchUSGSEarthquakes } from './services/usgs';
@@ -23,9 +27,9 @@ import { generateNotificationMessage, generateNotificationMessageAr, generateAiS
 import { registerServiceWorker, requestPermission, sendPushNotification, onAcknowledge } from './services/pushNotification';
 import type { GeoEvent, Traveler, Notification, DashboardStats } from './types';
 import type { CountryHealthEntry } from './services/healthAnalysis';
-import type { NaturalDisaster } from './services/naturalDisasters';
+import type { DisasterEvent } from './services/naturalDisasterFeed';
 import type { OfficialStatement } from './services/officialStatements';
-import type { SecurityProfile } from './services/security';
+import type { CountrySecurityProfile } from './services/security';
 import type { EconomicIndicator } from './services/economy';
 import './index.css';
 
@@ -66,9 +70,76 @@ function loadSavedTraveler(): Traveler | null {
   }
 }
 
+/* ─── Hash router ────────────────────────────────────────────────────────
+   Lightweight routing without adding a dependency:
+     ''                      → main command dashboard
+     #/embassies             → searchable embassy selector
+     #/embassies/:embassyId  → that embassy's scoped sub-dashboard
+   Permission is validated HERE (route layer), and the embassy page itself
+   only ever receives scope-filtered data (data layer) — not hidden in UI. */
+function useHashRoute(): string {
+  const [hash, setHash] = useState(window.location.hash);
+  useEffect(() => {
+    const onHash = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  return hash;
+}
+
 export default function App() {
+  const route = useHashRoute();
   if (IS_COMMITTEE_VIEW) return <CommitteeView />;
 
+  if (route === '#/embassies' || route === '#/embassies/') {
+    return (
+      <div className="app" dir="rtl">
+        <Header lastUpdated={null} />
+        <EmbassySelector
+          onSelect={(embassy) => { window.location.hash = `#/embassies/${embassy.id}`; }}
+          onBack={() => { window.location.hash = ''; }}
+        />
+      </div>
+    );
+  }
+
+  const embassyMatch = route.match(/^#\/embassies\/([\w-]+)$/);
+  if (embassyMatch) {
+    const embassy = getEmbassyById(embassyMatch[1]);
+    const goBack = () => { window.location.hash = '#/embassies'; };
+    if (!embassy) {
+      return (
+        <div className="app" dir="rtl">
+          <Header lastUpdated={null} />
+          <div className="embassy-selector-page">
+            <div className="panel embassy-selector-panel">
+              <div className="widget-empty-state">السفارة المطلوبة غير موجودة.</div>
+              <button type="button" className="embassy-back-link" onClick={goBack}>العودة إلى قائمة السفارات</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    if (!canAccessEmbassy(getCurrentAccess(), embassy.id)) {
+      return (
+        <div className="app" dir="rtl">
+          <Header lastUpdated={null} />
+          <div className="embassy-selector-page">
+            <div className="panel embassy-selector-panel">
+              <div className="widget-empty-state">لا تملك صلاحية الوصول إلى لوحة هذه السفارة.</div>
+              <button type="button" className="embassy-back-link" onClick={goBack}>العودة إلى قائمة السفارات</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return <EmbassyDashboard key={embassy.id} embassy={embassy} onBack={goBack} />;
+  }
+
+  return <MainDashboard />;
+}
+
+function MainDashboard() {
   const [events, setEvents] = useState<GeoEvent[]>([]);
   const [travelers] = useState<Traveler[]>(() => {
     const saved = loadSavedTraveler();
@@ -78,14 +149,27 @@ export default function App() {
   // Right sidebar (Global Alert Feed) selection — deliberately separate from
   // `selectedEvent`, which drives the left sidebar / map / EventDetail flow.
   const [selectedRightAlert, setSelectedRightAlert] = useState<GeoEvent | null>(null);
+  // Global Alert Feed cards now come from the Stages 1-6 pipeline (/api/feed),
+  // not from the legacy `events` array. `events` still drives the map markers
+  // and the detail panel, so nothing that previously rendered was removed.
+  const [feedCards, setFeedCards] = useState<FeedCard[]>([]);
+  const [cardsLoading, setCardsLoading] = useState(true);
+  const [cardsError, setCardsError] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<FeedCard | null>(null);
   // Citizen tracked from the right-sidebar details panel — feeds the map's
   // existing selectedTraveler fly-to only; no marker layer is altered.
   const [trackedCitizen, setTrackedCitizen] = useState<Traveler | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<CountryHealthEntry | null>(null);
-  const [selectedDisaster, setSelectedDisaster] = useState<NaturalDisaster | null>(null);
+  const [selectedDisaster, setSelectedDisaster] = useState<DisasterEvent | null>(null);
   const [selectedStatement, setSelectedStatement] = useState<OfficialStatement | null>(null);
-  const [selectedSecurity, setSelectedSecurity] = useState<SecurityProfile | null>(null);
+  const [selectedSecurity, setSelectedSecurity] = useState<CountrySecurityProfile | null>(null);
   const [selectedIndicator, setSelectedIndicator] = useState<EconomicIndicator | null>(null);
+  // Live lists surfaced by the Security/Health cards' own onDataLoaded
+  // callbacks — used only to fold real cross-widget risk data into the
+  // sidebar's aggregate stats below (see `stats`). Each card still owns and
+  // fetches its own data; this is just a read-only mirror of the latest load.
+  const [securityCountries, setSecurityCountries] = useState<CountrySecurityProfile[]>([]);
+  const [healthCountries, setHealthCountries] = useState<CountryHealthEntry[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
@@ -179,6 +263,84 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  /**
+   * Progressive load. The full pipeline is ~530s cold, which cannot block a page
+   * load, so the feed streams in two tiers:
+   *
+   *   1. /api/feed/fast   deterministic stages only (~2s). Geophysical + security
+   *                       cards paint immediately, tagged `provisional`. Their
+   *                       scores are conservative — uncorroborated, so capped.
+   *   2. /api/feed        the AI-scored run. Requesting the fast tier warms it in
+   *                       the background; we poll /api/feed/status and swap the
+   *                       cards in the moment it is ready.
+   *
+   * A provisional card can only under-state a score, never over-state it.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    let pollId: ReturnType<typeof setInterval> | undefined;
+
+    async function loadFull() {
+      try {
+        const full = await fetchFeedCards();
+        if (cancelled || !full.ok) return;
+        setFeedCards(full.cards);
+        setCardsError(false);
+      } catch {
+        // The fast cards stay on screen; the next refresh retries.
+      }
+    }
+
+    async function start() {
+      try {
+        const fast = await fetchFastFeedCards();
+        if (cancelled) return;
+        setFeedCards(fast.cards);
+        setCardsError(!fast.ok);
+        setCardsLoading(false);
+
+        if (fast.fullReady) { loadFull(); return; }
+
+        // The background warm is running server-side. Poll cheaply for it.
+        pollId = setInterval(async () => {
+          if (cancelled) return;
+          const { fullReady } = await fetchFeedStatus();
+          if (!fullReady) return;
+          clearInterval(pollId);
+          loadFull();
+        }, 15_000);
+      } catch {
+        if (!cancelled) { setCardsError(true); setCardsLoading(false); }
+      }
+    }
+
+    start();
+    const refresh = setInterval(start, 5 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(refresh);
+      if (pollId) clearInterval(pollId);
+    };
+  }, []);
+
+  /**
+   * Clicking a card selects it. When the cluster contains a signal that came
+   * from a geophysical GeoEvent, we also select that event, so the existing
+   * map fly-to and the right-side details panel keep working exactly as before.
+   * Clusters with no GeoEvent behind them (security / statements / GDELT) simply
+   * highlight — nothing that used to work has been taken away.
+   */
+  const handleSelectCard = useCallback((card: FeedCard) => {
+    setSelectedCard(card);
+    // When the cluster contains a geophysical signal that maps back to a
+    // GeoEvent, also select it so the map fly-to keeps working. Cards with no
+    // GeoEvent behind them (security / statements / GDELT) still open the
+    // details panel — it now renders from the card itself.
+    const geoIds = card.signalIds.map((id) => id.slice(id.indexOf(':') + 1));
+    const match = events.find((e) => geoIds.includes(e.id));
+    setSelectedRightAlert(match ?? null);
+  }, [events]);
+
   const dismissNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
@@ -187,18 +349,48 @@ export default function App() {
     ? travelers.filter((t) => t.countryCode === selectedEvent.countryCode).length
     : 0;
 
+  // Aggregate stats across every live risk source on the dashboard — not just
+  // the natural-disasters feed. Security (State Dept/ACLED/GDELT) and Health
+  // (WHO/disease.sh) use the same LOW/MEDIUM/HIGH/CRITICAL scale as GeoEvent,
+  // so they fold in directly rather than needing a separate normalization step.
+  const disasterCritical = events.filter((e) => e.riskLevel === 'CRITICAL');
+  const disasterHigh = events.filter((e) => e.riskLevel === 'HIGH');
+  const securityCritical = securityCountries.filter((c) => c.riskLevel === 'CRITICAL');
+  const securityHigh = securityCountries.filter((c) => c.riskLevel === 'HIGH');
+  const healthCritical = healthCountries.filter((c) => c.analysis.risk_level.category === 'CRITICAL');
+  const healthHigh = healthCountries.filter((c) => c.analysis.risk_level.category === 'HIGH');
+
+  // Any country carrying a CRITICAL or HIGH signal from any source — used to
+  // recognize an "at risk" traveler by real location, not just their manually
+  // set status.
+  const highRiskCountryCodes = new Set(
+    [...disasterCritical, ...disasterHigh].map((e) => e.countryCode)
+      .concat([...securityCritical, ...securityHigh].map((c) => c.countryCode))
+      .concat([...healthCritical, ...healthHigh].map((c) => c.countryCode))
+      .filter(Boolean)
+  );
+
   const stats: DashboardStats = {
-    totalEvents: events.length,
-    criticalEvents: events.filter((e) => e.riskLevel === 'CRITICAL').length,
-    affectedCountries: new Set(events.map((e) => e.countryCode).filter(Boolean)).size,
-    travelersAtRisk: travelers.filter((t) => t.status === 'ALERTED' || t.status === 'EVACUATED').length,
+    totalEvents: events.length + securityCountries.reduce((s, c) => s + c.activeIncidents, 0) + healthCountries.length,
+    criticalEvents: disasterCritical.length + securityCritical.length + healthCritical.length,
+    affectedCountries: new Set([
+      ...events.map((e) => e.countryCode),
+      ...securityCountries.map((c) => c.countryCode),
+      ...healthCountries.map((c) => c.countryCode),
+    ].filter(Boolean)).size,
+    travelersAtRisk: travelers.filter((t) =>
+      t.status === 'ALERTED' || t.status === 'EVACUATED' || highRiskCountryCodes.has(t.countryCode)
+    ).length,
     notificationsSent: notifications.filter((n) => n.sent).length,
-    activeAlerts: events.filter((e) => e.riskLevel === 'CRITICAL' || e.riskLevel === 'HIGH').length,
+    activeAlerts: disasterCritical.length + disasterHigh.length + securityCritical.length + securityHigh.length + healthCritical.length + healthHigh.length,
   };
 
   return (
     <div className="app">
-      <Header lastUpdated={lastUpdated} />
+      <Header
+        lastUpdated={lastUpdated}
+        onOpenEmbassies={() => { window.location.hash = '#/embassies'; }}
+      />
       {loading && (
         <div className="loading-bar">
           <div className="loading-fill" />
@@ -216,6 +408,16 @@ export default function App() {
           onSelectDisaster={(d) => { setSelectedCountry(null); setSelectedStatement(null); setSelectedSecurity(null); setSelectedIndicator(null); setSelectedDisaster(d); }}
           onSelectStatement={(s) => { setSelectedCountry(null); setSelectedDisaster(null); setSelectedSecurity(null); setSelectedIndicator(null); setSelectedStatement(s); }}
           onSelectSecurity={(p) => { setSelectedCountry(null); setSelectedDisaster(null); setSelectedStatement(null); setSelectedIndicator(null); setSelectedSecurity(p); }}
+          onSecurityDataLoaded={(countries) => {
+            setSecurityCountries(countries);
+            // Keeps an already-open detail panel showing the SAME country
+            // but with fresh data after a background refresh, instead of
+            // freezing on the snapshot it was opened with. If that country
+            // no longer has active threats, keep the last known snapshot
+            // rather than abruptly closing the panel.
+            setSelectedSecurity((prev) => (prev ? countries.find((c) => c.id === prev.id) ?? prev : prev));
+          }}
+          onHealthDataLoaded={setHealthCountries}
           onSelectIndicator={(ind) => { setSelectedCountry(null); setSelectedDisaster(null); setSelectedStatement(null); setSelectedSecurity(null); setSelectedIndicator(ind); }}
         />
 
@@ -279,11 +481,12 @@ export default function App() {
           />
           {/* Right-sidebar-only details overlay — driven solely by the Global
               Alert Feed's own state; never touches the left sidebar's panels. */}
-          {selectedRightAlert && (
+          {selectedCard && (
             <AlertDetailsPanel
-              alert={selectedRightAlert}
+              card={selectedCard}
+              event={selectedRightAlert}
               travelers={travelers}
-              onClose={() => setSelectedRightAlert(null)}
+              onClose={() => { setSelectedCard(null); setSelectedRightAlert(null); }}
               onTrackCitizen={setTrackedCitizen}
             />
           )}
@@ -292,9 +495,11 @@ export default function App() {
 
         <div className="right-column">
           <GlobalAlertFeed
-            events={events}
-            selectedAlert={selectedRightAlert}
-            onSelectAlert={setSelectedRightAlert}
+            cards={feedCards}
+            loading={cardsLoading}
+            error={cardsError}
+            selectedCardId={selectedCard?.id ?? null}
+            onSelectCard={handleSelectCard}
           />
         </div>
       </main>

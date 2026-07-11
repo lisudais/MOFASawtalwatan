@@ -22,7 +22,7 @@ export default function SaudisAbroadSection() {
   return (
     <div className="saudis-abroad-section">
       <div className="saudis-abroad-top">
-        <span className="saudis-abroad-eyebrow">جميع المسجلين · All Registered</span>
+        <span className="saudis-abroad-eyebrow">جميع المسجلين</span>
         <span className="saudis-abroad-details-link">التفاصيل ›</span>
       </div>
 

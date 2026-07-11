@@ -1,4 +1,4 @@
-/* ─── Saudi MFA Design System ────────────────────────────── */
+﻿/* ─── Saudi MFA Design System ────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -153,13 +153,6 @@ body {
   direction: rtl;
   font-family: 'IBM Plex Sans Arabic', sans-serif;
   letter-spacing: 0.3px;
-}
-.system-name-en {
-  font-size: 9px;
-  font-weight: 500;
-  color: var(--text-muted);
-  letter-spacing: 1px;
-  text-transform: uppercase;
 }
 .system-badge {
   display: flex;
@@ -900,190 +893,6 @@ body {
 .map-section .leaflet-container { width: 100%; height: 100%; background: #050b16; }
 .map-section .leaflet-control-attribution { display: none; }
 
-/* ─── AI chatbot (floating launcher + panel over the map) ────────────────
-   Anchored to the map section's lower-right corner, immediately left of the
-   global alerts sidebar. The panel opens ABOVE the launcher, inside the map
-   area, so it never covers the right sidebar. */
-.ai-chatbot-root {
-  /* Anchored inside .map-section (position:relative), so the launcher and
-     panel always sit OVER the map in its bottom corner next to the alerts
-     sidebar — and can never overlap the sidebar itself, since the map
-     section ends exactly where the right column begins. */
-  position: absolute;
-  bottom: 18px; right: 18px;
-  z-index: 1100;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-}
-.ai-chat-launcher {
-  position: relative;
-  width: 48px; height: 48px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(10,22,40,0.92);
-  border: 1px solid rgba(37,99,168,0.55);
-  color: #fff;
-  cursor: pointer;
-  box-shadow: 0 0 12px rgba(45,212,218,0.22), 0 4px 14px rgba(0,0,0,0.45);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
-}
-.ai-chat-launcher:hover,
-.ai-chat-launcher.open {
-  border-color: rgba(45,212,218,0.65);
-  box-shadow: 0 0 20px rgba(45,212,218,0.45), 0 4px 16px rgba(0,0,0,0.5);
-}
-.ai-chat-launcher:hover { transform: translateY(-1px); }
-.ai-launcher-status-dot {
-  position: absolute;
-  bottom: 3px; right: 3px;
-  width: 9px; height: 9px;
-  border-radius: 50%;
-  background: #2bd97a;
-  border: 2px solid rgba(10,22,40,0.95);
-}
-.ai-launcher-tooltip {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  right: 50%; transform: translateX(50%);
-  background: rgba(10,22,40,0.95);
-  border: 1px solid rgba(45,212,218,0.35);
-  color: var(--text-primary);
-  font-size: 10px; font-weight: 600;
-  font-family: 'IBM Plex Sans Arabic', inherit;
-  border-radius: 6px; padding: 4px 9px;
-  white-space: nowrap;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.15s ease;
-}
-.ai-chat-launcher:hover .ai-launcher-tooltip { opacity: 1; }
-.ai-chat-launcher.open .ai-launcher-tooltip { opacity: 0; }
-
-.ai-chat-panel {
-  /* fixed + JS-anchored to the launcher so .map-section's overflow:hidden
-     can't clip it; right/bottom come from inline style */
-  position: fixed;
-  width: 300px;
-  height: 380px;
-  max-height: calc(100vh - 220px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: rgba(10,22,40,0.94);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(37,99,168,0.5);
-  border-radius: 12px;
-  box-shadow: 0 0 22px rgba(45,212,218,0.16), 0 10px 30px rgba(0,0,0,0.5);
-}
-.ai-chat-header {
-  display: flex; align-items: center; gap: 7px;
-  padding: 9px 11px;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-  flex-shrink: 0;
-}
-.ai-chat-avatar {
-  width: 24px; height: 24px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(45,212,218,0.1);
-  border: 1px solid rgba(45,212,218,0.4);
-  color: #fff;
-  flex-shrink: 0;
-}
-.ai-chat-title {
-  font-size: 12px; font-weight: 700; color: var(--text-primary);
-  font-family: 'IBM Plex Sans Arabic', inherit;
-}
-.ai-chat-status {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 9px; color: var(--text-muted);
-  font-family: 'IBM Plex Sans Arabic', inherit;
-}
-.ai-status-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: #2bd97a;
-}
-.ai-chat-close {
-  margin-inline-start: auto;
-  background: none; border: none; cursor: pointer;
-  color: var(--text-muted);
-  display: flex; align-items: center;
-}
-.ai-chat-close:hover { color: var(--text-primary); }
-
-.ai-chat-messages {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 10px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-.ai-chat-msg {
-  max-width: 85%;
-  font-size: 11px; line-height: 1.6;
-  font-family: 'IBM Plex Sans Arabic', inherit;
-  border-radius: 10px;
-  padding: 7px 10px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.ai-chat-msg.assistant {
-  align-self: flex-start;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.07);
-  color: var(--text-primary);
-}
-.ai-chat-msg.user {
-  align-self: flex-end;
-  background: rgba(45,212,218,0.1);
-  border: 1px solid rgba(45,212,218,0.3);
-  color: var(--text-primary);
-}
-.ai-chat-typing { display: flex; gap: 3px; align-items: center; }
-.ai-chat-typing span {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--text-muted);
-  animation: aiTypingBlink 1.2s ease-in-out infinite;
-}
-.ai-chat-typing span:nth-child(2) { animation-delay: 0.2s; }
-.ai-chat-typing span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes aiTypingBlink { 0%,100% { opacity: 0.25; } 50% { opacity: 1; } }
-
-.ai-chat-input-row {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 10px;
-  border-top: 1px solid rgba(255,255,255,0.07);
-  flex-shrink: 0;
-}
-.ai-chat-input {
-  flex: 1;
-  min-width: 0;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.09);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-size: 11px;
-  font-family: 'IBM Plex Sans Arabic', inherit;
-  padding: 7px 10px;
-  outline: none;
-}
-.ai-chat-input:focus { border-color: rgba(45,212,218,0.45); }
-.ai-chat-input::placeholder { color: var(--text-muted); }
-.ai-chat-send {
-  width: 30px; height: 30px; border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(45,212,218,0.12);
-  border: 1px solid rgba(45,212,218,0.4);
-  color: #fff; cursor: pointer;
-  flex-shrink: 0;
-}
-.ai-chat-send:hover:not(:disabled) { background: rgba(45,212,218,0.22); }
-.ai-chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
-
 /* ─── Flight monitoring (isolated feature) ───────────────────────────────
    Toggle control on the map, styled to match the dashboard; aircraft markers
    are visually distinct from the round risk markers. */
@@ -1557,6 +1366,16 @@ body {
   font-size: 11px; color: var(--text-secondary);
 }
 .health-ai-loading svg { color: var(--saudi-gold); }
+
+/* Non-blocking progressive-message line — shown alongside content that's
+   already rendered (heuristic default), never in place of it. */
+.ai-progressive-line {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 9.5px; color: var(--text-secondary);
+  margin-top: 5px;
+}
+.ai-progressive-line svg { color: var(--saudi-gold); flex-shrink: 0; }
+
 .health-ai-warning {
   display: flex; align-items: flex-start; gap: 7px;
   font-size: 10px; line-height: 1.6; color: var(--danger-high);
@@ -1672,16 +1491,107 @@ body {
   letter-spacing: 0;
   direction: rtl;
 }
-.feed-header-title-en {
-  font-size: 8px;
-  font-weight: 600;
-  color: var(--text-muted);
-  letter-spacing: 0.5px;
-}
 .alert-feed-rtl .panel-badge { margin-left: 0; margin-right: auto; }
 
 .feed-chevron { flex-shrink: 0; color: var(--text-muted); opacity: 0.6; align-self: center; }
 .feed-item:hover .feed-chevron { opacity: 1; color: var(--text-secondary); }
+
+/* ─── Pipeline card rows (Stages 1-6 output) ──────────────────────────────
+   Additive only: .feed-item / .feed-title / .feed-meta / .score-bar / .score-num
+   / .feed-time above are reused unchanged. */
+.feed-eventtype { font-size: 9px; font-weight: 500; color: var(--text-muted); }
+
+/* Stage 6 summary, directly beneath the country name */
+.feed-summary {
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.feed-summary-ai { flex-shrink: 0; color: var(--saudi-gold); position: relative; top: 1px; }
+
+/* Stage 3 tier badge */
+.feed-tier-badge {
+  font-size: 8px; font-weight: 700;
+  border: 1px solid var(--border);
+  border-radius: 6px; padding: 1px 6px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.feed-tier-badge.tier-1 { color: var(--saudi-light); border-color: rgba(0,160,80,0.5); }
+.feed-tier-badge.tier-2 { color: var(--saudi-gold); border-color: var(--border-gold); }
+.feed-tier-badge.tier-none { color: var(--text-muted); border-style: dashed; }
+
+/* Stage 4/5 corroboration tag */
+.feed-tag {
+  font-size: 8px; font-weight: 700;
+  border-radius: 6px; padding: 1px 6px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.feed-tag.corroborated { color: var(--danger-low); border-color: rgba(0,230,118,0.4); background: rgba(0,230,118,0.08); }
+.feed-tag.unconfirmed  { color: var(--text-muted); border-color: var(--border); }
+.feed-tag.official     { color: var(--saudi-gold-light); border-color: var(--border-gold); background: var(--saudi-gold-dim); }
+
+.feed-tag.provisional { color: var(--text-muted); border-style: dashed; border-color: var(--border); }
+
+/* Source link */
+.feed-link {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 8.5px; color: var(--saudi-gold-light);
+  text-decoration: none; margin-inline-start: auto;
+}
+.feed-link:hover { color: var(--saudi-gold); }
+.feed-link svg { flex-shrink: 0; }
+
+/* ─── Card-layer rollup (grouping option B) ───────────────────────────────
+   One card per country + eventType; the distinct threats inside it expand
+   below. The pipeline, clusters and scores are untouched. */
+.feed-group { display: flex; flex-direction: column; }
+
+.feed-count-chip {
+  font-size: 8px; font-weight: 700;
+  color: var(--saudi-gold);
+  background: var(--saudi-gold-dim);
+  border: 1px solid var(--border-gold);
+  border-radius: 8px; padding: 0 5px;
+  margin-inline-start: 6px;
+}
+
+.feed-expand-btn {
+  align-self: flex-start;
+  display: flex; align-items: center; gap: 4px;
+  background: none; border: none; padding: 2px 0;
+  font-size: 9px; font-weight: 600;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  color: var(--text-muted); cursor: pointer;
+}
+.feed-expand-btn:hover { color: var(--text-secondary); }
+
+.feed-threat-list {
+  display: flex; flex-direction: column; gap: 3px;
+  margin: 2px 8px 6px 8px;
+}
+.feed-threat-row {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; text-align: start; font: inherit;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-inline-start: 2px solid var(--text-muted);
+  border-radius: 6px; cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.feed-threat-row:hover { background: rgba(255,255,255,0.05); }
+.feed-threat-row.selected { background: rgba(201,168,76,0.08); border-color: var(--border-gold); }
+.feed-threat-score { font-size: 11px; font-weight: 700; flex-shrink: 0; min-width: 22px; text-align: end; }
+.feed-threat-summary {
+  font-size: 9.5px; color: var(--text-secondary); line-height: 1.45;
+  overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
+  -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+}
 
 /* ─── Panel (shared) ─────────────────────────────────────── */
 .panel {
@@ -1900,6 +1810,7 @@ body {
   padding: 3px 4px;
   cursor: pointer;
   text-align: right;
+  direction: rtl;
   font: inherit;
   color: inherit;
 }
@@ -2242,6 +2153,11 @@ body {
   padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.08);
 }
 .dz-detail-source svg { color: var(--text-secondary); }
+.dz-detail-source-link {
+  display: inline-flex; align-items: center; gap: 3px;
+  margin-inline-start: auto; color: var(--saudi-gold); text-decoration: none;
+}
+.dz-detail-source-link:hover { text-decoration: underline; }
 .dz-detail-summary {
   display: flex; align-items: flex-start; gap: 6px;
   font-size: 10px; line-height: 1.5; color: var(--saudi-gold-light);
@@ -2508,20 +2424,30 @@ body {
    .region-card shell. Per-country rows: flag + name + threat badge + score +
    colored progress bar, ordered by score. Threat color is functional only.
    (The scroll body is defined together with .statement-card-body above.) */
-.sec-list { display: flex; flex-direction: column; gap: 5px; }
-/* Small info banner shown when ACLED / ReliefWeb aren't configured (the section
-   still runs on the other real sources — this is not an error). */
-.sec-config-warning {
-  display: flex; align-items: flex-start; gap: 6px;
-  font-size: 9px; line-height: 1.55; color: var(--text-secondary);
-  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-  border-radius: 7px; padding: 7px 9px; overflow-wrap: anywhere;
+.sec-list { display: flex; flex-direction: column; gap: 5px; direction: rtl; }
+/* Loading skeleton — placeholder rows shown while ACLED data is in flight. */
+.sec-skeleton { display: flex; flex-direction: column; gap: 5px; }
+.sec-skeleton-row {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 46px; padding: 8px 9px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
 }
-.sec-config-warning svg { flex-shrink: 0; margin-top: 1px; color: var(--saudi-gold); }
+.sec-skeleton-flag, .sec-skeleton-line, .sec-skeleton-score {
+  border-radius: 5px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 37%, rgba(255,255,255,0.05) 63%);
+  background-size: 400% 100%;
+  animation: skeletonShimmer 1.4s ease infinite;
+}
+.sec-skeleton-flag { width: 16px; height: 16px; flex-shrink: 0; }
+.sec-skeleton-line { flex: 1; height: 10px; }
+.sec-skeleton-score { width: 28px; height: 14px; flex-shrink: 0; }
+@keyframes skeletonShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
 .sec-row {
   display: flex; flex-direction: column; gap: 5px; width: 100%;
   min-height: 46px;
-  text-align: start; font: inherit;
+  text-align: start; font: inherit; direction: rtl;
   padding: 8px 9px;
   background: rgba(255,255,255,0.025);
   border: 1px solid rgba(255,255,255,0.06);
@@ -2533,9 +2459,14 @@ body {
 .sec-flag { font-size: 14px; line-height: 1; flex-shrink: 0; }
 .sec-country {
   font-size: 12px; font-size: clamp(9px, 3cqw, 13px);
-  font-weight: 700; color: var(--text-primary);
+  font-weight: 700; color: var(--text-primary); line-height: 1.5;
   font-family: 'IBM Plex Sans Arabic', inherit;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sec-iso {
+  font-size: 8px; font-size: clamp(6.5px, 2cqw, 8.5px);
+  color: var(--text-muted); flex-shrink: 0; white-space: nowrap;
+  border: 1px solid var(--border); border-radius: 5px; padding: 1px 4px;
 }
 .sec-level {
   font-size: 8px; font-size: clamp(6.5px, 2.2cqw, 8.5px);
@@ -2553,7 +2484,13 @@ body {
 }
 .sec-bar-track.lg { height: 8px; border-radius: 4px; }
 .sec-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
-.sec-row-meta { display: flex; align-items: center; gap: 8px; }
+.sec-row-meta { display: flex; align-items: center; gap: 8px; direction: rtl; }
+.sec-incidents {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 8px; font-size: clamp(6.5px, 2.1cqw, 8.5px);
+  color: var(--text-secondary); white-space: nowrap;
+}
+.sec-incidents svg { flex-shrink: 0; }
 .sec-time {
   display: flex; align-items: center; gap: 3px;
   font-size: 8px; font-size: clamp(6.5px, 2.1cqw, 8.5px);
@@ -2562,7 +2499,7 @@ body {
 .sec-time svg { flex-shrink: 0; }
 
 /* ─── Security detail popup — layered on the shared .health-detail-* shell ── */
-.sec-detail-hero { display: flex; align-items: center; gap: 10px; }
+.sec-detail-hero { display: flex; align-items: center; gap: 10px; direction: rtl; }
 .sec-detail-flag { font-size: 26px; line-height: 1; flex-shrink: 0; }
 .sec-detail-score-block { display: flex; flex-direction: column; gap: 2px; }
 .sec-detail-score { font-size: 28px; font-weight: 700; line-height: 1; letter-spacing: -0.5px; }
@@ -2573,36 +2510,45 @@ body {
   font-size: 8.5px; color: var(--text-muted); margin-inline-start: auto; white-space: nowrap;
 }
 
-.sec-breakdown { display: flex; flex-direction: column; gap: 6px; }
+.sec-breakdown { display: flex; flex-direction: column; gap: 6px; direction: rtl; }
 .sec-cat-row { display: flex; align-items: center; gap: 8px; }
-.sec-cat-label { font-size: 9.5px; color: var(--text-secondary); width: 84px; flex-shrink: 0; }
+.sec-cat-label {
+  font-size: 9.5px; line-height: 1.4; color: var(--text-secondary);
+  width: clamp(90px, 34cqw, 155px); flex-shrink: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sec-cat-weight { color: var(--text-muted); font-size: 8.5px; }
 .sec-cat-track { flex: 1; height: 5px; border-radius: 3px; overflow: hidden; background: rgba(255,255,255,0.06); }
 .sec-cat-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
 .sec-cat-value { font-size: 9.5px; font-weight: 700; color: var(--text-primary); width: 22px; text-align: end; flex-shrink: 0; }
 
-.sec-saudi-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.sec-saudi-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; direction: rtl; }
 .sec-saudi-box {
   background: rgba(255,255,255,0.03); border: 1px solid var(--border);
   border-radius: 8px; padding: 7px 4px;
   display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center;
 }
 .sec-saudi-val { font-size: 9.5px; font-weight: 700; color: var(--text-secondary); }
-.sec-saudi-lbl { font-size: 7.5px; color: var(--text-muted); }
-.sec-note { font-size: 8.5px; color: var(--text-muted); line-height: 1.5; }
+.sec-saudi-lbl { font-size: 7.5px; color: var(--text-muted); line-height: 1.4; }
+.sec-note { font-size: 8.5px; color: var(--text-muted); line-height: 1.6; overflow-wrap: break-word; }
 
-.sec-threat-list { display: flex; flex-direction: column; gap: 5px; }
-.sec-threat-item { display: flex; align-items: center; gap: 6px; }
+.sec-threat-list { display: flex; flex-direction: column; gap: 5px; direction: rtl; }
+.sec-threat-item { display: flex; align-items: flex-start; gap: 6px; }
 .sec-threat-sev {
   font-size: 8px; font-weight: 700; font-family: 'IBM Plex Sans Arabic', inherit;
   border: 1px solid; border-radius: 8px; padding: 1px 6px; flex-shrink: 0; white-space: nowrap;
+  margin-top: 1px;
 }
-.sec-threat-title { font-size: 10px; font-weight: 600; color: var(--text-primary); flex-shrink: 0; }
+.sec-threat-title {
+  font-size: 10px; font-weight: 600; color: var(--text-primary);
+  line-height: 1.5; flex: 1 1 auto; min-width: 0; overflow-wrap: break-word;
+}
 .sec-threat-meta {
   font-size: 8px; color: var(--text-muted); margin-inline-start: auto;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;
 }
 
-.sec-timeline { display: flex; flex-direction: column; gap: 0; }
+.sec-timeline { display: flex; flex-direction: column; gap: 0; direction: rtl; }
 .sec-tl-item {
   display: flex; gap: 8px; padding: 6px 0; text-decoration: none;
   border-inline-start: 1px solid var(--border); margin-inline-start: 3px; padding-inline-start: 10px;
@@ -2615,22 +2561,22 @@ body {
   box-shadow: 0 0 0 2px var(--bg-glass);
 }
 .sec-tl-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.sec-tl-title { font-size: 9.5px; color: var(--text-primary); line-height: 1.45; }
-.sec-tl-meta { font-size: 8px; color: var(--text-muted); }
+.sec-tl-title { font-size: 9.5px; color: var(--text-primary); line-height: 1.5; overflow-wrap: break-word; }
+.sec-tl-meta { font-size: 8px; color: var(--text-muted); line-height: 1.4; }
 
-.sec-drivers { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.sec-drivers { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; direction: rtl; }
 .sec-driver-chip {
   font-size: 8.5px; font-weight: 700; color: var(--text-secondary);
   font-family: 'IBM Plex Sans Arabic', inherit;
   background: rgba(255,255,255,0.04); border: 1px solid var(--border);
-  border-radius: 8px; padding: 2px 8px;
+  border-radius: 8px; padding: 2px 8px; line-height: 1.4;
 }
 
-.sec-sources { display: flex; flex-direction: column; gap: 5px; }
+.sec-sources { display: flex; flex-direction: column; gap: 5px; direction: rtl; }
 .sec-source-link {
   display: flex; align-items: center; gap: 6px;
   font-size: 9.5px; color: var(--saudi-gold-light);
-  text-decoration: none; line-height: 1.4;
+  text-decoration: none; line-height: 1.5; overflow-wrap: break-word;
 }
 .sec-source-link:hover { color: var(--saudi-gold); }
 .sec-source-link svg { flex-shrink: 0; }
@@ -2638,4 +2584,498 @@ body {
 /* ─── Responsive ─────────────────────────────────────────── */
 @media (max-width: 1200px) {
   .main-grid { grid-template-columns: 280px 1fr 260px; }
+}
+
+/* ─── AI chatbot (floating launcher + panel over the map) ────────────────
+   Anchored to the map section's lower-right corner, immediately left of the
+   global alerts sidebar. The panel opens ABOVE the launcher, inside the map
+   area, so it never covers the right sidebar. */
+.ai-chatbot-root {
+  /* Anchored inside .map-section (position:relative), so the launcher and
+     panel always sit OVER the map in its bottom corner next to the alerts
+     sidebar — and can never overlap the sidebar itself, since the map
+     section ends exactly where the right column begins. */
+  position: absolute;
+  bottom: 18px; right: 18px;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.ai-chat-launcher {
+  position: relative;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(10,22,40,0.92);
+  border: 1px solid rgba(37,99,168,0.55);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(45,212,218,0.22), 0 4px 14px rgba(0,0,0,0.45);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+.ai-chat-launcher:hover,
+.ai-chat-launcher.open {
+  border-color: rgba(45,212,218,0.65);
+  box-shadow: 0 0 20px rgba(45,212,218,0.45), 0 4px 16px rgba(0,0,0,0.5);
+}
+.ai-chat-launcher:hover { transform: translateY(-1px); }
+.ai-launcher-status-dot {
+  position: absolute;
+  bottom: 3px; right: 3px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #2bd97a;
+  border: 2px solid rgba(10,22,40,0.95);
+}
+.ai-launcher-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 50%; transform: translateX(50%);
+  background: rgba(10,22,40,0.95);
+  border: 1px solid rgba(45,212,218,0.35);
+  color: var(--text-primary);
+  font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  border-radius: 6px; padding: 4px 9px;
+  white-space: nowrap;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.ai-chat-launcher:hover .ai-launcher-tooltip { opacity: 1; }
+.ai-chat-launcher.open .ai-launcher-tooltip { opacity: 0; }
+
+.ai-chat-panel {
+  /* fixed + JS-anchored to the launcher so .map-section's overflow:hidden
+     can't clip it; right/bottom come from inline style */
+  position: fixed;
+  width: 300px;
+  height: 380px;
+  max-height: calc(100vh - 220px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: rgba(10,22,40,0.94);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(37,99,168,0.5);
+  border-radius: 12px;
+  box-shadow: 0 0 22px rgba(45,212,218,0.16), 0 10px 30px rgba(0,0,0,0.5);
+}
+.ai-chat-header {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 11px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+.ai-chat-avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(45,212,218,0.1);
+  border: 1px solid rgba(45,212,218,0.4);
+  color: #fff;
+  flex-shrink: 0;
+}
+.ai-chat-title {
+  font-size: 12px; font-weight: 700; color: var(--text-primary);
+  font-family: 'IBM Plex Sans Arabic', inherit;
+}
+.ai-chat-status {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 9px; color: var(--text-muted);
+  font-family: 'IBM Plex Sans Arabic', inherit;
+}
+.ai-status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #2bd97a;
+}
+.ai-chat-close {
+  margin-inline-start: auto;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted);
+  display: flex; align-items: center;
+}
+.ai-chat-close:hover { color: var(--text-primary); }
+
+.ai-chat-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+.ai-chat-msg {
+  max-width: 85%;
+  font-size: 11px; line-height: 1.6;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  border-radius: 10px;
+  padding: 7px 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ai-chat-msg.assistant {
+  align-self: flex-start;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.07);
+  color: var(--text-primary);
+}
+.ai-chat-msg.user {
+  align-self: flex-end;
+  background: rgba(45,212,218,0.1);
+  border: 1px solid rgba(45,212,218,0.3);
+  color: var(--text-primary);
+}
+.ai-chat-typing { display: flex; gap: 3px; align-items: center; }
+.ai-chat-typing span {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--text-muted);
+  animation: aiTypingBlink 1.2s ease-in-out infinite;
+}
+.ai-chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+.ai-chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes aiTypingBlink { 0%,100% { opacity: 0.25; } 50% { opacity: 1; } }
+
+.ai-chat-input-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+.ai-chat-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  padding: 7px 10px;
+  outline: none;
+}
+.ai-chat-input:focus { border-color: rgba(45,212,218,0.45); }
+.ai-chat-input::placeholder { color: var(--text-muted); }
+.ai-chat-send {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(45,212,218,0.12);
+  border: 1px solid rgba(45,212,218,0.4);
+  color: #fff; cursor: pointer;
+  flex-shrink: 0;
+}
+.ai-chat-send:hover:not(:disabled) { background: rgba(45,212,218,0.22); }
+.ai-chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ─── Embassies & Missions — selector + embassy sub-dashboard ─────────────
+   Same design system as the main dashboard: shared .panel/.panel-header
+   shells, same tokens, same badges/markers/scrollbars — only the layout is
+   more focused and every list is scope-filtered. RTL throughout. */
+
+.header-nav-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-gold);
+  color: var(--text-secondary);
+  font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  padding: 6px 12px; border-radius: 8px; cursor: pointer;
+}
+.header-nav-btn:hover { color: var(--saudi-gold); border-color: var(--saudi-gold); }
+
+/* ── Selector page ── */
+.embassy-selector-page {
+  flex: 1; min-height: 0;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 32px 16px;
+  overflow-y: auto;
+  background: var(--bg-primary);
+}
+.embassy-selector-panel {
+  width: 640px; max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.embassy-search-row {
+  display: flex; align-items: center; gap: 8px;
+  margin: 10px; padding: 8px 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 8px;
+  color: var(--text-muted);
+}
+.embassy-search-input {
+  flex: 1; min-width: 0;
+  background: none; border: none; outline: none;
+  color: var(--text-primary);
+  font-size: 12px; font-family: 'IBM Plex Sans Arabic', inherit;
+}
+.embassy-search-input::placeholder { color: var(--text-muted); }
+.embassy-list {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 0 10px 10px;
+  max-height: 60vh; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+.embassy-row {
+  display: flex; align-items: center; gap: 10px;
+  text-align: start; font: inherit; color: inherit;
+  background: rgba(255,255,255,0.035);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 11px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.embassy-row:hover:not(:disabled) { background: rgba(255,255,255,0.06); border-color: var(--border-gold); }
+.embassy-row:disabled { opacity: 0.45; cursor: not-allowed; }
+.embassy-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.embassy-row-name {
+  font-size: 12px; font-weight: 700; color: var(--text-primary);
+  font-family: 'IBM Plex Sans Arabic', inherit;
+}
+.embassy-row-meta {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; color: var(--text-muted);
+  font-family: 'IBM Plex Sans Arabic', inherit;
+}
+.embassy-status-chip {
+  font-size: 9px; font-weight: 700;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  border: 1px solid var(--border); border-radius: 8px; padding: 2px 8px;
+  color: var(--text-secondary); flex-shrink: 0; white-space: nowrap;
+}
+.embassy-status-chip.active { color: var(--danger-low); border-color: rgba(0,230,118,0.4); }
+.embassy-risk-chip {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 9px; font-weight: 700;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  border: 1px solid var(--border-gold); border-radius: 8px; padding: 2px 8px;
+  color: var(--saudi-gold); flex-shrink: 0; white-space: nowrap;
+}
+.embassy-row-arrow { color: var(--text-muted); transform: rotate(180deg); flex-shrink: 0; }
+.embassy-back-link {
+  margin: 0 10px 12px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-secondary); font-size: 11px; font-weight: 600;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  text-align: center; padding: 6px;
+}
+.embassy-back-link:hover { color: var(--saudi-gold); }
+
+/* ── Embassy dashboard shell ── */
+.embassy-back-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-gold);
+  color: var(--text-secondary);
+  font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  padding: 6px 12px; border-radius: 8px; cursor: pointer;
+}
+.embassy-back-btn:hover { color: var(--saudi-gold); border-color: var(--saudi-gold); }
+.embassy-scope-badge {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.3px;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  color: var(--saudi-gold);
+  background: var(--saudi-gold-dim);
+  border: 1px solid var(--border-gold);
+  border-radius: 10px; padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.embassy-main {
+  flex: 1; min-height: 0;
+  display: grid;
+  grid-template-columns: 300px 1fr 320px;
+  grid-template-rows: 1fr auto;
+  gap: 0;
+  overflow: hidden;
+}
+.embassy-sidebar,
+.embassy-ops {
+  min-height: 0;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 8px;
+  overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent;
+  background: var(--bg-secondary);
+}
+.embassy-sidebar { border-left: 1px solid rgba(255,255,255,0.06); }
+.embassy-ops { border-right: 1px solid rgba(255,255,255,0.06); }
+.embassy-map-section { min-height: 0; }
+
+.embassy-card {
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.embassy-card-body {
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 8px;
+  max-height: 240px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+.embassy-card-body.horizontal {
+  flex-direction: row; flex-wrap: wrap; gap: 8px;
+  max-height: none;
+}
+.embassy-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; min-width: 0;
+  text-align: start; font: inherit; color: inherit;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 7px;
+  padding: 7px 9px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.embassy-item:hover { background: rgba(255,255,255,0.06); }
+.embassy-item.static { cursor: default; }
+.embassy-item.static:hover { background: rgba(255,255,255,0.03); }
+.embassy-item.compact { padding: 5px 8px; }
+.embassy-item-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.embassy-item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.embassy-item-title {
+  font-size: 11px; font-weight: 600; color: var(--text-primary); line-height: 1.45;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  overflow-wrap: anywhere;
+}
+.embassy-item-meta {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 9px; color: var(--text-muted);
+  font-family: 'IBM Plex Sans Arabic', inherit;
+}
+.embassy-sev-chip {
+  font-size: 8px; font-weight: 700;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  border: 1px solid; border-radius: 8px; padding: 1px 7px;
+  flex-shrink: 0; white-space: nowrap;
+}
+
+.embassy-task {
+  display: flex; flex-direction: column; gap: 5px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 7px; padding: 8px 9px;
+}
+.embassy-task-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.embassy-task-type {
+  font-size: 8px; font-weight: 700; color: var(--text-secondary);
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  background: rgba(255,255,255,0.05); border-radius: 3px; padding: 1px 6px;
+}
+.embassy-task-status {
+  font-size: 8px; font-weight: 700;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  border-radius: 8px; padding: 1px 7px; border: 1px solid;
+}
+.embassy-task-status.s-open { color: var(--text-secondary); border-color: var(--border); }
+.embassy-task-status.s-in_progress { color: var(--danger-medium); border-color: rgba(255,214,0,0.4); }
+.embassy-task-status.s-escalated { color: var(--danger-critical); border-color: rgba(255,23,68,0.4); }
+
+/* Scope chips over the map */
+.embassy-scope-bar {
+  position: absolute;
+  top: 10px; right: 12px; left: 12px;
+  z-index: 900;
+  display: flex; flex-wrap: wrap; gap: 6px;
+  pointer-events: none;
+}
+.embassy-scope-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 9.5px; color: var(--text-secondary);
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 8px; padding: 4px 10px;
+  pointer-events: auto;
+}
+.embassy-scope-chip b { color: var(--text-primary); font-weight: 700; }
+
+/* Right ops panel */
+.embassy-ops-risk {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  margin: 8px; padding: 14px;
+  border: 1px solid; border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+}
+.embassy-ops-risk-label {
+  font-size: 20px; font-weight: 800;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+}
+.embassy-ops-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  width: calc(100% - 16px);
+  margin: 8px; padding: 10px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 8px;
+  font: inherit; color: inherit;
+}
+.embassy-ops-stat.clickable { cursor: pointer; transition: background 0.15s ease; border-color: rgba(255,255,255,0.09); }
+.embassy-ops-stat.clickable:hover { background: rgba(255,255,255,0.05); }
+.embassy-ops-num { font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+
+.embassy-actions {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 8px;
+}
+.embassy-action-btn {
+  display: flex; align-items: center; gap: 5px;
+  flex: 1 1 45%;
+  justify-content: center;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-gold);
+  color: var(--text-secondary);
+  font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  padding: 7px 8px; border-radius: 8px; cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.embassy-action-btn:hover { color: var(--saudi-gold); border-color: var(--saudi-gold); }
+.embassy-action-sent {
+  flex: 1 1 100%;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  font-size: 10px; font-weight: 600; color: var(--danger-low);
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  padding: 4px;
+}
+
+/* Bottom strip */
+.embassy-bottom {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  max-height: 220px;
+  overflow: hidden;
+}
+.embassy-bottom .embassy-card { min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.embassy-bottom .embassy-card-body { max-height: none; flex: 1; min-height: 0; }
+.embassy-timeline-item {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  flex: 0 0 170px; min-width: 0;
+  text-align: start; font: inherit; color: inherit;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 7px; padding: 8px 9px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.embassy-timeline-item:hover { background: rgba(255,255,255,0.06); }
+.embassy-weather { display: flex; align-items: center; gap: 12px; padding: 4px; }
+
+@media (max-width: 1200px) {
+  .embassy-main { grid-template-columns: 260px 1fr 280px; }
+  .embassy-bottom { grid-template-columns: 1fr 1fr; max-height: none; }
 }
