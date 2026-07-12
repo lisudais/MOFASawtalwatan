@@ -86,7 +86,7 @@ body {
 
 /* ─── Header ─────────────────────────────────────────────── */
 .header {
-  height: var(--header-h);
+  min-height: var(--header-h);
   background:
     radial-gradient(ellipse at 15% 50%, rgba(0,108,53,0.12) 0%, transparent 55%),
     radial-gradient(ellipse at 85% 50%, rgba(201,168,76,0.08) 0%, transparent 55%),
@@ -95,7 +95,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 6px 20px;
   flex-shrink: 0;
   position: relative;
 }
@@ -185,6 +185,130 @@ body {
 }
 
 .header-updated { font-size: 9px; color: var(--text-muted); }
+
+/* ─── Unified AppHeader ──────────────────────────────────────
+   One shell for the main dashboard and every embassy. The header itself is
+   RTL, so the layout is identical regardless of the parent's direction:
+   brand pinned to the start (right), centered title stack, actions at the end
+   (left). Only the props (title / subtitle / breadcrumb / badge) differ. */
+.app-header { gap: 16px; }
+
+/* Brand — optional back arrow + logo, always at the start side. Flexes to the
+   same width as the end column so the centre stack stays optically centred. */
+.app-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: flex-start;
+}
+/* Small square back arrow — sits beside the logo at the start side. */
+.app-header-back {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-gold);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.app-header-back:hover { color: var(--saudi-gold); border-color: var(--saudi-gold); }
+
+/* Center — title ▸ subtitle ▸ status badge, stacked + centred. */
+.app-header-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 0 1 auto;
+  min-width: 0;
+  text-align: center;
+}
+
+/* End — actions + last-updated stamp, always at the end side. */
+.app-header-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+/* Title stack — single reference size/weight used on every screen. */
+.app-header-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  direction: rtl;
+  font-family: 'IBM Plex Sans Arabic', sans-serif;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.app-header-subtitle {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.85;
+  direction: rtl;
+  font-family: 'IBM Plex Sans Arabic', sans-serif;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Unified status badge — identical size / padding / radius on every screen;
+   only the colour set changes with the variant. */
+.app-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  padding: 3px 12px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.app-header-badge--live {
+  color: var(--danger-critical);
+  background: rgba(255,23,68,0.08);
+  border-color: rgba(255,23,68,0.25);
+}
+.app-header-badge--limited {
+  color: var(--saudi-gold);
+  background: var(--saudi-gold-dim);
+  border-color: var(--border-gold);
+}
+.app-header-badge--default {
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.04);
+  border-color: var(--border);
+}
+.app-header-badge-pulse {
+  width: 7px; height: 7px;
+  background: var(--danger-critical);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--danger-critical);
+  animation: livePulse 1.4s ease-in-out infinite;
+}
+
+/* Responsive — keep the logo + centred title intact; shed the last-updated
+   stamp, then the subtitle, before anything clips or wraps. */
+@media (max-width: 720px) {
+  .app-header-end .header-updated { display: none; }
+}
+@media (max-width: 520px) {
+  .app-header-subtitle { display: none; }
+}
 
 /* ─── Loading bar ────────────────────────────────────────── */
 .loading-bar { height: 2px; background: rgba(255,255,255,0.04); overflow: hidden; flex-shrink: 0; }
@@ -309,6 +433,28 @@ body {
 .health-detail-panel::-webkit-scrollbar-thumb:hover,
 .traveler-list::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
+}
+
+/* ─── Gold accent scrollbar — Intelligence Terminal identity ─────────────
+   Reusable utility for content-heavy scroll surfaces (the case-detail card,
+   the citizen-requests list, the global alert feed). A gold thumb on a faint
+   track, brightening on hover — same look everywhere it's applied. */
+.case-detail-scrollable {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(212, 175, 55, 0.4) rgba(255, 255, 255, 0.04); /* thumb / track */
+}
+.case-detail-scrollable::-webkit-scrollbar { width: 6px; }
+.case-detail-scrollable::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+}
+.case-detail-scrollable::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.4);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+.case-detail-scrollable::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.65);
 }
 
 /* ─── Saudis Abroad — national overview, first section ───────
@@ -917,6 +1063,57 @@ body {
   background: rgba(125,211,252,0.08);
 }
 .flight-toggle-btn svg { flex-shrink: 0; }
+
+/* ─── Map layer controls — single horizontal row ──────────────────────────
+   Flight + the two risk layers, in one row at the map's top-left. Same chrome
+   as the old flight toggle; variants recolor the active state per layer. */
+.map-toggle-row {
+  position: absolute;
+  top: 12px; left: 12px;
+  z-index: 1000;
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.map-toggle-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  font-size: 11px; font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-gold);
+  border-radius: 9px; padding: 7px 12px; cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.map-toggle-btn svg { flex-shrink: 0; }
+.map-toggle-btn:hover { color: var(--saudi-gold); border-color: var(--saudi-gold); }
+.map-toggle-btn.flight.active {
+  color: #7DD3FC; border-color: rgba(125,211,252,0.6); background: rgba(125,211,252,0.08);
+}
+.map-toggle-btn.current.active {
+  color: #FF6B81; border-color: rgba(255,23,68,0.6); background: rgba(255,23,68,0.10);
+}
+.map-toggle-btn.predicted.active {
+  color: #93C5FD; border-color: rgba(59,130,246,0.6); background: rgba(59,130,246,0.10);
+}
+
+/* Persistent, unmistakable disclaimer shown while the placeholder layer is on. */
+.predict-banner {
+  position: absolute;
+  top: 12px; left: 50%; transform: translateX(-50%);
+  z-index: 1001;
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  font-size: 11px; font-weight: 700;
+  color: #93C5FD;
+  background: rgba(30,58,138,0.35);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px dashed rgba(59,130,246,0.7);
+  border-radius: 9px; padding: 6px 14px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+}
+.predict-banner svg { flex-shrink: 0; }
 
 .aircraft-map-icon { background: none; border: none; }
 .aircraft-glyph {
@@ -2909,6 +3106,149 @@ body {
 .embassy-ops { border-right: 1px solid rgba(255,255,255,0.06); }
 .embassy-map-section { min-height: 0; }
 
+/* "تجريبي" tag for stats sourced from mock/demo data (registered citizens,
+   near-danger) so they are never read as real registration figures. */
+.embassy-demo-tag {
+  font-size: 8.5px; font-weight: 700;
+  padding: 1px 5px; border-radius: 4px;
+  color: var(--saudi-gold);
+  border: 1px solid color-mix(in srgb, var(--saudi-gold) 45%, transparent);
+  background: color-mix(in srgb, var(--saudi-gold) 12%, transparent);
+  letter-spacing: .3px; white-space: nowrap;
+}
+.embassy-stat-caption { font-size: 9px; color: var(--text-muted); line-height: 1.4; }
+
+/* ── Consular layout: [visual-right consular alerts] [map] [visual-left
+   compact stats + citizen requests]. ─────────────────────────────────────── */
+.embassy-main { grid-template-columns: 360px 1fr 380px; }
+
+/* Column 1 (visual right in RTL): country-scoped Global Alert Feed clone. */
+.embassy-consular-col {
+  min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bg-secondary);
+  border-inline-start: 1px solid rgba(255,255,255,0.06);
+}
+.embassy-consular-col > .alert-feed {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+}
+
+/* Compact horizontal stat bar (replaces the three large stat cards). */
+.compact-stats-bar {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.compact-stat {
+  position: relative; flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px; padding: 6px 9px; cursor: pointer;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.compact-stat:hover { border-color: var(--border-gold); background: rgba(255,255,255,0.05); }
+.compact-stat-num { font-size: 14px; font-weight: 700; line-height: 1; }
+.compact-stat-label { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.compact-stat-demo {
+  font-size: 7.5px; font-weight: 700; color: var(--saudi-gold);
+  border: 1px solid color-mix(in srgb, var(--saudi-gold) 45%, transparent);
+  background: color-mix(in srgb, var(--saudi-gold) 12%, transparent);
+  border-radius: 3px; padding: 0 3px; line-height: 1.5; white-space: nowrap;
+}
+.compact-stat-tip {
+  position: absolute; top: calc(100% + 6px); inset-inline-end: 0; z-index: 60;
+  width: max-content; max-width: 220px;
+  background: var(--bg-glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-gold); border-radius: 8px; padding: 7px 9px;
+  font-size: 10px; line-height: 1.5; color: var(--text-secondary); text-align: right;
+  opacity: 0; pointer-events: none; transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.compact-stat:hover .compact-stat-tip,
+.compact-stat.open .compact-stat-tip { opacity: 1; transform: translateY(0); }
+
+/* ── Citizen-requests panel — the prominent feature panel ─────────────── */
+.embassy-requests-card { flex: 1; min-height: 0; }
+.embassy-requests-card > .embassy-card-body {
+  max-height: none; flex: 1; min-height: 0; overflow-y: auto;
+}
+.embassy-requests-hint {
+  font-size: 9.5px; color: var(--text-muted); line-height: 1.5;
+  padding: 4px 8px 8px; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.request-row { width: 100%; text-align: inherit; cursor: pointer; }
+.request-row.selected { border-color: var(--saudi-gold); background: color-mix(in srgb, var(--saudi-gold) 8%, transparent); }
+.request-row-side { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+.request-stage-tag { font-size: 8.5px; color: var(--text-muted); }
+
+/* ── Request detail overlay (floats over the map, like .event-detail-card) ── */
+.request-detail {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 550; width: min(480px, 92%); max-height: 88%; overflow-y: auto;
+  background: var(--bg-glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-gold); border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;
+}
+.request-detail-head { display: flex; align-items: flex-start; gap: 10px; }
+.request-detail-titles { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.request-detail-kind { display: flex; align-items: center; gap: 6px; }
+.request-detail-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0; line-height: 1.4; }
+.request-detail-close {
+  background: none; border: none; color: var(--text-muted); cursor: pointer;
+  padding: 2px; border-radius: 6px; flex-shrink: 0;
+}
+.request-detail-close:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+.request-detail-meta {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 10px 0;
+  border-top: 1px solid rgba(255,255,255,0.06); border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.rd-meta-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); }
+.request-detail-section { display: flex; flex-direction: column; gap: 8px; }
+.rd-section-label { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.rd-text { margin: 0; font-size: 12px; line-height: 1.7; color: var(--text-primary); }
+.request-timeline { display: flex; align-items: flex-start; padding: 4px 2px; }
+.rt-step { display: flex; flex-direction: column; align-items: center; gap: 5px; flex-shrink: 0; width: 54px; }
+.rt-dot { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--text-muted); background: transparent; }
+.rt-step.done .rt-dot { background: var(--saudi-gold); border-color: var(--saudi-gold); }
+.rt-step.current .rt-dot { box-shadow: 0 0 0 4px color-mix(in srgb, var(--saudi-gold) 30%, transparent); }
+.rt-label { font-size: 9.5px; color: var(--text-muted); }
+.rt-step.done .rt-label { color: var(--text-primary); }
+.rt-connector { flex: 1; height: 2px; margin-top: 6px; background: rgba(255,255,255,0.12); }
+.rt-connector.done { background: var(--saudi-gold); }
+.rd-stage-now { font-size: 10.5px; color: var(--saudi-gold); }
+
+/* ── التواصل مع مقدّم الطلب (contact the requester) ────────────────────── */
+.request-contact {
+  display: flex; flex-direction: column; gap: 9px;
+  padding: 12px; border-radius: 10px;
+  border: 1px dashed var(--border-gold);
+  background: rgba(255,255,255,0.02);
+}
+.rc-citizen { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-primary); }
+.rc-last { font-size: 10.5px; color: var(--text-muted); }
+.rc-last-val { color: var(--text-secondary); font-weight: 600; }
+.rc-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.rc-btn {
+  flex: 1 1 30%; display: flex; align-items: center; justify-content: center; gap: 5px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border-gold);
+  color: var(--text-secondary); text-decoration: none;
+  font-size: 10px; font-weight: 600; font-family: 'IBM Plex Sans Arabic', inherit;
+  padding: 7px 8px; border-radius: 8px; cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.rc-btn:hover { color: var(--saudi-gold); border-color: var(--saudi-gold); background: rgba(255,255,255,0.07); }
+.rc-primary {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  background: var(--saudi-gold); border: 1px solid var(--saudi-gold);
+  color: #0b0f14; text-decoration: none;
+  font-size: 12px; font-weight: 700; font-family: 'IBM Plex Sans Arabic', inherit;
+  padding: 9px 10px; border-radius: 8px; cursor: pointer;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+.rc-primary:hover { filter: brightness(1.08); box-shadow: 0 4px 16px color-mix(in srgb, var(--saudi-gold) 40%, transparent); }
+.rc-primary:active { filter: brightness(0.96); }
+
 .embassy-card {
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 10px;
@@ -3076,6 +3416,6 @@ body {
 .embassy-weather { display: flex; align-items: center; gap: 12px; padding: 4px; }
 
 @media (max-width: 1200px) {
-  .embassy-main { grid-template-columns: 260px 1fr 280px; }
+  .embassy-main { grid-template-columns: 300px 1fr 320px; }
   .embassy-bottom { grid-template-columns: 1fr 1fr; max-height: none; }
 }

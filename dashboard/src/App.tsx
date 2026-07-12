@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Header from './components/Header';
 import WorldMap from './components/WorldMap';
 import IntelSidebar from './components/IntelSidebar';
@@ -6,7 +6,9 @@ import SidebarResizeHandle from './components/SidebarResizeHandle';
 import EventDetail from './components/EventDetail';
 import GlobalAlertFeed from './components/GlobalAlertFeed';
 import AlertDetailsPanel from './components/AlertDetailsPanel';
-import { fetchFastFeedCards, fetchFeedStatus, fetchFeedCards, type FeedCard } from './services/feed/feedCards';
+import type { FeedCard } from './services/feed/feedCards';
+import { useFeedCards } from './services/feed/useFeedCards';
+import { buildGlobalContextSummary } from './services/chatbotContext';
 import HealthCountryDetailPanel from './components/HealthCountryDetailPanel';
 import DisasterDetailPanel from './components/DisasterDetailPanel';
 import OfficialStatementDetailPanel from './components/OfficialStatementDetailPanel';
@@ -73,9 +75,9 @@ function loadSavedTraveler(): Traveler | null {
 /* ─── Hash router ────────────────────────────────────────────────────────
    Lightweight routing without adding a dependency:
      ''                      → main command dashboard
-     #/embassies             → searchable embassy selector
-     #/embassies/:embassyId  → that embassy's scoped sub-dashboard
-   Permission is validated HERE (route layer), and the embassy page itself
+     #/embassies             → searchable embassy/consulate selector
+     #/embassies/:embassyId  → that consulate's scoped map + assistant view
+   Permission is validated HERE (route layer), and the consulate page itself
    only ever receives scope-filtered data (data layer) — not hidden in UI. */
 function useHashRoute(): string {
   const [hash, setHash] = useState(window.location.hash);
@@ -152,9 +154,9 @@ function MainDashboard() {
   // Global Alert Feed cards now come from the Stages 1-6 pipeline (/api/feed),
   // not from the legacy `events` array. `events` still drives the map markers
   // and the detail panel, so nothing that previously rendered was removed.
-  const [feedCards, setFeedCards] = useState<FeedCard[]>([]);
-  const [cardsLoading, setCardsLoading] = useState(true);
-  const [cardsError, setCardsError] = useState(false);
+  // Fast→full feed orchestration lives in the shared hook (also used by the
+  // consular feed, filtered by country). No filter here → the global feed.
+  const { cards: feedCards, loading: cardsLoading, error: cardsError } = useFeedCards();
   const [selectedCard, setSelectedCard] = useState<FeedCard | null>(null);
   // Citizen tracked from the right-sidebar details panel — feeds the map's
   // existing selectedTraveler fly-to only; no marker layer is altered.
@@ -264,72 +266,37 @@ function MainDashboard() {
   }, []);
 
   /**
-   * Progressive load. The full pipeline is ~530s cold, which cannot block a page
-   * load, so the feed streams in two tiers:
-   *
-   *   1. /api/feed/fast   deterministic stages only (~2s). Geophysical + security
-   *                       cards paint immediately, tagged `provisional`. Their
-   *                       scores are conservative — uncorroborated, so capped.
-   *   2. /api/feed        the AI-scored run. Requesting the fast tier warms it in
-   *                       the background; we poll /api/feed/status and swap the
-   *                       cards in the moment it is ready.
-   *
-   * A provisional card can only under-state a score, never over-state it.
-   */
-  useEffect(() => {
-    let cancelled = false;
-    let pollId: ReturnType<typeof setInterval> | undefined;
-
-    async function loadFull() {
-      try {
-        const full = await fetchFeedCards();
-        if (cancelled || !full.ok) return;
-        setFeedCards(full.cards);
-        setCardsError(false);
-      } catch {
-        // The fast cards stay on screen; the next refresh retries.
-      }
-    }
-
-    async function start() {
-      try {
-        const fast = await fetchFastFeedCards();
-        if (cancelled) return;
-        setFeedCards(fast.cards);
-        setCardsError(!fast.ok);
-        setCardsLoading(false);
-
-        if (fast.fullReady) { loadFull(); return; }
-
-        // The background warm is running server-side. Poll cheaply for it.
-        pollId = setInterval(async () => {
-          if (cancelled) return;
-          const { fullReady } = await fetchFeedStatus();
-          if (!fullReady) return;
-          clearInterval(pollId);
-          loadFull();
-        }, 15_000);
-      } catch {
-        if (!cancelled) { setCardsError(true); setCardsLoading(false); }
-      }
-    }
-
-    start();
-    const refresh = setInterval(start, 5 * 60 * 1000);
-    return () => {
-      cancelled = true;
-      clearInterval(refresh);
-      if (pollId) clearInterval(pollId);
-    };
-  }, []);
-
-  /**
    * Clicking a card selects it. When the cluster contains a signal that came
    * from a geophysical GeoEvent, we also select that event, so the existing
    * map fly-to and the right-side details panel keep working exactly as before.
    * Clusters with no GeoEvent behind them (security / statements / GDELT) simply
    * highlight — nothing that used to work has been taken away.
    */
+  // Per-country risk for the map's RED highlight layer: the max Stage 5 score
+  // across each country's feed cards. Real pipeline output, ISO2-keyed; cards
+  // with no country are ignored. No mock, no fetch.
+  const countryRisk = useMemo(() => {
+    // Deterministic, no LLM: overall = max card.score for the country; keep the
+    // driving category + per-category breakdown so the map can answer
+    // "why is this country red" by pointing at real Stage 5 scores.
+    const byCountry: Record<string, { score: number; category: string; byCategory: Record<string, number> }> = {};
+    for (const c of feedCards) {
+      if (!c.country) continue;
+      const entry = byCountry[c.country] ??= { score: 0, category: c.eventType, byCategory: {} };
+      entry.byCategory[c.eventType] = Math.max(entry.byCategory[c.eventType] ?? 0, c.score);
+      if (c.score > entry.score) { entry.score = c.score; entry.category = c.eventType; }
+    }
+    return byCountry;
+  }, [feedCards]);
+
+  // Live situation summary for the GLOBAL assistant (no embassy scope). Built
+  // only from data already on screen; recomputed whenever any source changes,
+  // so the assistant is always grounded in the current board — never a refusal.
+  const globalSummaryAr = useMemo(
+    () => buildGlobalContextSummary({ feedCards, events, securityCountries, healthCountries }),
+    [feedCards, events, securityCountries, healthCountries],
+  );
+
   const handleSelectCard = useCallback((card: FeedCard) => {
     setSelectedCard(card);
     // When the cluster contains a geophysical signal that maps back to a
@@ -442,6 +409,7 @@ function MainDashboard() {
             selectedEvent={selectedRightAlert}
             onSelectEvent={setSelectedRightAlert}
             selectedTraveler={trackedCitizen}
+            countryRisk={countryRisk}
           />
           {/* Empty / error state — shown ONLY when there are no real events.
               No mock fallback is ever displayed. */}
@@ -490,7 +458,7 @@ function MainDashboard() {
               onTrackCitizen={setTrackedCitizen}
             />
           )}
-          <AiChatbot />
+          <AiChatbot globalSummaryAr={globalSummaryAr} />
         </div>
 
         <div className="right-column">

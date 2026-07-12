@@ -18,6 +18,8 @@ interface GlobalAlertFeedProps {
   /** Right-sidebar-only selection — never shared with the left sidebar's state. */
   selectedCardId: string | null;
   onSelectCard: (card: FeedCard) => void;
+  /** Header title. Defaults to the global feed's; the consular feed overrides it. */
+  titleAr?: string;
 }
 
 /** Stage 5's score drives the colour, on the same thresholds as the severity word. */
@@ -104,7 +106,7 @@ function timeAgoAr(iso: string | null): string {
 // top to bottom: country title, AI summary, place + sources + tier badge,
 // severity badge + score bar + number, corroboration tag, time, source link.
 export default function GlobalAlertFeed({
-  cards, loading, error, selectedCardId, onSelectCard,
+  cards, loading, error, selectedCardId, onSelectCard, titleAr = 'التنبيهات العالمية',
 }: GlobalAlertFeedProps) {
   const groups = useMemo(() => groupFeedCards(cards), [cards]);
 
@@ -129,11 +131,11 @@ export default function GlobalAlertFeed({
     <div className="panel alert-feed alert-feed-rtl">
       <div className="panel-header" dir="rtl">
         <Radar size={14} />
-        <span className="feed-header-title-ar">التنبيهات العالمية</span>
+        <span className="feed-header-title-ar">{titleAr}</span>
         <span className="panel-badge">{groups.length}</span>
       </div>
 
-      <div className="feed-list">
+      <div className="feed-list case-detail-scrollable">
         {loading && groups.length === 0 && (
           <div className="widget-empty-state">جارٍ تحميل التنبيهات…</div>
         )}
