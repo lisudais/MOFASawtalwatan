@@ -1,11 +1,23 @@
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { useEffect, useState } from 'react';
-import { Plane } from 'lucide-react';
+import { MapContainer, TileLayer, CircleMarker, GeoJSON, Marker, Popup, useMap } from 'react-leaflet';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Plane, ShieldAlert, FlaskConical, Layers, AlertTriangle, Users } from 'lucide-react';
 import L from 'leaflet';
+import type { Feature, FeatureCollection } from 'geojson';
 import 'leaflet/dist/leaflet.css';
 import { RISK_COLORS } from '../constants';
 import type { GeoEvent, Traveler, RiskLevel } from '../types';
 import { fetchFlights, type Flight } from '../services/opensky';
+import { centroidFor, iso3For, ISO3_WITHOUT_POLYGON } from '../services/feed/countryCentroids';
+import { countryNameAr } from '../services/feed/countryNames';
+import { useBoundariesGeoJson } from '../services/geoBoundaries';
+import MapLayersPanel, { type MapLayer } from './MapLayersPanel';
+
+/** Per-country risk from App: max Stage 5 score + the category that produced it. */
+export interface CountryRisk {
+  score: number;
+  category: string;
+  byCategory: Record<string, number>;
+}
 
 interface WorldMapProps {
   events: GeoEvent[];
@@ -13,7 +25,41 @@ interface WorldMapProps {
   selectedEvent: GeoEvent | null;
   onSelectEvent: (e: GeoEvent) => void;
   selectedTraveler: Traveler | null;
+  /**
+   * Real per-country risk for the RED layer, keyed by ISO2. Aggregated in
+   * App.tsx from the pipeline output — deterministic, no mock, no fetch here.
+   */
+  countryRisk?: Record<string, CountryRisk>;
 }
+
+// A country is highlighted red when its overall score (the max across its
+// categories) is >= this. 75 matches the Security sidebar's own red cutoff, so
+// the map's red set mirrors the countries already shown red there.
+const RISK_HIGHLIGHT_THRESHOLD = 75;
+
+const CATEGORY_AR: Record<string, string> = {
+  security: 'أمني',
+  natural_disaster: 'كارثة طبيعية',
+  health: 'صحي',
+  economic: 'اقتصادي',
+  political_unrest: 'اضطراب سياسي',
+};
+
+/* ── EXPERIMENTAL predicted-risk placeholder ─────────────────────────────────
+   NOT A REAL FORECAST. There is no trained prediction model yet. These are
+   fixed demo values, decoupled from the real pipeline on purpose, shown only to
+   prototype the eventual predicted-risk layer. The UI labels this layer
+   "تنبؤ تجريبي — نموذج قيد التطوير" and renders it in a deliberately different
+   style (dashed, low-opacity, blue) so it can never be mistaken for real risk.
+   Replace this constant with a real model output when one exists. */
+const EXPERIMENTAL_PREDICTED_RISK: Record<string, number> = {
+  IR: 78, SD: 72, LB: 68, YE: 74, ET: 61, ML: 66, PK: 59, UA: 81, MM: 63,
+};
+
+const RED = '#FF1744';
+const BLUE = '#3B82F6';
+
+const WORLD_BOUNDARIES_URL = '/world-countries-110m.geojson';
 
 export const travelerIcon = new L.DivIcon({
   className: 'traveler-map-icon',
@@ -126,10 +172,55 @@ function MapResizeObserver() {
   return null;
 }
 
-export default function WorldMap({ events, travelers, selectedEvent, onSelectEvent, selectedTraveler }: WorldMapProps) {
+// One country to highlight: which ISO codes, its score, and (for the RED layer)
+// the category that drove it, so the popup can explain "why is this red".
+interface RiskCountry {
+  iso2: string;
+  iso3: string | null;
+  score: number;
+  category: string | null;
+  byCategory: Record<string, number> | null;
+}
+
+// Resolves a per-country risk map into the countries to highlight at/above the
+// threshold. Layer styling (solid red vs. dashed blue) is applied at render.
+function riskCountries(
+  risk: Record<string, { score: number; category?: string; byCategory?: Record<string, number> }>,
+  threshold: number,
+): RiskCountry[] {
+  const out: RiskCountry[] = [];
+  for (const [iso2, v] of Object.entries(risk)) {
+    if (v.score < threshold) continue;
+    out.push({
+      iso2,
+      iso3: iso3For(iso2),
+      score: v.score,
+      category: v.category ?? null,
+      byCategory: v.byCategory ?? null,
+    });
+  }
+  return out;
+}
+
+type RiskLayer = 'none' | 'current' | 'predicted';
+
+export default function WorldMap({
+  events, travelers, selectedEvent, onSelectEvent, selectedTraveler, countryRisk = {},
+}: WorldMapProps) {
   // ── Flight monitoring (isolated from alert/risk state) ──────────────────
   const [showFlights, setShowFlights] = useState(false);
   const [flights, setFlights] = useState<Flight[]>([]);
+  // ── Risk highlight layers — mutually exclusive with each other, independent
+  //    of the flight layer. 'none' | 'current' (real RED) | 'predicted' (BLUE). ──
+  const [riskLayer, setRiskLayer] = useState<RiskLayer>('none');
+  // ── Event/traveler marker layers — previously always-on; now toggleable
+  //    from the same layers panel. Default true so nothing already on screen
+  //    disappears for existing sessions. ──────────────────────────────────
+  const [showEvents, setShowEvents] = useState(true);
+  const [showTravelers, setShowTravelers] = useState(true);
+  // ── Layers dropdown (replaces the old row of separate toggle buttons). ──
+  const [layersOpen, setLayersOpen] = useState(false);
+  const layersBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!showFlights) return;
@@ -143,20 +234,99 @@ export default function WorldMap({ events, travelers, selectedEvent, onSelectEve
     return () => { cancelled = true; clearInterval(id); };
   }, [showFlights]);
 
+  const toggleLayer = (layer: RiskLayer) =>
+    setRiskLayer((cur) => (cur === layer ? 'none' : layer));
+
+  // Single dispatch point for the checklist panel — each id maps back to the
+  // exact same state setter the old individual buttons called. 'risk-current'
+  // and 'risk-predicted' stay mutually exclusive (toggleLayer's existing
+  // behavior): checking one un-checks the other, same as before.
+  function handleLayerToggle(id: string) {
+    switch (id) {
+      case 'flights': setShowFlights((v) => !v); break;
+      case 'risk-current': toggleLayer('current'); break;
+      case 'risk-predicted': toggleLayer('predicted'); break;
+      case 'events': setShowEvents((v) => !v); break;
+      case 'travelers': setShowTravelers((v) => !v); break;
+    }
+  }
+
+  const mapLayers: MapLayer[] = [
+    { id: 'flights', labelAr: 'حركة الطيران', icon: <Plane size={13} />, enabled: showFlights },
+    { id: 'risk-current', labelAr: 'طبقة الخطر الحالي', icon: <ShieldAlert size={13} />, enabled: riskLayer === 'current' },
+    {
+      id: 'risk-predicted', labelAr: 'تنبؤ تجريبي', icon: <FlaskConical size={13} />,
+      enabled: riskLayer === 'predicted', accentColor: BLUE,
+    },
+    { id: 'events', labelAr: 'أحداث ومخاطر الخريطة', icon: <AlertTriangle size={13} />, enabled: showEvents },
+    { id: 'travelers', labelAr: 'المسافرون المسجّلون', icon: <Users size={13} />, enabled: showTravelers },
+  ];
+  const activeLayerCount = mapLayers.filter((l) => l.enabled).length;
+
+  const worldGeo = useBoundariesGeoJson(WORLD_BOUNDARIES_URL, riskLayer !== 'none');
+
+  const redCountries = riskLayer === 'current' ? riskCountries(countryRisk, RISK_HIGHLIGHT_THRESHOLD) : [];
+  const blueCountries = riskLayer === 'predicted'
+    ? riskCountries(
+        Object.fromEntries(Object.entries(EXPERIMENTAL_PREDICTED_RISK).map(([k, v]) => [k, { score: v }])),
+        0,
+      )
+    : [];
+  const active = riskLayer === 'current' ? redCountries : riskLayer === 'predicted' ? blueCountries : [];
+  const activeColor = riskLayer === 'predicted' ? BLUE : RED;
+  const isPredicted = riskLayer === 'predicted';
+
+  // Polygon subset of the world GeoJSON limited to the active countries. Keyed
+  // by riskLayer + the id list so react-leaflet rebuilds it when the set changes.
+  const byIso3 = new Map(active.filter((c) => c.iso3).map((c) => [c.iso3 as string, c]));
+  const polyFeatures = useMemo<FeatureCollection | null>(() => {
+    if (!worldGeo) return null;
+    const feats = worldGeo.features.filter((f) => byIso3.has(String(f.id)));
+    return { type: 'FeatureCollection', features: feats };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [worldGeo, riskLayer, active.map((c) => c.iso3).join(',')]);
+  const polyKey = `${riskLayer}:${active.map((c) => c.iso3).join(',')}`;
+
+  // Countries the 110m dataset has no polygon for (e.g. Bahrain, Tonga) fall
+  // back to a centroid circle so a high-risk state is never silently dropped.
+  const fallbackCircles = active.filter((c) => !c.iso3 || ISO3_WITHOUT_POLYGON.has(c.iso3));
+
   return (
     <>
-      {/* Flight monitoring toggle — map control, matches the dashboard style */}
-      <button
-        type="button"
-        className={`flight-toggle-btn${showFlights ? ' active' : ''}`}
-        onClick={() => setShowFlights((v) => !v)}
-        title="مراقبة حركة الطيران"
-      >
-        <Plane size={13} />
-        {showFlights ? 'إخفاء حركة الطيران' : 'إظهار حركة الطيران'}
-      </button>
+      {/* Map layer controls — one trigger opens the checklist dropdown below,
+          replacing what used to be three separate always-visible buttons. */}
+      <div className="map-toggle-row">
+        <button
+          ref={layersBtnRef}
+          type="button"
+          className={`map-toggle-btn layers${layersOpen ? ' active' : ''}`}
+          onClick={() => setLayersOpen((v) => !v)}
+          title="طبقات الخريطة"
+          aria-expanded={layersOpen}
+        >
+          <Layers size={13} />
+          الطبقات
+          {activeLayerCount > 0 && <span className="map-layers-count">{activeLayerCount}</span>}
+        </button>
+        {layersOpen && (
+          <MapLayersPanel
+            layers={mapLayers}
+            onToggle={handleLayerToggle}
+            onClose={() => setLayersOpen(false)}
+            anchorRef={layersBtnRef}
+          />
+        )}
+      </div>
 
-      <MapContainer center={[20, 30]} zoom={2.4} minZoom={2} worldCopyJump style={{ width: '100%', height: '100%' }}>
+      {/* Persistent, unmistakable disclaimer while the placeholder layer is on */}
+      {riskLayer === 'predicted' && (
+        <div className="predict-banner" dir="rtl">
+          <FlaskConical size={12} />
+          تنبؤ تجريبي — نموذج قيد التطوير (ليست بيانات حقيقية)
+        </div>
+      )}
+
+      <MapContainer center={[20, 30]} zoom={2.4} minZoom={2} worldCopyJump zoomControl={false} style={{ width: '100%', height: '100%' }}>
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           attribution=""
@@ -164,7 +334,83 @@ export default function WorldMap({ events, travelers, selectedEvent, onSelectEve
         <FlyToSelection event={selectedEvent} traveler={selectedTraveler} />
         <MapResizeObserver />
 
-        {events.map((event) => {
+        {/* Risk highlight — country-polygon shading. RED = real Stage 5 risk
+            (solid fill). BLUE = experimental placeholder (dashed, low opacity,
+            plus the banner above). Only the active layer renders. */}
+        {polyFeatures && polyFeatures.features.length > 0 && (
+          <GeoJSON
+            key={polyKey}
+            data={polyFeatures}
+            style={() => ({
+              color: activeColor,
+              weight: isPredicted ? 1.5 : 1,
+              dashArray: isPredicted ? '5 4' : undefined,
+              fillColor: activeColor,
+              fillOpacity: isPredicted ? 0.15 : 0.35,
+            })}
+            onEachFeature={(feature: Feature, layer) => {
+              const c = byIso3.get(String(feature.id));
+              if (!c) return;
+              const name = countryNameAr(c.iso2);
+              if (isPredicted) {
+                layer.bindPopup(
+                  `<div dir="rtl" class="flight-popup"><strong>${name}</strong>` +
+                  `<div style="color:${BLUE};font-weight:700">تنبؤ تجريبي — نموذج قيد التطوير</div>` +
+                  `<div>قيمة تجريبية: ${c.score}/100 (ليست بيانات حقيقية)</div></div>`
+                );
+              } else {
+                const catAr = c.category ? (CATEGORY_AR[c.category] ?? c.category) : 'غير محدد';
+                const breakdown = c.byCategory
+                  ? Object.entries(c.byCategory)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([k, v]) => `${CATEGORY_AR[k] ?? k}: ${v}`).join('، ')
+                  : '';
+                layer.bindPopup(
+                  `<div dir="rtl" class="flight-popup"><strong>${name}</strong>` +
+                  `<div>مستوى الخطر: ${c.score}/100 — المصدر: ${catAr}</div>` +
+                  (breakdown ? `<div style="opacity:.7">حسب الفئة: ${breakdown}</div>` : '') +
+                  `<div style="opacity:.7">تحليل تلقائي (المرحلة 5)</div></div>`
+                );
+              }
+            }}
+          />
+        )}
+
+        {/* Centroid-circle fallback for countries absent from the 110m polygons */}
+        {fallbackCircles.map((c) => {
+          const center = centroidFor(c.iso2);
+          if (!center) return null;
+          return (
+            <CircleMarker
+              key={`fallback-${riskLayer}-${c.iso2}`}
+              center={center}
+              radius={12}
+              pathOptions={{
+                color: activeColor,
+                weight: 1.5,
+                dashArray: isPredicted ? '4 4' : undefined,
+                fillColor: activeColor,
+                fillOpacity: isPredicted ? 0.15 : 0.3,
+              }}
+            >
+              <Popup>
+                <div dir="rtl" className="flight-popup">
+                  <strong>{countryNameAr(c.iso2)}</strong>
+                  {isPredicted ? (
+                    <>
+                      <div style={{ color: BLUE, fontWeight: 700 }}>تنبؤ تجريبي — نموذج قيد التطوير</div>
+                      <div>قيمة تجريبية: {c.score}/100 (ليست بيانات حقيقية)</div>
+                    </>
+                  ) : (
+                    <div>مستوى الخطر: {c.score}/100 — المصدر: {c.category ? (CATEGORY_AR[c.category] ?? c.category) : 'غير محدد'}</div>
+                  )}
+                </div>
+              </Popup>
+            </CircleMarker>
+          );
+        })}
+
+        {showEvents && events.map((event) => {
           const isSelected = selectedEvent?.id === event.id;
           return (
             <Marker
@@ -183,7 +429,7 @@ export default function WorldMap({ events, travelers, selectedEvent, onSelectEve
           );
         })}
 
-        {travelers.map((traveler) => (
+        {showTravelers && travelers.map((traveler) => (
           <Marker key={traveler.id} position={[traveler.lat, traveler.lng]} icon={travelerIcon}>
             <Popup>
               <strong>{traveler.nameEn}</strong>

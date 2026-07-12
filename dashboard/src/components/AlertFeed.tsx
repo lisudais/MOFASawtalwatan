@@ -1,4 +1,3 @@
-import { Activity } from 'lucide-react';
 import type { GeoEvent } from '../types';
 import type { CountryHealthEntry } from '../services/healthAnalysis';
 import type { DisasterEvent } from '../services/naturalDisasterFeed';
@@ -32,10 +31,6 @@ interface AlertFeedProps {
 export default function AlertFeed({ onSelectCountry, onHealthDataLoaded, onSelectDisaster, onSelectStatement, onSelectSecurity, onSecurityDataLoaded, onSelectIndicator }: AlertFeedProps) {
   return (
     <div className="panel alert-feed">
-      <div className="panel-header">
-        <Activity size={14} />
-        <span className="panel-header-ar">تغذية التنبيهات</span>
-      </div>
       <div className="alert-feed-region-grid">
         <HealthCategoryCard onSelectCountry={onSelectCountry} onDataLoaded={onHealthDataLoaded} />
         <DisasterCategoryCard onSelectDisaster={onSelectDisaster} />

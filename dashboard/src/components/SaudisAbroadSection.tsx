@@ -20,10 +20,9 @@ export default function SaudisAbroadSection() {
   const hiddenCount = segments.length - COLLAPSED_ROW_COUNT;
 
   return (
-    <div className="saudis-abroad-section">
+    <div className="saudis-abroad-section" dir="rtl">
       <div className="saudis-abroad-top">
-        <span className="saudis-abroad-eyebrow">جميع المسجلين</span>
-        <span className="saudis-abroad-details-link">التفاصيل ›</span>
+        <span className="saudis-abroad-eyebrow">السعوديين خارج المملكة</span>
       </div>
 
       <div className="saudis-abroad-hero">

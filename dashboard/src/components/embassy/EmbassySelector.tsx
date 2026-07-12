@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Building2, Search, MapPin, ArrowRight, ShieldAlert } from 'lucide-react';
-import { EMBASSIES, getCurrentAccess, canAccessEmbassy, type EmbassyConfig } from '../../services/embassies';
+import { EMBASSIES, MISSION_TYPE_AR, getCurrentAccess, canAccessEmbassy, type EmbassyConfig } from '../../services/embassies';
 
 interface EmbassySelectorProps {
   onSelect: (embassy: EmbassyConfig) => void;
   onBack: () => void;
 }
 
-const MISSION_TYPE_AR = { EMBASSY: 'سفارة', CONSULATE: 'قنصلية' } as const;
 const STATUS_AR = { ACTIVE: 'نشطة', SUSPENDED: 'معلّقة' } as const;
 
 // Searchable embassy list — the entry gate to every embassy sub-dashboard.
