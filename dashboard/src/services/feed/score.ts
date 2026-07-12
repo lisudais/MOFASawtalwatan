@@ -19,7 +19,7 @@
 //   Tier1 + official statement           →  80-100   (scaled by severity)
 //   Tier1, no official confirmation      →  50-70
 //   Tier2 only, no Tier1                 →  30-50
-//   Single uncorroborated source         →  hard cap 30, tagged "unconfirmed"
+//   Single uncorroborated source         →  capped below 30, tagged "unconfirmed"
 //   +10-15 corroboration bonus when >= 2 independent sources confirm
 //
 // The single-source cap does NOT apply to `tier1_official_confirmed`. An official
@@ -29,6 +29,19 @@
 // the literal reading pinned every cluster in the pipeline at exactly 30. Every
 // other band keeps the cap, including `tier1_unconfirmed`: a lone ACLED incident
 // with no official statement behind it remains a single unconfirmed assertion.
+//
+// The cap itself is SEVERITY-SCALED (10-30), not a single flat number. A flat
+// cap was tried first and measured against live traffic: 74 of 76 natural_disaster
+// cards on one snapshot were single-source (only USGS OR only EMSC ever picked
+// up that specific quake — cross-source corroboration of the SAME event is the
+// exception, not the rule), so a flat 30 collapsed nearly the entire feed onto
+// one identical number regardless of magnitude. M4.5 and M8.0 both single-source
+// read identically as "30 · متوسط", which is a worse failure than the
+// overconfidence the cap exists to prevent: it hides real severity differences
+// the sources DID report. Scaling within the cap keeps the policy intent (an
+// uncorroborated report can never look as trustworthy as a confirmed one — the
+// cap's ceiling is still exactly 30, the old flat value) while restoring the
+// magnitude signal Stage 1 already captured. See `uncorroboratedCappedScore`.
 //
 // ── Known ceilings, by construction, not by accident ────────────────────────
 //   • health / economic clusters can never reach Tier 1: Stage 1 ingests none
@@ -61,8 +74,23 @@ const BANDS: Record<Band, { lo: number; hi: number }> = {
   untiered: { lo: 10, hi: 30 },
 };
 
-/** Hard ceiling for anything a single source asserts alone. */
-const UNCORROBORATED_CAP = 30;
+/** Hard ceiling for anything a single source asserts alone — never inflated by
+ *  the corroboration bonus, but positioned within [UNCORROBORATED_CAP_LO,
+ *  UNCORROBORATED_CAP_HI] by the same severity factor every other band uses.
+ *  See `uncorroboratedCappedScore`. */
+const UNCORROBORATED_CAP_LO = 10;
+const UNCORROBORATED_CAP_HI = 30;
+/** Kept for anything that still needs "the ceiling" as a single number
+ *  (e.g. the untiered band's own hi, which happens to equal it). */
+const UNCORROBORATED_CAP = UNCORROBORATED_CAP_HI;
+
+/** Where an uncapped score lands inside the capped ceiling, by severity —
+ *  the same `factor ?? 0.5` convention `scoreCluster` uses for its band. An
+ *  unrecognized/missing severity hint still lands at the ceiling's midpoint,
+ *  not at either extreme, since "unknown" is not evidence of low or high risk. */
+function uncorroboratedCappedScore(factor: number | null): number {
+  return UNCORROBORATED_CAP_LO + (factor ?? 0.5) * (UNCORROBORATED_CAP_HI - UNCORROBORATED_CAP_LO);
+}
 
 /** Corroboration bonus: 10 for the second source, +2.5 each after, max 15. */
 const BONUS_BASE = 10;
@@ -231,13 +259,17 @@ export function scoreCluster(cluster: Cluster, signalsById: Map<string, RawSigna
 
   if (distinctSources < 2 && !capExempt) {
     if (score > UNCORROBORATED_CAP) {
-      capApplied = { cap: UNCORROBORATED_CAP, reason: 'single uncorroborated source' };
-      score = UNCORROBORATED_CAP;
+      // Severity-scaled, not flat: an uncorroborated M8.0 still reads higher
+      // than an uncorroborated M4.5, it just can never cross the ceiling a
+      // confirmed report would. See the module header for why a flat 30 here
+      // was itself the bug this replaces.
+      score = uncorroboratedCappedScore(factor);
+      capApplied = { cap: UNCORROBORATED_CAP, reason: 'single uncorroborated source — capped, scaled by severity' };
     }
   } else if (distinctSources >= 2 && band === 'untiered' && score > UNCORROBORATED_CAP) {
     // Corroborated, but by sources we do not trust at either tier.
-    capApplied = { cap: UNCORROBORATED_CAP, reason: 'corroborated only by untiered sources' };
-    score = UNCORROBORATED_CAP;
+    score = uncorroboratedCappedScore(factor);
+    capApplied = { cap: UNCORROBORATED_CAP, reason: 'corroborated only by untiered sources — capped, scaled by severity' };
   }
 
   score = Math.round(Math.min(Math.max(score, 0), 100));

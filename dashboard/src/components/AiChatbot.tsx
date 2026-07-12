@@ -32,8 +32,12 @@ export interface ChatbotScope {
   contextSummaryAr: string;
 }
 
-function systemPrompt(scope?: ChatbotScope): string {
-  if (!scope) return SYSTEM_PROMPT;
+function systemPrompt(scope?: ChatbotScope, globalSummaryAr?: string): string {
+  if (!scope) {
+    return globalSummaryAr
+      ? `${SYSTEM_PROMPT}\n\nملخص الوضع الحالي على اللوحة (استند إليه ولا تخترع بيانات غير مذكورة):\n${globalSummaryAr}`
+      : SYSTEM_PROMPT;
+  }
   return (
     `أنت المساعد الذكي للوحة عمليات ${scope.embassyNameAr} التابعة لوزارة الخارجية السعودية. ` +
     `نطاقك محصور في ${scope.hostCountryAr} والمناطق التابعة للسفارة فقط — هذه صلاحية وصول محدودة. ` +
@@ -43,14 +47,14 @@ function systemPrompt(scope?: ChatbotScope): string {
   );
 }
 
-async function askOllama(history: ChatMessage[], scope?: ChatbotScope): Promise<string> {
+async function askOllama(history: ChatMessage[], scope?: ChatbotScope, globalSummaryAr?: string): Promise<string> {
   try {
     const res = await fetch(`${OLLAMA_URL}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: OLLAMA_MODEL,
-        messages: [{ role: 'system', content: systemPrompt(scope) }, ...history],
+        messages: [{ role: 'system', content: systemPrompt(scope, globalSummaryAr) }, ...history],
         stream: false,
       }),
       signal: AbortSignal.timeout(90000),
@@ -67,8 +71,9 @@ async function askOllama(history: ChatMessage[], scope?: ChatbotScope): Promise<
 // Floating AI assistant. The launcher sits in the lower-right corner of the
 // map section (just left of the right panel); the chat panel opens above it,
 // inside the map area, so the right panel is never covered. Pass `scope` to
-// restrict it to one embassy's area (embassy sub-dashboard).
-export default function AiChatbot({ scope }: { scope?: ChatbotScope } = {}) {
+// restrict it to one embassy's area (embassy sub-dashboard), or
+// `globalSummaryAr` to ground the GLOBAL assistant in the live board data.
+export default function AiChatbot({ scope, globalSummaryAr }: { scope?: ChatbotScope; globalSummaryAr?: string } = {}) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
   const [input, setInput] = useState('');
@@ -111,7 +116,7 @@ export default function AiChatbot({ scope }: { scope?: ChatbotScope } = {}) {
     setMessages(history);
     setInput('');
     setThinking(true);
-    const reply = await askOllama(history, scope);
+    const reply = await askOllama(history, scope, globalSummaryAr);
     setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
     setThinking(false);
   };

@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react';
-import { X, MapPin, Clock, Radio, Link2, Send, AlertTriangle, Pencil, ChevronDown, ChevronUp, Navigation } from 'lucide-react';
-import { RISK_COLORS, RISK_LABEL_AR, TYPE_LABEL_AR } from '../constants';
-import { X, MapPin, Clock, Radio, Link2, Send, AlertTriangle, Pencil, Shield, ChevronDown, ChevronUp, Navigation } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { X, MapPin, Clock, Radio, Link2, ShieldCheck, AlertTriangle, Pencil, ChevronDown, ChevronUp, Navigation } from 'lucide-react';
 import { TYPE_LABEL_AR } from '../constants';
 import { countryNameAr } from '../services/feed/countryNames';
+import { getEmbassyForCountryCode } from '../services/embassies';
+import {
+  addApprovedAlert, useApprovedAlerts, formatDateTimeAr,
+  ALERT_APPROVAL_STATUS_AR, ALERT_APPROVAL_STATUS_COLOR,
+} from '../services/alertApprovals';
+import AlertApprovalModal from './AlertApprovalModal';
 import type { FeedCard } from '../services/feed/feedCards';
 import type { EventType } from '../services/feed/types';
 import type { GeoEvent, Traveler } from '../types';
@@ -109,16 +113,30 @@ const na = (v: unknown): string =>
 // Every field comes from the selected alert object; missing ones read "غير متاح".
 export default function AlertDetailsPanel({ card, event, travelers, onClose, onTrackCitizen }: AlertDetailsPanelProps) {
   const [editableRightAlertMessage, setEditableRightAlertMessage] = useState('');
-  const [sent, setSent] = useState(false);
+  // Clicking the footer button no longer sends anything itself — it opens the
+  // approval modal, which records the approval into the shared queue below.
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
   // Citizens dropdown — state lives only in this right-sidebar panel.
   const [isCitizensMenuOpen, setIsCitizensMenuOpen] = useState(false);
   const [selectedCitizen, setSelectedCitizen] = useState<Traveler | null>(null);
   const [trackNotice, setTrackNotice] = useState('');
 
+  // Single shared source of truth for approval/send status (services/
+  // alertApprovals.ts) — also read by EmbassyDashboard. Whichever side
+  // updates it (e.g. the consulate executing the real send), this panel
+  // picks the new status up live, no manual refresh needed.
+  const approvedAlerts = useApprovedAlerts();
+  const linkedApproval = useMemo(() => {
+    if (!card) return null;
+    const forThisCard = approvedAlerts.filter((a) => a.sourceCardId === card.id);
+    if (forThisCard.length === 0) return null;
+    return forThisCard.reduce((latest, a) => (a.approvedAt > latest.approvedAt ? a : latest));
+  }, [approvedAlerts, card]);
+
   // Regenerate the editable draft whenever a different card is selected.
   useEffect(() => {
     if (!card) return;
-    setSent(false);
+    setShowApprovalModal(false);
     setIsCitizensMenuOpen(false);
     setSelectedCitizen(null);
     setTrackNotice('');
@@ -157,6 +175,9 @@ export default function AlertDetailsPanel({ card, event, travelers, onClose, onT
     (t) => t.countryCode && t.countryCode === countryCode
   );
   const citizensHere = citizensForSelectedAlert.length;
+  // Which consulate an approval routes to — resolved the same way the
+  // embassy dashboards scope their own live feeds (services/embassies.ts).
+  const targetEmbassy = getEmbassyForCountryCode(countryCode, card.country ?? undefined);
 
   function handleTrackCitizen(citizen: Traveler) {
     setSelectedCitizen(citizen);
@@ -356,17 +377,60 @@ export default function AlertDetailsPanel({ card, event, travelers, onClose, onT
       </div>
 
       <div className="adp-footer">
-        {/* Frontend-only: no send API exists in this project, so nothing is dispatched. */}
+        {/* Live status synced from the shared approval queue — updates the
+            instant the consulate side executes the real send, no refresh. */}
+        {linkedApproval && (
+          <div className="alert-approval-live-status" dir="rtl">
+            <span
+              className="embassy-sev-chip"
+              style={{ color: ALERT_APPROVAL_STATUS_COLOR[linkedApproval.status], borderColor: ALERT_APPROVAL_STATUS_COLOR[linkedApproval.status] }}
+            >
+              {ALERT_APPROVAL_STATUS_AR[linkedApproval.status]}
+            </span>
+            {linkedApproval.sentByAr && linkedApproval.sentAt && (
+              <span className="rc-last">
+                نفّذ الإرسال: <span className="rc-last-val">{linkedApproval.sentByAr}</span> — {formatDateTimeAr(new Date(linkedApproval.sentAt))}
+              </span>
+            )}
+          </div>
+        )}
+        {/* Frontend-only: no send API exists in this project. This button no
+            longer sends anything itself — it opens the approval modal, which
+            records the approval; the actual dispatch now lives in
+            EmbassyDashboard's "إرسال التنبيه الآن للمسافرين" (see
+            services/alertApprovals.ts markAlertSent). */}
         <button
           className="btn-alert-all"
           style={{ background: '#FF1744' }} // --danger-critical
-          onClick={() => setSent(true)}
-          disabled={sent}
+          onClick={() => setShowApprovalModal(true)}
+          disabled={!!linkedApproval}
         >
-          <Send size={14} style={{ marginLeft: 6 }} />
-          {sent ? 'تم الإرسال' : 'Send Alert to Travelers · إرسال تنبيه للمسافرين'}
+          <ShieldCheck size={14} style={{ marginLeft: 6 }} />
+          {linkedApproval ? 'تم الاعتماد' : 'اعتماد وإرسال الأمر للقنصلية'}
         </button>
       </div>
+
+      {showApprovalModal && (
+        <AlertApprovalModal
+          messageAr={editableRightAlertMessage}
+          placeAr={placeAr}
+          expectedAffected={citizensHere}
+          unrouted={!targetEmbassy}
+          onCancel={() => setShowApprovalModal(false)}
+          onConfirm={(approvedByAr) => {
+            addApprovedAlert({
+              embassyId: targetEmbassy?.id ?? '',
+              messageAr: editableRightAlertMessage,
+              countryCode,
+              countryAr: placeAr,
+              expectedAffected: citizensHere,
+              approvedByAr,
+              sourceCardId: card.id,
+            });
+            setShowApprovalModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

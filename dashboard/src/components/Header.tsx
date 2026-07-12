@@ -1,23 +1,21 @@
-import { Building2 } from 'lucide-react';
+import MissionsDropdown from './embassy/MissionsDropdown';
 
 interface HeaderProps {
   lastUpdated: Date | null;
-  /** Main dashboard only — renders the "السفارات والبعثات" entry point. */
-  onOpenEmbassies?: () => void;
+  /** Main dashboard only — renders the "السفارات والبعثات" dropdown. */
+  missionsMenu?: boolean;
 }
 
-export default function Header({ lastUpdated, onOpenEmbassies }: HeaderProps) {
+export default function Header({ lastUpdated, missionsMenu }: HeaderProps) {
   return (
     <header className="header">
+      {/* Physical LEFT side — last-updated + the missions dropdown. */}
       <div className="header-left">
-        <div className="logo-block">
-          <img src="/mofa-logo.svg" alt="MOFA" height={36} />
-        </div>
-        {onOpenEmbassies && (
-          <button type="button" className="header-nav-btn" onClick={onOpenEmbassies}>
-            <Building2 size={13} />
-            السفارات والبعثات
-          </button>
+        {missionsMenu && <MissionsDropdown />}
+        {lastUpdated && (
+          <span className="header-updated">
+            آخر تحديث {lastUpdated.toLocaleTimeString('ar-SA')}
+          </span>
         )}
       </div>
 
@@ -33,12 +31,11 @@ export default function Header({ lastUpdated, onOpenEmbassies }: HeaderProps) {
         </div>
       </div>
 
+      {/* Physical RIGHT side — the MOFA logo, matching every other page. */}
       <div className="header-right">
-        {lastUpdated && (
-          <span className="header-updated">
-            آخر تحديث {lastUpdated.toLocaleTimeString('ar-SA')}
-          </span>
-        )}
+        <div className="logo-block">
+          <img src="/mofa-logo.svg" alt="وزارة الخارجية" height={36} />
+        </div>
       </div>
     </header>
   );
