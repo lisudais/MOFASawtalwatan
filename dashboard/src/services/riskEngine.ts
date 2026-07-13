@@ -1,4 +1,5 @@
 import type { GeoEvent, RiskLevel, RiskAssessment, Traveler } from '../types';
+import { classifyRiskByScore } from './riskClassification';
 
 const RISK_WEIGHTS: Record<GeoEvent['type'], number> = {
   TERROR: 95,
@@ -18,12 +19,10 @@ export function scoreEvent(event: Omit<GeoEvent, 'score' | 'riskLevel' | 'recomm
   return Math.min(100, Math.round(baseScore));
 }
 
+// Unified thresholds — delegates to the app-wide central classifier so a score
+// maps to the SAME level here as everywhere else (see riskClassification.ts).
 export function scoreToRiskLevel(score: number): RiskLevel {
-  if (score >= 85) return 'CRITICAL';
-  if (score >= 65) return 'HIGH';
-  if (score >= 40) return 'MEDIUM';
-  if (score >= 20) return 'LOW';
-  return 'SAFE';
+  return classifyRiskByScore(score).band;
 }
 
 export function getRecommendedAction(level: RiskLevel, _type: GeoEvent['type']): string {

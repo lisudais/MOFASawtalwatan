@@ -21,6 +21,7 @@ interface IntelSidebarProps {
   onSelectSecurity: (p: CountrySecurityProfile) => void;
   onSecurityDataLoaded?: (countries: CountrySecurityProfile[]) => void;
   onSelectIndicator: (ind: EconomicIndicator) => void;
+  onEconomyDataLoaded?: (indicators: EconomicIndicator[]) => void;
 }
 
 // Sidebar rebuild in progress. SaudisAbroadSection, SidebarStatsGrid, and now
@@ -30,12 +31,12 @@ interface IntelSidebarProps {
 // re-added one at a time in later phases, reusing the existing data-fetching
 // logic untouched — see DisasterWidget.tsx, EconomyWidget.tsx, HealthWidget.tsx,
 // NewsWidget.tsx (currently unreferenced, not deleted).
-export default function IntelSidebar({ events, travelers: _travelers, stats, selectedEvent, onSelectEvent, onSelectCountry, onHealthDataLoaded, onSelectDisaster, onSelectStatement, onSelectSecurity, onSecurityDataLoaded, onSelectIndicator }: IntelSidebarProps) {
+export default function IntelSidebar({ events, travelers: _travelers, stats, selectedEvent, onSelectEvent, onSelectCountry, onHealthDataLoaded, onSelectDisaster, onSelectStatement, onSelectSecurity, onSecurityDataLoaded, onSelectIndicator, onEconomyDataLoaded }: IntelSidebarProps) {
   return (
     <div className="intel-sidebar">
       <SaudisAbroadSection />
       <SidebarStatsGrid stats={stats} />
-      <AlertFeed events={events} selectedEvent={selectedEvent} onSelectEvent={onSelectEvent} onSelectCountry={onSelectCountry} onHealthDataLoaded={onHealthDataLoaded} onSelectDisaster={onSelectDisaster} onSelectStatement={onSelectStatement} onSelectSecurity={onSelectSecurity} onSecurityDataLoaded={onSecurityDataLoaded} onSelectIndicator={onSelectIndicator} />
+      <AlertFeed events={events} selectedEvent={selectedEvent} onSelectEvent={onSelectEvent} onSelectCountry={onSelectCountry} onHealthDataLoaded={onHealthDataLoaded} onSelectDisaster={onSelectDisaster} onSelectStatement={onSelectStatement} onSelectSecurity={onSelectSecurity} onSecurityDataLoaded={onSecurityDataLoaded} onSelectIndicator={onSelectIndicator} onEconomyDataLoaded={onEconomyDataLoaded} />
     </div>
   );
 }

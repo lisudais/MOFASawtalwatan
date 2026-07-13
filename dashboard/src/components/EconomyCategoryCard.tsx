@@ -5,6 +5,9 @@ import { getEconomicIndicators, type EconomicIndicator } from '../services/econo
 
 interface EconomyCategoryCardProps {
   onSelectIndicator: (ind: EconomicIndicator) => void;
+  /** Read-only mirror of the latest load — lets the dashboard fold the live
+   *  indicators into the exported report without a second fetch. */
+  onDataLoaded?: (indicators: EconomicIndicator[]) => void;
 }
 
 const UP_COLOR = '#00E676';   // --danger-low
@@ -31,7 +34,7 @@ const REFRESH_MS = 4 * 60 * 60 * 1000; // 4h — matches the service cache / AV 
 // Fills the التغيرات الاقتصادية slot. Live data from Alpha Vantage (primary,
 // oil/gas/gold/USD-SAR) with automatic World Bank fallback (keyless macro
 // indicators). No mock: on total failure it shows the shared error state.
-export default function EconomyCategoryCard({ onSelectIndicator }: EconomyCategoryCardProps) {
+export default function EconomyCategoryCard({ onSelectIndicator, onDataLoaded }: EconomyCategoryCardProps) {
   const [indicators, setIndicators] = useState<EconomicIndicator[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -40,13 +43,15 @@ export default function EconomyCategoryCard({ onSelectIndicator }: EconomyCatego
     setLoading(true);
     setError(false);
     try {
-      setIndicators(await getEconomicIndicators());
+      const data = await getEconomicIndicators();
+      setIndicators(data);
+      onDataLoaded?.(data);
     } catch {
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [onDataLoaded]);
 
   useEffect(() => {
     load();

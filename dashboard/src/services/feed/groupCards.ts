@@ -20,6 +20,7 @@
 // number that appears on one of its members.
 
 import type { FeedCard } from './feedCards';
+import { sortAlertsBySeverity } from './sortAlerts';
 
 export interface FeedCardGroup {
   /** Stable across refreshes: `${country}|${eventType}`, or the card id when ungrouped. */
@@ -75,7 +76,8 @@ export function groupFeedCards(cards: FeedCard[]): FeedCardGroup[] {
   const groups: FeedCardGroup[] = [];
 
   for (const [key, members] of buckets) {
-    const threats = [...members].sort((a, b) => b.score - a.score);
+    // Members ordered most-severe first (shared rule); the lead defines the card.
+    const threats = sortAlertsBySeverity(members, { countOf: (c) => c.reportCount });
     const lead = threats[0];
     groups.push({
       id: key,
@@ -113,5 +115,7 @@ export function groupFeedCards(cards: FeedCard[]): FeedCardGroup[] {
     });
   }
 
-  return groups.sort((a, b) => b.score - a.score);
+  // Final list order: same shared severity rule. A group's own `occurredAt`
+  // (its most-recent member) and its member count break score ties.
+  return sortAlertsBySeverity(groups, { countOf: (g) => g.threats.length });
 }

@@ -3,22 +3,19 @@ import {
   TrendingUp, TrendingDown, Minus,
 } from 'lucide-react';
 import type { RiskLevel, GeoEvent, CategoryInsight } from './types';
+import { classifyRiskByLevel } from './services/riskClassification';
 
-export const RISK_COLORS: Record<RiskLevel, string> = {
-  CRITICAL: '#FF1744',
-  HIGH:     '#FF6D00',
-  MEDIUM:   '#FFD600',
-  LOW:      '#00E676',
-  SAFE:     '#2979FF',
-};
+// Derived from the central classifier so the categorical colour/label used here
+// is ALWAYS identical to the numeric score-based classification shown elsewhere.
+const RISK_LEVELS: RiskLevel[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'SAFE'];
 
-export const RISK_LABEL_AR: Record<RiskLevel, string> = {
-  CRITICAL: 'خطر بالغ',
-  HIGH:     'خطر مرتفع',
-  MEDIUM:   'خطر متوسط',
-  LOW:      'خطر منخفض',
-  SAFE:     'آمن',
-};
+export const RISK_COLORS = Object.fromEntries(
+  RISK_LEVELS.map((l) => [l, classifyRiskByLevel(l).color]),
+) as Record<RiskLevel, string>;
+
+export const RISK_LABEL_AR = Object.fromEntries(
+  RISK_LEVELS.map((l) => [l, classifyRiskByLevel(l).labelAr]),
+) as Record<RiskLevel, string>;
 
 export const TYPE_ICON: Record<GeoEvent['type'], React.ElementType> = {
   EARTHQUAKE:   Activity,

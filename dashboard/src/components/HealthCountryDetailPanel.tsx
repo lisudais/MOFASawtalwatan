@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X, Send, ExternalLink, Sparkles, AlertTriangle, Globe, ShieldAlert, ClipboardList } from 'lucide-react';
 import type { CountryHealthEntry } from '../services/healthAnalysis';
 import { analyzeHealthOutbreak, healthAiCacheKey, type HealthRisk, type HealthConfidence } from '../services/healthAi';
+import { getSaudiPresence } from '../services/mockData';
 import { useAiAnalysis } from '../services/ai/useAiAnalysis';
 import AiProgressiveLine from './AiProgressiveLine';
 import SafeSourceLink from './SafeSourceLink';
@@ -157,14 +158,16 @@ export default function HealthCountryDetailPanel({ country, onClose }: HealthCou
               <div className="health-detail-section-title">التواجد السعودي في {d.country}</div>
               <div className="health-detail-presence-grid">
                 <div className="health-detail-presence-box">
-                  <div className="health-detail-presence-value">غير متوفر</div>
+                  <div className="health-detail-presence-value mono-num">
+                    {getSaudiPresence(d.countryCode).visaHolders.toLocaleString('ar-SA')}
+                  </div>
                   <div className="health-detail-presence-label">حاملو التأشيرات</div>
                 </div>
                 <div className="health-detail-presence-box">
-                  <div className={`health-detail-presence-value${d.saudiTravelersCount > 0 ? ' mono-num' : ''}`}>
-                    {d.saudiTravelersCount > 0 ? d.saudiTravelersCount.toLocaleString('ar-SA') : 'غير متوفر'}
+                  <div className="health-detail-presence-value mono-num">
+                    {(d.saudiTravelersCount > 0 ? d.saudiTravelersCount : getSaudiPresence(d.countryCode).residents).toLocaleString('ar-SA')}
                   </div>
-                  <div className="health-detail-presence-label">مسافر مسجل</div>
+                  <div className="health-detail-presence-label">مقيمون</div>
                 </div>
               </div>
             </div>

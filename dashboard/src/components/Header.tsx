@@ -1,16 +1,25 @@
+import { Download } from 'lucide-react';
 import MissionsDropdown from './embassy/MissionsDropdown';
 
 interface HeaderProps {
   lastUpdated: Date | null;
   /** Main dashboard only — renders the "السفارات والبعثات" dropdown. */
   missionsMenu?: boolean;
+  /** Main dashboard only — opens the official PDF summary preview/export. */
+  onExportReport?: () => void;
 }
 
-export default function Header({ lastUpdated, missionsMenu }: HeaderProps) {
+export default function Header({ lastUpdated, missionsMenu, onExportReport }: HeaderProps) {
   return (
     <header className="header">
-      {/* Physical LEFT side — last-updated + the missions dropdown. */}
+      {/* Physical LEFT side — export, last-updated + the missions dropdown. */}
       <div className="header-left">
+        {onExportReport && (
+          <button type="button" className="report-export-btn" onClick={onExportReport}>
+            <Download size={13} />
+            تصدير التقرير
+          </button>
+        )}
         {missionsMenu && <MissionsDropdown />}
         {lastUpdated && (
           <span className="header-updated">

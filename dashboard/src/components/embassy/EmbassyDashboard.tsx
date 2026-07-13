@@ -32,6 +32,7 @@ import {
   type ApprovedAlertSummary,
 } from '../../services/alertApprovals';
 import { filterByCountry } from '../../services/countryFilter';
+import { sortAlertsBySeverity } from '../../services/feed/sortAlerts';
 import { fetchEmbassyWeather, type EmbassyWeather } from '../../services/embassyOps';
 import { RISK_COLORS, TYPE_LABEL_AR } from '../../constants';
 import type { GeoEvent, RiskLevel } from '../../types';
@@ -510,8 +511,10 @@ export default function EmbassyDashboard({ embassy, onBack }: EmbassyDashboardPr
     return 'SAFE';
   }, [events, security, health]);
 
+  // Country-scoped disaster list, ordered by the SAME shared severity rule as
+  // the alert feeds (most-dangerous first), with event time breaking ties.
   const disasters = useMemo(
-    () => [...events].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()),
+    () => sortAlertsBySeverity(events, { timeOf: (e) => e.timestamp.getTime() }),
     [events]
   );
   const latestStatement = statements[0] ?? null;

@@ -1,0 +1,14 @@
+# Local zero-shot crisis-event forecasting with Amazon Chronos-2.
+# Python 3.11–3.13. Runs fully on CPU, offline after the one-time model download.
+# NOTE: no FastAPI / uvicorn — this is a local script (run_forecast.py), not a server.
+
+# Chronos-2 zero-shot forecasting (pulls torch, transformers, accelerate)
+chronos-forecasting>=2.3.0
+transformers>=5.0
+accelerate>=1.0
+
+# Install torch CPU wheel from the PyTorch index:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch>=2.2
+
+numpy>=1.24

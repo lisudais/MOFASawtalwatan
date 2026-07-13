@@ -6,6 +6,8 @@
 // or travel-advisory feed is used. Nothing is invented here or there; AI
 // (see securityAi.ts) only summarizes it.
 
+import { classifyRiskByScore } from './riskClassification';
+
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
@@ -62,11 +64,10 @@ export const RISK_LABEL_AR: Record<RiskLevel, string> = {
 };
 
 // Green → Yellow → Orange → Red, matching the spec's Critical(80+)/High(60+)/Medium(40+)/Low bands.
+// Delegates to the app-wide central classifier (unified 25/50/75 bands) so a
+// security riskScore colours the same as the same number anywhere else.
 export function scoreColor(score: number): string {
-  if (score >= 80) return '#FF1744'; // CRITICAL — red
-  if (score >= 60) return '#FF6D00'; // HIGH — orange
-  if (score >= 40) return '#FFD600'; // MEDIUM — yellow
-  return '#00E676';                  // LOW — green
+  return classifyRiskByScore(score).color;
 }
 
 export function timeAgoAr(date: Date): string {

@@ -1,13 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Share2, RefreshCw, TrendingUp, TrendingDown, Minus, AlertTriangle } from 'lucide-react';
-import {
-  computeRegionalForecast,
-  HEALTH_REGION_LABEL_AR,
-  type CountryHealthEntry,
-  type Trend,
-} from '../services/healthAnalysis';
+import { type CountryHealthEntry } from '../services/healthAnalysis';
 import { fetchHealthCountries } from '../services/healthFeed';
 import { RISK_LEVEL_BAR_COLORS } from '../constants';
+import {
+  loadForecasts, loadForecastMeta, diseaseForecastByIso2, relativeRisk, bandFor,
+  MODEL_BADGE_AR, type ResolvedForecast, type ForecastBand,
+} from '../services/forecasting/forecastData';
 
 // Outbreak-forecast trend semantics are inverted from the app's general TREND_COLOR
 // (constants.ts): here RISING means the outbreak is getting worse, so it's red, and
@@ -15,18 +14,13 @@ import { RISK_LEVEL_BAR_COLORS } from '../constants';
 const FORECAST_TREND_ICON = { RISING: TrendingUp, FALLING: TrendingDown, STABLE: Minus };
 const FORECAST_TREND_COLOR = { RISING: 'var(--danger-critical)', FALLING: 'var(--danger-low)', STABLE: 'var(--text-muted)' };
 
-const TIMELINE_COLORS: Record<Trend, [string, string, string]> = {
-  RISING: ['var(--text-muted)', 'var(--danger-medium)', 'var(--danger-critical)'],
-  FALLING: ['var(--text-muted)', 'var(--danger-low)', 'var(--danger-low)'],
-  STABLE: ['var(--text-muted)', 'var(--text-muted)', 'var(--text-muted)'],
+// Chronos-2 severity band → the project's existing severity palette (same reds/
+// oranges/yellows used by the map's forecast layer, kept consistent here).
+const BAND_COLOR: Record<ForecastBand, string> = {
+  high: '#FF1744',    // red
+  medium: '#FF6D00',  // orange
+  low: '#FFD600',     // yellow
 };
-
-function heatColor(avgRiskScore: number): string {
-  if (avgRiskScore >= 75) return RISK_LEVEL_BAR_COLORS.CRITICAL;
-  if (avgRiskScore >= 50) return RISK_LEVEL_BAR_COLORS.HIGH;
-  if (avgRiskScore >= 25) return RISK_LEVEL_BAR_COLORS.MEDIUM;
-  return RISK_LEVEL_BAR_COLORS.LOW;
-}
 
 const REFRESH_MS = 10 * 60 * 1000;
 
@@ -37,15 +31,17 @@ interface HealthCategoryCardProps {
   onDataLoaded?: (countries: CountryHealthEntry[]) => void;
 }
 
-// Live global-health card. Data is fetched from real, keyless sources
-// (WHO Disease Outbreak News + disease.sh) — see services/healthFeed.ts. The
-// ranked country list + regional predictive rollup are rendered from it. The
-// detail panel is opened by the parent (App.tsx) via onSelectCountry.
+// Live global-health card. The ranked country list is fetched from real, keyless
+// sources (WHO Disease Outbreak News + disease.sh). The "التوقعات الصحية الإقليمية"
+// section below is driven ENTIRELY by the local Amazon Chronos-2 forecast output
+// (services/forecasting/forecastData.ts → /data/forecasts.json), matched by
+// event_type = disease. No mock/demo forecast values remain.
 export default function HealthCategoryCard({ onSelectCountry, onDataLoaded }: HealthCategoryCardProps) {
   const [countries, setCountries] = useState<CountryHealthEntry[]>([]);
-  const [generatedAt, setGeneratedAt] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [diseaseFc, setDiseaseFc] = useState<Record<string, ResolvedForecast>>({});
+  const [fcGeneratedAt, setFcGeneratedAt] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,7 +49,6 @@ export default function HealthCategoryCard({ onSelectCountry, onDataLoaded }: He
     try {
       const data = await fetchHealthCountries();
       setCountries(data);
-      setGeneratedAt(new Date());
       onDataLoaded?.(data);
     } catch {
       setError(true);
@@ -69,7 +64,33 @@ export default function HealthCategoryCard({ onSelectCountry, onDataLoaded }: He
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const regional = countries.length > 0 ? computeRegionalForecast(countries) : null;
+  // Chronos-2 disease forecasts — loaded once from the local file.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([loadForecasts(), loadForecastMeta()]).then(([list, meta]) => {
+      if (cancelled) return;
+      setDiseaseFc(diseaseForecastByIso2(list));
+      setFcGeneratedAt(meta.generatedAtUtc);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Regional forecast view = every Chronos-2 disease forecast, ranked by its peak
+  // predicted value; percentages are relative-risk scores vs. the group's max.
+  const forecastView = useMemo(() => {
+    const items = Object.values(diseaseFc);
+    if (items.length === 0) return null;
+    const groupMax = Math.max(...items.map((f) => f.peak), 1);
+    const rows = items
+      .map((f) => ({ fc: f, relRisk: relativeRisk(f.peak, groupMax), band: bandFor(f.peak, groupMax) }))
+      .sort((a, b) => b.fc.peak - a.fc.peak);
+    return { rows };
+  }, [diseaseFc]);
+
+  const openForecastCountry = (iso2: string) => {
+    const entry = countries.find((c) => c.countryCode === iso2);
+    if (entry) onSelectCountry(entry);
+  };
 
   return (
     <div className="region-card health-card">
@@ -122,72 +143,68 @@ export default function HealthCategoryCard({ onSelectCountry, onDataLoaded }: He
             })}
           </div>
 
-          {regional && (
-            <div className="health-regional-forecast">
-              <div className="health-regional-header">
-                <span className="health-regional-title">التوقعات الصحية الإقليمية</span>
-                <span className="health-regional-badge">تحليل تنبؤي</span>
-                {generatedAt && (
-                  <span className="health-regional-timestamp mono-num">
-                    {generatedAt.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                )}
-              </div>
-
-              <div className="health-regional-heatmap">
-                {regional.heatmap.map((r) => (
-                  <div key={r.region} className="health-heatmap-cell" style={{ background: heatColor(r.avgRiskScore) }}>
-                    <span className="health-heatmap-value mono-num">{r.avgRiskScore}</span>
-                    <span className="health-heatmap-metric-label">مؤشر الخطر</span>
-                    <span className="health-heatmap-label">{HEALTH_REGION_LABEL_AR[r.region]}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="health-regional-stat">
-                <span className="mono-num">{regional.risingRegionCount}</span>
-                {' '}من {regional.regionCount} مناطق في تصاعد
-              </div>
-
-              <div className="health-regional-forecast-line">
-                احتمالية ارتفاع الإصابات في <strong>{HEALTH_REGION_LABEL_AR[regional.topRegion]}</strong>
-                {' '}خلال الأسبوع القادم: <span className="mono-num">{regional.topRegionProbability}%</span>
-              </div>
-
-              <div className="health-watchlist">
-                {regional.watchList.map((w) => {
-                  const [c0, c7, c14] = TIMELINE_COLORS[w.trend];
-                  return (
-                    <button
-                      key={w.countryCode || w.country}
-                      className="health-prob-item"
-                      onClick={() => {
-                        const entry = countries.find((c) => c.countryCode === w.countryCode && c.country === w.country);
-                        if (entry) onSelectCountry(entry);
-                      }}
-                    >
-                      <div className="health-prob-row">
-                        <span className="health-prob-country">{w.country}</span>
-                        <div className="health-prob-bar-track">
-                          <div className="health-prob-bar-fill" style={{ width: `${w.probability}%` }} />
-                        </div>
-                        <span className="health-prob-value mono-num">{w.probability}%</span>
-                      </div>
-                      <div className="health-mini-timeline">
-                        <span className="health-mini-timeline-line" style={{ background: `linear-gradient(90deg, ${c0}, ${c7}, ${c14})` }} />
-                        <span className="health-mini-timeline-dot" style={{ insetInlineStart: '0%', background: c0 }} />
-                        <span className="health-mini-timeline-dot" style={{ insetInlineStart: '50%', background: c7 }} />
-                        <span className="health-mini-timeline-dot" style={{ insetInlineStart: '100%', background: c14 }} />
-                        <span className="health-mini-timeline-label" style={{ insetInlineStart: '0%' }}>الآن</span>
-                        <span className="health-mini-timeline-label health-mini-timeline-label-mid" style={{ insetInlineStart: '50%' }}>+7 أيام</span>
-                        <span className="health-mini-timeline-label health-mini-timeline-label-end" style={{ insetInlineStart: '100%' }}>+14 يوم</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+          {/* ── التوقعات الصحية الإقليمية — real Amazon Chronos-2 forecasts ── */}
+          <div className="health-regional-forecast">
+            <div className="health-regional-header">
+              <span className="health-regional-title">التوقعات الصحية الإقليمية</span>
+              <span className="health-regional-badge">{MODEL_BADGE_AR}</span>
+              {fcGeneratedAt && (
+                <span className="health-regional-timestamp mono-num">{fcGeneratedAt.slice(0, 10)}</span>
+              )}
             </div>
-          )}
+
+            {!forecastView ? (
+              <div className="widget-empty-state">لا توجد توقعات متاحة لهذه المنطقة</div>
+            ) : (
+              <>
+                <div className="health-regional-heatmap">
+                  {forecastView.rows.slice(0, 6).map((r) => (
+                    <div key={r.fc.iso2} className="health-heatmap-cell" style={{ background: BAND_COLOR[r.band] }}>
+                      <span className="health-heatmap-value mono-num">{r.relRisk}</span>
+                      <span className="health-heatmap-metric-label">مؤشر خطر نسبي</span>
+                      <span className="health-heatmap-label">{r.fc.countryAr}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="health-regional-stat">
+                  <span className="mono-num">{forecastView.rows.length}</span>{' '}دولة ذات توقّع نشط · النموذج: Chronos-2
+                </div>
+
+                <div className="health-forecast-legend">
+                  التوقّع للأسابيع الأربعة القادمة — القيمة المتوقعة (النطاق الأدنى–الأعلى)
+                </div>
+
+                <div className="health-watchlist">
+                  {forecastView.rows.slice(0, 8).map((r) => {
+                    const f = r.fc;
+                    return (
+                      <button key={f.iso2} className="health-prob-item" onClick={() => openForecastCountry(f.iso2)}>
+                        <div className="health-prob-row">
+                          <span className="health-prob-country">{f.countryAr}</span>
+                          <div className="health-prob-bar-track">
+                            <div className="health-prob-bar-fill" style={{ width: `${r.relRisk}%`, background: BAND_COLOR[r.band] }} />
+                          </div>
+                          <span className="health-prob-value mono-num" title="مؤشر خطر نسبي — نسبة إلى أعلى قيمة متوقعة في المجموعة">
+                            {r.relRisk}%
+                          </span>
+                        </div>
+                        <div className="health-forecast-weeks">
+                          {f.forecast_dates.map((d, i) => (
+                            <span className="health-fc-week" key={d}>
+                              <span className="health-fc-date">{d.slice(5)}</span>
+                              <span className="health-fc-count mono-num">{f.predicted_counts[i]}</span>
+                              <span className="health-fc-range mono-num">{f.lower_bound[i]}–{f.upper_bound[i]}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -2232,6 +2232,17 @@ body {
   gap: 8px;
   width: 100%;
 }
+/* Chronos-2 next-4-weeks forecast strip (predicted value + lower–upper range) */
+.health-forecast-legend { font-size: 9px; color: var(--text-muted); padding: 2px 2px 4px; line-height: 1.4; }
+.health-forecast-weeks { display: flex; gap: 4px; margin-top: 2px; }
+.health-fc-week {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 1px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px; padding: 3px 2px;
+}
+.health-fc-date { font-size: 8px; color: var(--text-muted); }
+.health-fc-count { font-size: 12px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+.health-fc-range { font-size: 8px; color: var(--text-secondary); }
 .health-prob-item {
   display: flex;
   flex-direction: column;
@@ -3116,8 +3127,19 @@ body {
 .embassy-row:disabled { opacity: 0.45; cursor: not-allowed; }
 .embassy-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .embassy-row-name {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   font-size: 12px; font-weight: 700; color: var(--text-primary);
   font-family: 'IBM Plex Sans Arabic', inherit;
+}
+/* "قنصلية · N قنصليات" pill beside the country name on a grouped card. */
+.embassy-consulate-badge {
+  font-size: 9px; font-weight: 700;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  color: var(--saudi-gold);
+  background: var(--saudi-gold-dim);
+  border: 1px solid var(--border-gold);
+  border-radius: 8px; padding: 1px 8px;
+  white-space: nowrap;
 }
 .embassy-row-meta {
   display: flex; align-items: center; gap: 4px;
@@ -3576,4 +3598,135 @@ body {
 .missions-dd-row.highlighted:not(:disabled) {
   background: rgba(255,255,255,0.06);
   border-color: var(--border-gold);
+}
+
+/* ─── Official PDF summary — "ملخص مركز الأزمات والاستخبارات العالمية" ─────
+   A deliberately un-themed surface: a pure-white A4 sheet with near-black
+   serif Arabic text and thin neutral/green rules, styled after a real MOFA
+   letter — NOT the dashboard's dark Intelligence-Terminal look. Everything is
+   scoped under .report-* so none of the app's dark tokens bleed in. */
+
+/* Header trigger button (dashboard-side, dark theme). */
+.report-export-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-gold);
+  color: var(--text-secondary);
+  font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  padding: 6px 12px; border-radius: 8px; cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.report-export-btn:hover { color: var(--saudi-gold); border-color: var(--saudi-gold); }
+
+/* Preview shell (dark) that frames the white sheet. */
+.report-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  background: rgba(2, 8, 16, 0.82);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  display: flex; flex-direction: column; align-items: center;
+  overflow-y: auto; padding: 20px 12px 48px;
+}
+.report-toolbar {
+  position: sticky; top: 0; z-index: 2;
+  width: min(794px, 100%);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 12px; margin-bottom: 10px;
+  background: linear-gradient(180deg, #060F1E 0%, #050c18 100%);
+  border: 1px solid var(--border-gold); border-radius: 10px;
+}
+.report-toolbar-title {
+  font-size: 12px; font-weight: 700; color: var(--text-secondary);
+  font-family: 'IBM Plex Sans Arabic', sans-serif;
+}
+.report-toolbar-actions { display: flex; align-items: center; gap: 8px; }
+.report-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-gold);
+  color: var(--text-secondary);
+  font-size: 11px; font-weight: 600;
+  font-family: 'IBM Plex Sans Arabic', inherit;
+  padding: 6px 12px; border-radius: 8px; cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.report-btn:hover:not(:disabled) { color: var(--saudi-gold); border-color: var(--saudi-gold); }
+.report-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.report-note {
+  width: min(794px, 100%);
+  font-size: 11px; line-height: 1.7; color: var(--text-secondary);
+  font-family: 'IBM Plex Sans Arabic', sans-serif;
+  background: var(--saudi-gold-dim); border: 1px solid var(--border-gold);
+  border-radius: 8px; padding: 8px 12px; margin-bottom: 14px;
+}
+.report-note--progress {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--saudi-gold-light);
+}
+.report-note--error {
+  background: rgba(255,23,68,0.08); border-color: rgba(255,23,68,0.3);
+  color: #ff6b81;
+}
+
+/* The A4 document itself — 210×297mm at 96dpi ≈ 794×1123px. */
+.report-doc {
+  width: 794px; max-width: 100%; min-height: 1123px;
+  box-sizing: border-box;
+  background: #ffffff; color: #1c1c1c;
+  font-family: 'Amiri', 'Noto Naskh Arabic', 'IBM Plex Sans Arabic', 'Times New Roman', serif;
+  padding: 48px 56px 36px;
+  display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+/* Shared rules — three weights: neutral (under logo), green (title/footer),
+   thin gray (under each section title). */
+.report-rule { height: 1px; width: 100%; border: 0; }
+.report-rule--neutral { background: #cfcfcf; margin-top: 18px; }
+.report-rule--thin { background: #dcdcdc; margin: 4px 0 10px; }
+.report-rule--green {
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #006C35 18%, #006C35 82%, transparent 100%);
+}
+
+/* Header */
+.report-head { text-align: center; }
+.report-logos { display: flex; align-items: center; justify-content: center; }
+.report-logo-main { height: 96px; width: auto; max-width: 100%; }
+.report-title {
+  font-size: 24px; font-weight: 800; color: #0b3d2c;
+  margin: 22px 0 8px; line-height: 1.4; letter-spacing: 0.2px;
+}
+.report-date { font-size: 13px; font-weight: 600; color: #4a4a4a; margin-bottom: 14px; }
+
+/* Body + sections */
+.report-body { flex: 1; margin-top: 28px; display: flex; flex-direction: column; gap: 22px; }
+.report-section { break-inside: avoid; }
+.report-section-title {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 16px; font-weight: 800; color: #12352a; margin: 0 0 4px;
+}
+.report-section-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 23px; height: 23px; border-radius: 50%;
+  background: #006C35; color: #fff; font-size: 12px; font-weight: 700;
+  flex-shrink: 0;
+}
+.report-section-content {
+  font-size: 13.5px; line-height: 1.95; color: #2b2b2b;
+  margin: 0; text-align: justify;
+}
+.report-placeholder { color: #a2a2a2; }
+
+/* Footer */
+.report-foot { margin-top: 30px; text-align: center; }
+.report-foot .report-rule--green { margin-bottom: 10px; }
+.report-foot-name { font-size: 13px; font-weight: 700; color: #0b3d2c; }
+.report-foot-web { font-size: 11px; letter-spacing: 1.5px; color: #006C35; margin-top: 4px; }
+
+/* Responsive — the sheet scales down but keeps its proportions on narrow view. */
+@media (max-width: 840px) {
+  .report-doc { padding: 32px 24px 28px; min-height: 0; }
+  .report-title { font-size: 20px; }
+  .report-logo-main { height: 76px; }
 }

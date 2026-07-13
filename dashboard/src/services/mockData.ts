@@ -94,3 +94,8 @@ export function getSaudisAbroadData(): SaudisAbroadData {
     otherColor: SAUDIS_ABROAD_OTHER_COLOR,
   };
 }
+
+// Comprehensive per-country Saudi presence lives in its own dependency-free
+// module; re-exported here so existing imports (`from '../services/mockData'`)
+// keep working unchanged.
+export { saudiResidents, getSaudiPresence, type SaudiPresence } from './saudiPresence';

@@ -5,11 +5,12 @@ import { Search, Check } from 'lucide-react';
 export interface MapLayer {
   id: string;
   labelAr: string;
+  /** Optional English label — shown as the row's tooltip (e.g. "Risk Forecast"). */
+  labelEn?: string;
   icon: ReactNode;
   enabled: boolean;
   /** Optional: renders the row's checkbox/icon in this layer's own accent
-   *  color instead of the default gold — used for the experimental/predicted
-   *  layer, which is deliberately blue everywhere else on the map. */
+   *  color instead of the default gold. */
   accentColor?: string;
 }
 
@@ -87,6 +88,7 @@ export default function MapLayersPanel({ layers, onToggle, onClose, anchorRef }:
                 onClick={() => onToggle(layer.id)}
                 role="checkbox"
                 aria-checked={layer.enabled}
+                title={layer.labelEn}
               >
                 <span
                   className={`map-layer-checkbox${layer.enabled ? ' checked' : ''}`}

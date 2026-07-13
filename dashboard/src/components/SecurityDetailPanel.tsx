@@ -6,6 +6,7 @@ import {
   type CountrySecurityProfile, type Severity,
 } from '../services/security';
 import { summarizeSecurity, heuristicSummary, securityAiCacheKey } from '../services/securityAi';
+import { getSaudiPresence } from '../services/mockData';
 import { useAiAnalysis } from '../services/ai/useAiAnalysis';
 import AiProgressiveLine from './AiProgressiveLine';
 import SafeSourceLink from './SafeSourceLink';
@@ -49,6 +50,8 @@ export default function SecurityDetailPanel({ profile, onClose }: SecurityDetail
   const isOpen = profile !== null;
   const p = displayed;
   const color = p ? scoreColor(p.riskScore) : 'var(--text-muted)';
+  // Mock Saudi presence — resolves for EVERY country (no "غير متوفر").
+  const presence = p ? getSaudiPresence(p.countryCode) : null;
 
   return (
     <>
@@ -111,11 +114,11 @@ export default function SecurityDetailPanel({ profile, onClose }: SecurityDetail
                 <span className="health-detail-section-title-standalone">المواطنون السعوديون</span>
               </div>
               <div className="sec-saudi-grid">
-                <div className="sec-saudi-box"><span className="sec-saudi-val">غير متوفر</span><span className="sec-saudi-lbl">مقيمون</span></div>
-                <div className="sec-saudi-box"><span className="sec-saudi-val">غير متوفر</span><span className="sec-saudi-lbl">زوّار</span></div>
-                <div className="sec-saudi-box"><span className="sec-saudi-val">غير متوفر</span><span className="sec-saudi-lbl">حاملو تأشيرات</span></div>
+                <div className="sec-saudi-box"><span className="sec-saudi-val mono-num">{(presence?.residents ?? 0).toLocaleString('ar-SA')}</span><span className="sec-saudi-lbl">مقيمون</span></div>
+                <div className="sec-saudi-box"><span className="sec-saudi-val mono-num">{(presence?.visitors ?? 0).toLocaleString('ar-SA')}</span><span className="sec-saudi-lbl">زوّار</span></div>
+                <div className="sec-saudi-box"><span className="sec-saudi-val mono-num">{(presence?.visaHolders ?? 0).toLocaleString('ar-SA')}</span><span className="sec-saudi-lbl">حاملو تأشيرات</span></div>
               </div>
-              <div className="sec-note">بيانات التواجد السعودي غير متوفرة من المصادر العامة.</div>
+              <div className="sec-note">أرقام التواجد السعودي تقديرية (بيانات تجريبية) وليست إحصاءات رسمية.</div>
             </div>
 
             {/* Current threats */}

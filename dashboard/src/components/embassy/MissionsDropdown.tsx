@@ -7,10 +7,19 @@ import {
 
 const STATUS_AR = { ACTIVE: 'نشطة', SUSPENDED: 'معلّقة' } as const;
 
-// Header dropdown listing Saudi EMBASSIES only (consulates/permanent missions
-// stay in the registry for direct routes, but are not offered here). Selecting
-// one navigates STRAIGHT to /missions/:id (no intermediate page). Permission
-// is checked per row here AND again at the route + data layer.
+/** "قنصلية" / "قنصليتان" / "N قنصليات" — a country hosting several consulates
+ *  is one grouped card, and this labels how many it groups. */
+function consulateCountLabel(cities: string[] | undefined): string {
+  const n = cities?.length ?? 1;
+  if (n <= 1) return 'قنصلية';
+  if (n === 2) return 'قنصليتان';
+  return `${n} قنصليات`;
+}
+
+// Header dropdown listing Saudi CONSULATES, grouped by country: one card per
+// country (its cities shown as a sub-line), never a card per city. Selecting a
+// country navigates STRAIGHT to /missions/:id (no intermediate page).
+// Permission is checked per row here AND again at the route + data layer.
 export default function MissionsDropdown() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -22,12 +31,10 @@ export default function MissionsDropdown() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return EMBASSIES.filter((m) => {
-      if (m.missionType !== 'EMBASSY') return false;
-      if (!q) return true;
-      return [m.nameAr, m.nameEn, m.hostCountry, m.hostCountryAr, m.city, m.cityAr]
-        .some((f) => f.toLowerCase().includes(q));
-    });
+    if (!q) return EMBASSIES;
+    return EMBASSIES.filter((m) =>
+      [m.nameAr, m.nameEn, m.hostCountry, m.hostCountryAr, m.cityAr, ...(m.consulateCitiesAr ?? [])]
+        .some((f) => f.toLowerCase().includes(q)));
   }, [query]);
 
   // Keep the keyboard highlight inside the list as it shrinks.
@@ -87,7 +94,7 @@ export default function MissionsDropdown() {
         aria-haspopup="listbox"
       >
         <Building2 size={13} />
-        السفارات والبعثات
+        القنصليات
         <ChevronDown size={12} style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s ease' }} />
       </button>
 
@@ -100,8 +107,8 @@ export default function MissionsDropdown() {
               className="embassy-search-input"
               value={query}
               onChange={(e) => { setQuery(e.target.value); setHighlight(0); }}
-              placeholder="ابحث بالبعثة أو الدولة أو المدينة…"
-              aria-label="بحث عن بعثة"
+              placeholder="ابحث بالدولة أو المدينة…"
+              aria-label="بحث عن قنصلية"
             />
           </div>
 
@@ -121,9 +128,15 @@ export default function MissionsDropdown() {
                   title={allowed ? 'فتح لوحة عمليات البعثة' : 'لا تملك صلاحية الوصول لهذه البعثة'}
                 >
                   <div className="embassy-row-main">
-                    <span className="embassy-row-name">{m.nameAr}</span>
+                    <span className="embassy-row-name">
+                      {m.hostCountryAr}
+                      <span className="embassy-consulate-badge">
+                        {MISSION_TYPE_AR[m.missionType]}
+                        {(m.consulateCitiesAr?.length ?? 1) > 1 && ` · ${consulateCountLabel(m.consulateCitiesAr)}`}
+                      </span>
+                    </span>
                     <span className="embassy-row-meta">
-                      <MapPin size={10} /> {m.hostCountryAr} · {m.cityAr} · {MISSION_TYPE_AR[m.missionType]}
+                      <MapPin size={10} /> {(m.consulateCitiesAr ?? [m.cityAr]).join(' · ')}
                     </span>
                   </div>
                   <span className={`embassy-status-chip${m.status === 'ACTIVE' ? ' active' : ''}`}>

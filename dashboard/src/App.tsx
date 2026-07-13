@@ -17,6 +17,7 @@ import EconomyDetailPanel from './components/EconomyDetailPanel';
 import NotificationToast from './components/NotificationToast';
 import AiChatbot from './components/AiChatbot';
 import CommitteeView from './components/CommitteeView';
+import ReportPreview from './components/report/ReportPreview';
 import EmbassyDashboard from './components/embassy/EmbassyDashboard';
 import { getEmbassyById, getCurrentAccess, canAccessEmbassy } from './services/embassies';
 import { loadFirebaseConfig, initFirebase } from './services/firebaseRt';
@@ -161,6 +162,9 @@ function MainDashboard() {
   // fetches its own data; this is just a read-only mirror of the latest load.
   const [securityCountries, setSecurityCountries] = useState<CountrySecurityProfile[]>([]);
   const [healthCountries, setHealthCountries] = useState<CountryHealthEntry[]>([]);
+  // Read-only mirror of the sidebar's live economic indicators — folded into the
+  // exported report only; the Economy card still owns/fetches its own data.
+  const [economyIndicators, setEconomyIndicators] = useState<EconomicIndicator[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
@@ -168,6 +172,7 @@ function MainDashboard() {
   // empty state. No mock fallback is ever used.
   const [feedError, setFeedError] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const [sidebarWidthPct, setSidebarWidthPct] = useState(loadSidebarWidthPct);
   const autoAlertedRef = useRef(new Set<string>());
 
@@ -343,7 +348,7 @@ function MainDashboard() {
 
   return (
     <div className="app">
-      <Header lastUpdated={lastUpdated} missionsMenu />
+      <Header lastUpdated={lastUpdated} missionsMenu onExportReport={() => setShowReport(true)} />
       {loading && (
         <div className="loading-bar">
           <div className="loading-fill" />
@@ -372,6 +377,7 @@ function MainDashboard() {
           }}
           onHealthDataLoaded={setHealthCountries}
           onSelectIndicator={(ind) => { setSelectedCountry(null); setSelectedDisaster(null); setSelectedStatement(null); setSelectedSecurity(null); setSelectedIndicator(ind); }}
+          onEconomyDataLoaded={setEconomyIndicators}
         />
 
         <SidebarResizeHandle
@@ -459,6 +465,13 @@ function MainDashboard() {
       </main>
 
       <NotificationToast notifications={notifications} onDismiss={dismissNotification} />
+
+      {showReport && (
+        <ReportPreview
+          inputs={{ events, healthCountries, securityCountries, economyIndicators }}
+          onClose={() => setShowReport(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X, MapPin, Clock, Radio, Link2, ShieldCheck, AlertTriangle, Pencil, ChevronDown, ChevronUp, Navigation } from 'lucide-react';
 import { TYPE_LABEL_AR } from '../constants';
+import { classifyRiskByScore } from '../services/riskClassification';
+import { getSaudiPresence } from '../services/mockData';
 import { countryNameAr } from '../services/feed/countryNames';
 import { getEmbassyForCountryCode } from '../services/embassies';
 import {
@@ -70,19 +72,10 @@ const SOURCE_LABEL: Record<GeoEvent['source'], string> = {
   MOCK: 'MOCK',
 };
 
-/** Same thresholds as the feed card: Stage 5's score, not a riskLevel enum. */
-function scoreColor(score: number): string {
-  if (score >= 75) return '#FF1744';
-  if (score >= 55) return '#FF6D00';
-  if (score >= 30) return '#FFD600';
-  return '#00E676';
-}
-function severityWord(score: number): string {
-  if (score >= 75) return 'حرج';
-  if (score >= 55) return 'مرتفع';
-  if (score >= 30) return 'متوسط';
-  return 'منخفض';
-}
+// Colour + word from the app-wide central classifier — the score shown here as
+// "Score: N/100" reads with the exact same band/label as the feed list.
+const scoreColor = (score: number): string => classifyRiskByScore(score).color;
+const severityWord = (score: number): string => classifyRiskByScore(score).labelAr;
 
 const EVENT_TYPE_AR: Record<EventType, string> = {
   security: 'أمني',
@@ -303,8 +296,8 @@ export default function AlertDetailsPanel({ card, event, travelers, onClose, onT
               {isCitizensMenuOpen ? <ChevronUp size={13} className="presence-chevron" /> : <ChevronDown size={13} className="presence-chevron" />}
             </button>
             <div className="presence-visa-card">
-              {/* No visa-holder field exists on the alert object — never invented. */}
-              <div className="presence-visa-count">0</div>
+              {/* Mock visa-holder estimate for this country (always a number). */}
+              <div className="presence-visa-count mono-num">{getSaudiPresence(countryCode).visaHolders.toLocaleString('ar-SA')}</div>
               <div className="presence-visa-label">
                 Visa Holders
                 <span className="panel-header-ar" style={{ marginRight: 0 }}>حاملو التأشيرات</span>

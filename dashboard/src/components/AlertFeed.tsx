@@ -21,6 +21,7 @@ interface AlertFeedProps {
   onSelectSecurity: (p: CountrySecurityProfile) => void;
   onSecurityDataLoaded?: (countries: CountrySecurityProfile[]) => void;
   onSelectIndicator: (ind: EconomicIndicator) => void;
+  onEconomyDataLoaded?: (indicators: EconomicIndicator[]) => void;
 }
 
 // Every category box is wired to real content now — see HealthCategoryCard.tsx /
@@ -28,13 +29,13 @@ interface AlertFeedProps {
 // SecurityCategoryCard.tsx. The previous geographic-region grouping
 // (services/regions.ts, RegionAlertCard.tsx) is unlinked from this section but
 // left in place, unused, in case it's wanted elsewhere later.
-export default function AlertFeed({ onSelectCountry, onHealthDataLoaded, onSelectDisaster, onSelectStatement, onSelectSecurity, onSecurityDataLoaded, onSelectIndicator }: AlertFeedProps) {
+export default function AlertFeed({ onSelectCountry, onHealthDataLoaded, onSelectDisaster, onSelectStatement, onSelectSecurity, onSecurityDataLoaded, onSelectIndicator, onEconomyDataLoaded }: AlertFeedProps) {
   return (
     <div className="panel alert-feed">
       <div className="alert-feed-region-grid">
         <HealthCategoryCard onSelectCountry={onSelectCountry} onDataLoaded={onHealthDataLoaded} />
         <DisasterCategoryCard onSelectDisaster={onSelectDisaster} />
-        <EconomyCategoryCard onSelectIndicator={onSelectIndicator} />
+        <EconomyCategoryCard onSelectIndicator={onSelectIndicator} onDataLoaded={onEconomyDataLoaded} />
         <OfficialStatementsCard onSelectStatement={onSelectStatement} />
         <SecurityCategoryCard onSelectSecurity={onSelectSecurity} onDataLoaded={onSecurityDataLoaded} />
       </div>

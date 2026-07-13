@@ -1,6 +1,6 @@
 import { MapContainer, TileLayer, CircleMarker, GeoJSON, Marker, Popup, useMap } from 'react-leaflet';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plane, ShieldAlert, FlaskConical, Layers, AlertTriangle, Users } from 'lucide-react';
+import { Plane, ShieldAlert, TrendingUp, Layers, AlertTriangle, Users } from 'lucide-react';
 import L from 'leaflet';
 import type { Feature, FeatureCollection } from 'geojson';
 import 'leaflet/dist/leaflet.css';
@@ -11,6 +11,10 @@ import { centroidFor, iso3For, ISO3_WITHOUT_POLYGON } from '../services/feed/cou
 import { countryNameAr } from '../services/feed/countryNames';
 import { useBoundariesGeoJson } from '../services/geoBoundaries';
 import MapLayersPanel, { type MapLayer } from './MapLayersPanel';
+import {
+  loadForecasts, topForecastByIso2, bandFor, FORECAST_EVENT_TYPE_AR, FORECAST_SOURCE_AR,
+  MODEL_NAME, type ResolvedForecast, type ForecastBand,
+} from '../services/forecasting/forecastData';
 
 /** Per-country risk from App: max Stage 5 score + the category that produced it. */
 export interface CountryRisk {
@@ -45,19 +49,16 @@ const CATEGORY_AR: Record<string, string> = {
   political_unrest: 'اضطراب سياسي',
 };
 
-/* ── EXPERIMENTAL predicted-risk placeholder ─────────────────────────────────
-   NOT A REAL FORECAST. There is no trained prediction model yet. These are
-   fixed demo values, decoupled from the real pipeline on purpose, shown only to
-   prototype the eventual predicted-risk layer. The UI labels this layer
-   "تنبؤ تجريبي — نموذج قيد التطوير" and renders it in a deliberately different
-   style (dashed, low-opacity, blue) so it can never be mistaken for real risk.
-   Replace this constant with a real model output when one exists. */
-const EXPERIMENTAL_PREDICTED_RISK: Record<string, number> = {
-  IR: 78, SD: 72, LB: 68, YE: 74, ET: 61, ML: 66, PK: 59, UA: 81, MM: 63,
-};
-
 const RED = '#FF1744';
-const BLUE = '#3B82F6';
+
+// Chronos-2 forecast severity bands → the project's existing severity palette.
+// The "Risk Forecast" layer colours each country by the highest predicted value
+// across the next 4 weeks (thirds of the displayed group's range).
+const BAND_COLOR: Record<ForecastBand, string> = {
+  high: '#FF1744',    // red
+  medium: '#FF6D00',  // orange
+  low: '#FFD600',     // yellow
+};
 
 const WORLD_BOUNDARIES_URL = '/world-countries-110m.geojson';
 
@@ -180,6 +181,9 @@ interface RiskCountry {
   score: number;
   category: string | null;
   byCategory: Record<string, number> | null;
+  // Forecast layer only: severity band + the full Chronos-2 forecast for popups.
+  band?: ForecastBand;
+  forecast?: ResolvedForecast;
 }
 
 // Resolves a per-country risk map into the countries to highlight at/above the
@@ -211,7 +215,7 @@ export default function WorldMap({
   const [showFlights, setShowFlights] = useState(false);
   const [flights, setFlights] = useState<Flight[]>([]);
   // ── Risk highlight layers — mutually exclusive with each other, independent
-  //    of the flight layer. 'none' | 'current' (real RED) | 'predicted' (BLUE). ──
+  //    of the flight layer. 'none' | 'current' (real RED) | 'predicted' (Chronos-2 forecast). ──
   const [riskLayer, setRiskLayer] = useState<RiskLayer>('none');
   // ── Event/traveler marker layers — previously always-on; now toggleable
   //    from the same layers panel. Default true so nothing already on screen
@@ -234,6 +238,15 @@ export default function WorldMap({
     return () => { cancelled = true; clearInterval(id); };
   }, [showFlights]);
 
+  // ── Chronos-2 forecast layer data — loaded once from the local file
+  //    (/data/forecasts.json via the shared loader). No API, no mock. ──────
+  const [forecastByIso2, setForecastByIso2] = useState<Record<string, ResolvedForecast>>({});
+  useEffect(() => {
+    let cancelled = false;
+    loadForecasts().then((list) => { if (!cancelled) setForecastByIso2(topForecastByIso2(list)); });
+    return () => { cancelled = true; };
+  }, []);
+
   const toggleLayer = (layer: RiskLayer) =>
     setRiskLayer((cur) => (cur === layer ? 'none' : layer));
 
@@ -255,8 +268,8 @@ export default function WorldMap({
     { id: 'flights', labelAr: 'حركة الطيران', icon: <Plane size={13} />, enabled: showFlights },
     { id: 'risk-current', labelAr: 'طبقة الخطر الحالي', icon: <ShieldAlert size={13} />, enabled: riskLayer === 'current' },
     {
-      id: 'risk-predicted', labelAr: 'تنبؤ تجريبي', icon: <FlaskConical size={13} />,
-      enabled: riskLayer === 'predicted', accentColor: BLUE,
+      id: 'risk-predicted', labelAr: 'التنبؤ بالمخاطر', labelEn: 'Risk Forecast',
+      icon: <TrendingUp size={13} />, enabled: riskLayer === 'predicted',
     },
     { id: 'events', labelAr: 'أحداث ومخاطر الخريطة', icon: <AlertTriangle size={13} />, enabled: showEvents },
     { id: 'travelers', labelAr: 'المسافرون المسجّلون', icon: <Users size={13} />, enabled: showTravelers },
@@ -266,15 +279,22 @@ export default function WorldMap({
   const worldGeo = useBoundariesGeoJson(WORLD_BOUNDARIES_URL, riskLayer !== 'none');
 
   const redCountries = riskLayer === 'current' ? riskCountries(countryRisk, RISK_HIGHLIGHT_THRESHOLD) : [];
-  const blueCountries = riskLayer === 'predicted'
-    ? riskCountries(
-        Object.fromEntries(Object.entries(EXPERIMENTAL_PREDICTED_RISK).map(([k, v]) => [k, { score: v }])),
-        0,
-      )
+  // Forecast layer: one entry per country = its highest-peak Chronos-2 forecast,
+  // coloured by severity band (thirds of the displayed group's peak range).
+  const forecastGroupMax = useMemo(
+    () => Math.max(1, ...Object.values(forecastByIso2).map((f) => f.peak)),
+    [forecastByIso2],
+  );
+  const forecastCountries: RiskCountry[] = riskLayer === 'predicted'
+    ? Object.values(forecastByIso2).map((f) => ({
+        iso2: f.iso2, iso3: iso3For(f.iso2), score: f.peak,
+        category: f.event_type, byCategory: null,
+        band: bandFor(f.peak, forecastGroupMax), forecast: f,
+      }))
     : [];
-  const active = riskLayer === 'current' ? redCountries : riskLayer === 'predicted' ? blueCountries : [];
-  const activeColor = riskLayer === 'predicted' ? BLUE : RED;
+  const active = riskLayer === 'current' ? redCountries : riskLayer === 'predicted' ? forecastCountries : [];
   const isPredicted = riskLayer === 'predicted';
+  const colorFor = (c: RiskCountry) => (isPredicted && c.band ? BAND_COLOR[c.band] : RED);
 
   // Polygon subset of the world GeoJSON limited to the active countries. Keyed
   // by riskLayer + the id list so react-leaflet rebuilds it when the set changes.
@@ -318,11 +338,11 @@ export default function WorldMap({
         )}
       </div>
 
-      {/* Persistent, unmistakable disclaimer while the placeholder layer is on */}
+      {/* Provenance banner while the forecast layer is on */}
       {riskLayer === 'predicted' && (
         <div className="predict-banner" dir="rtl">
-          <FlaskConical size={12} />
-          تنبؤ تجريبي — نموذج قيد التطوير (ليست بيانات حقيقية)
+          <TrendingUp size={12} />
+          {FORECAST_SOURCE_AR}
         </div>
       )}
 
@@ -334,29 +354,33 @@ export default function WorldMap({
         <FlyToSelection event={selectedEvent} traveler={selectedTraveler} />
         <MapResizeObserver />
 
-        {/* Risk highlight — country-polygon shading. RED = real Stage 5 risk
-            (solid fill). BLUE = experimental placeholder (dashed, low opacity,
-            plus the banner above). Only the active layer renders. */}
+        {/* Risk highlight — country-polygon shading. 'current' = real Stage 5
+            risk (solid red). 'predicted' = real Chronos-2 forecast, coloured by
+            severity band (red/orange/yellow). Only the active layer renders. */}
         {polyFeatures && polyFeatures.features.length > 0 && (
           <GeoJSON
             key={polyKey}
             data={polyFeatures}
-            style={() => ({
-              color: activeColor,
-              weight: isPredicted ? 1.5 : 1,
-              dashArray: isPredicted ? '5 4' : undefined,
-              fillColor: activeColor,
-              fillOpacity: isPredicted ? 0.15 : 0.35,
-            })}
+            style={(feature?: Feature) => {
+              const c = feature ? byIso3.get(String(feature.id)) : undefined;
+              const col = c ? colorFor(c) : RED;
+              return { color: col, weight: 1, fillColor: col, fillOpacity: isPredicted ? 0.4 : 0.35 };
+            }}
             onEachFeature={(feature: Feature, layer) => {
               const c = byIso3.get(String(feature.id));
               if (!c) return;
               const name = countryNameAr(c.iso2);
-              if (isPredicted) {
+              if (isPredicted && c.forecast) {
+                const f = c.forecast;
+                const evAr = FORECAST_EVENT_TYPE_AR[f.event_type] ?? f.event_type;
+                const weeks = f.forecast_dates
+                  .map((d, i) => `${d}: ${f.predicted_counts[i]} (${f.lower_bound[i]}–${f.upper_bound[i]})`)
+                  .join('<br>');
                 layer.bindPopup(
                   `<div dir="rtl" class="flight-popup"><strong>${name}</strong>` +
-                  `<div style="color:${BLUE};font-weight:700">تنبؤ تجريبي — نموذج قيد التطوير</div>` +
-                  `<div>قيمة تجريبية: ${c.score}/100 (ليست بيانات حقيقية)</div></div>`
+                  `<div>نوع الحدث: ${evAr}</div>` +
+                  `<div>توقّع الأسابيع الأربعة (القيمة · الأدنى–الأعلى):<br>${weeks}</div>` +
+                  `<div style="opacity:.7">النموذج: ${MODEL_NAME}</div></div>`
                 );
               } else {
                 const catAr = c.category ? (CATEGORY_AR[c.category] ?? c.category) : 'غير محدد';
@@ -386,20 +410,25 @@ export default function WorldMap({
               center={center}
               radius={12}
               pathOptions={{
-                color: activeColor,
+                color: colorFor(c),
                 weight: 1.5,
-                dashArray: isPredicted ? '4 4' : undefined,
-                fillColor: activeColor,
-                fillOpacity: isPredicted ? 0.15 : 0.3,
+                fillColor: colorFor(c),
+                fillOpacity: isPredicted ? 0.4 : 0.3,
               }}
             >
               <Popup>
                 <div dir="rtl" className="flight-popup">
                   <strong>{countryNameAr(c.iso2)}</strong>
-                  {isPredicted ? (
+                  {isPredicted && c.forecast ? (
                     <>
-                      <div style={{ color: BLUE, fontWeight: 700 }}>تنبؤ تجريبي — نموذج قيد التطوير</div>
-                      <div>قيمة تجريبية: {c.score}/100 (ليست بيانات حقيقية)</div>
+                      <div>نوع الحدث: {FORECAST_EVENT_TYPE_AR[c.forecast.event_type] ?? c.forecast.event_type}</div>
+                      <div>توقّع الأسابيع الأربعة (القيمة · الأدنى–الأعلى):</div>
+                      {c.forecast.forecast_dates.map((d, i) => (
+                        <div key={d} className="mono-num">
+                          {d}: {c.forecast!.predicted_counts[i]} ({c.forecast!.lower_bound[i]}–{c.forecast!.upper_bound[i]})
+                        </div>
+                      ))}
+                      <div style={{ opacity: 0.7 }}>النموذج: {MODEL_NAME}</div>
                     </>
                   ) : (
                     <div>مستوى الخطر: {c.score}/100 — المصدر: {c.category ? (CATEGORY_AR[c.category] ?? c.category) : 'غير محدد'}</div>

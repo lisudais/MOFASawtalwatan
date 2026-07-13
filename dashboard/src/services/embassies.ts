@@ -53,6 +53,11 @@ export interface EmbassyConfig {
   missionType: MissionType;
   status: EmbassyStatus;
   riskLevelAr: string;      // shown in the selector list
+  /** Consulate cities under this country card. When a country hosts more than
+   *  one consulate they are grouped into ONE country record and listed here
+   *  (e.g. الولايات المتحدة → لوس أنجلس · هيوستن · نيويورك) rather than a
+   *  separate card per city. Length drives the "N قنصليات" count badge. */
+  consulateCitiesAr?: string[];
   coordinates: { lat: number; lng: number };
   coveredCountries: string[];      // English names (feed matching)
   coveredCountryCodes: string[];   // ISO alpha-2 (traveler/event matching)
@@ -105,220 +110,101 @@ export function canAccessEmbassy(access: EmbassyAccess, embassyId: string): bool
   return access.allowedEmbassies === 'ALL' || access.allowedEmbassies.includes(embassyId);
 }
 
-/* ─── Registry ───────────────────────────────────────────────────────── */
+/* ─── Registry — Saudi CONSULATES, grouped by country ────────────────────
+   Each COUNTRY is one record (one card), never a card per city. Countries with
+   several consulates list their cities in `consulateCitiesAr` and render a
+   count badge instead of repeating cards.
 
-export const EMBASSIES: EmbassyConfig[] = [
-  {
-    id: 'indonesia-jakarta',
-    nameAr: 'سفارة المملكة العربية السعودية في جاكرتا',
-    nameEn: 'Embassy of Saudi Arabia in Jakarta',
-    hostCountry: 'Indonesia',
-    hostCountryAr: 'إندونيسيا',
-    hostCountryCode: 'ID',
-    iso3: 'IDN',
-    city: 'Jakarta',
-    cityAr: 'جاكرتا',
-    missionType: 'EMBASSY',
-    status: 'ACTIVE',
-    riskLevelAr: 'متوسط',
-    coordinates: { lat: -6.2297, lng: 106.8296 },
-    coveredCountries: ['Indonesia'],
-    coveredCountryCodes: ['ID'],
-    neighboringCountriesAr: ['ماليزيا', 'سنغافورة', 'تيمور الشرقية', 'بابوا غينيا الجديدة'],
-    coveredCities: ['Jakarta', 'Surabaya', 'Denpasar', 'Medan', 'Makassar'],
-    coveredCitiesAr: ['جاكرتا', 'سورابايا', 'دينباسار', 'ميدان', 'ماكاسار'],
-    bounds: { latMin: -11.5, latMax: 6.5, lngMin: 94.5, lngMax: 141.5 },
-    mapZoom: 5,
-    ports: [
-      { nameAr: 'مطار سوكارنو-هاتا الدولي (جاكرتا)', type: 'AIRPORT', status: 'OPEN', coordinates: { lat: -6.1256, lng: 106.6559 } },
-      { nameAr: 'مطار نغوراه راي الدولي (بالي)', type: 'AIRPORT', status: 'MONITORED', coordinates: { lat: -8.7482, lng: 115.1671 } },
-      { nameAr: 'مطار جواندا الدولي (سورابايا)', type: 'AIRPORT', status: 'OPEN', coordinates: { lat: -7.3798, lng: 112.7869 } },
-      { nameAr: 'ميناء تانجونج برايوك', type: 'SEAPORT', status: 'OPEN', coordinates: { lat: -6.1045, lng: 106.8800 } },
-      { nameAr: 'معبر إنتيكونغ البري (كاليمانتان)', type: 'LAND_BORDER', status: 'PARTIAL', coordinates: { lat: 0.9539, lng: 109.9806 } },
-    ],
-    contacts: {
-      emergencyPhone: null,
-      phone: null,
-      email: null,
-      workingHoursAr: 'الأحد – الخميس، 9:00 ص – 4:00 م',
-      afterHoursAr: null,
-    },
-  },
-  {
-    id: 'malaysia-kuala-lumpur',
-    nameAr: 'سفارة المملكة العربية السعودية في كوالالمبور',
-    nameEn: 'Embassy of Saudi Arabia in Kuala Lumpur',
-    hostCountry: 'Malaysia',
-    hostCountryAr: 'ماليزيا',
-    hostCountryCode: 'MY',
-    iso3: 'MYS',
-    city: 'Kuala Lumpur',
-    cityAr: 'كوالالمبور',
-    missionType: 'EMBASSY',
-    status: 'ACTIVE',
-    riskLevelAr: 'منخفض',
-    coordinates: { lat: 3.157, lng: 101.712 },
-    coveredCountries: ['Malaysia', 'Brunei'],
-    coveredCountryCodes: ['MY', 'BN'],
-    neighboringCountriesAr: ['إندونيسيا', 'سنغافورة', 'تايلاند', 'بروناي'],
-    coveredCities: ['Kuala Lumpur', 'Penang', 'Johor Bahru', 'Kota Kinabalu'],
-    coveredCitiesAr: ['كوالالمبور', 'بينانغ', 'جوهور باهرو', 'كوتا كينابالو'],
-    bounds: { latMin: 0.5, latMax: 7.5, lngMin: 99.0, lngMax: 119.5 },
-    mapZoom: 6,
-    ports: [
-      { nameAr: 'مطار كوالالمبور الدولي', type: 'AIRPORT', status: 'OPEN', coordinates: { lat: 2.7456, lng: 101.7099 } },
-      { nameAr: 'مطار بينانغ الدولي', type: 'AIRPORT', status: 'OPEN', coordinates: { lat: 5.2971, lng: 100.2769 } },
-      { nameAr: 'ميناء كلانج', type: 'SEAPORT', status: 'OPEN', coordinates: { lat: 3.0000, lng: 101.4000 } },
-      { nameAr: 'معبر وودلاندز (سنغافورة)', type: 'LAND_BORDER', status: 'OPEN', coordinates: { lat: 1.4478, lng: 103.7708 } },
-    ],
-    contacts: {
-      emergencyPhone: null,
-      phone: null,
-      email: null,
-      workingHoursAr: 'الأحد – الخميس، 9:00 ص – 4:00 م',
-      afterHoursAr: null,
-    },
-  },
-  {
-    id: 'pakistan-islamabad',
-    nameAr: 'سفارة المملكة العربية السعودية في إسلام آباد',
-    nameEn: 'Embassy of Saudi Arabia in Islamabad',
-    hostCountry: 'Pakistan',
-    hostCountryAr: 'باكستان',
-    hostCountryCode: 'PK',
-    iso3: 'PAK',
-    city: 'Islamabad',
-    cityAr: 'إسلام آباد',
-    missionType: 'EMBASSY',
-    status: 'ACTIVE',
-    riskLevelAr: 'مرتفع',
-    coordinates: { lat: 33.7215, lng: 73.0433 },
-    coveredCountries: ['Pakistan'],
-    coveredCountryCodes: ['PK'],
-    neighboringCountriesAr: ['الهند', 'أفغانستان', 'إيران', 'الصين'],
-    coveredCities: ['Islamabad', 'Karachi', 'Lahore', 'Peshawar'],
-    coveredCitiesAr: ['إسلام آباد', 'كراتشي', 'لاهور', 'بيشاور'],
-    bounds: { latMin: 23.5, latMax: 37.5, lngMin: 60.5, lngMax: 77.5 },
-    mapZoom: 5.4,
-    ports: [
-      { nameAr: 'مطار إسلام آباد الدولي', type: 'AIRPORT', status: 'OPEN', coordinates: { lat: 33.5490, lng: 72.8250 } },
-      { nameAr: 'مطار جناح الدولي (كراتشي)', type: 'AIRPORT', status: 'DELAYS', coordinates: { lat: 24.9065, lng: 67.1608 } },
-      { nameAr: 'ميناء كراتشي', type: 'SEAPORT', status: 'OPEN', coordinates: { lat: 24.8280, lng: 66.9800 } },
-      { nameAr: 'معبر طورخم (أفغانستان)', type: 'LAND_BORDER', status: 'MONITORED', coordinates: { lat: 34.1500, lng: 71.0800 } },
-    ],
-    contacts: {
-      emergencyPhone: null,
-      phone: null,
-      email: null,
-      workingHoursAr: 'الأحد – الخميس، 9:00 ص – 4:00 م',
-      afterHoursAr: null,
-    },
-  },
-  {
-    id: 'egypt-cairo',
-    nameAr: 'سفارة المملكة العربية السعودية في القاهرة',
-    nameEn: 'Embassy of Saudi Arabia in Cairo',
-    hostCountry: 'Egypt',
-    hostCountryAr: 'مصر',
-    hostCountryCode: 'EG',
-    iso3: 'EGY',
-    city: 'Cairo',
-    cityAr: 'القاهرة',
-    missionType: 'EMBASSY',
-    status: 'ACTIVE',
-    riskLevelAr: 'متوسط',
-    coordinates: { lat: 30.0596, lng: 31.2237 },
-    coveredCountries: ['Egypt'],
-    coveredCountryCodes: ['EG'],
-    neighboringCountriesAr: ['ليبيا', 'السودان', 'فلسطين', 'الأردن'],
-    coveredCities: ['Cairo', 'Alexandria', 'Giza', 'Sharm El Sheikh', 'Hurghada'],
-    coveredCitiesAr: ['القاهرة', 'الإسكندرية', 'الجيزة', 'شرم الشيخ', 'الغردقة'],
-    bounds: { latMin: 21.5, latMax: 32.0, lngMin: 24.5, lngMax: 37.0 },
-    mapZoom: 5.6,
-    ports: [
-      { nameAr: 'مطار القاهرة الدولي', type: 'AIRPORT', status: 'OPEN', coordinates: { lat: 30.1219, lng: 31.4056 } },
-      { nameAr: 'مطار الغردقة الدولي', type: 'AIRPORT', status: 'OPEN', coordinates: { lat: 27.1783, lng: 33.7994 } },
-      { nameAr: 'ميناء الإسكندرية', type: 'SEAPORT', status: 'OPEN', coordinates: { lat: 31.2000, lng: 29.8850 } },
-      { nameAr: 'معبر السلوم البري (ليبيا)', type: 'LAND_BORDER', status: 'MONITORED', coordinates: { lat: 31.5667, lng: 25.1500 } },
-    ],
-    contacts: {
-      emergencyPhone: null,
-      phone: null,
-      email: null,
-      workingHoursAr: 'الأحد – الخميس، 9:00 ص – 4:00 م',
-      afterHoursAr: null,
-    },
-  },
-  {
-    id: 'uae-dubai-cg',
-    nameAr: 'القنصلية العامة للمملكة العربية السعودية في دبي',
-    nameEn: 'Consulate General of Saudi Arabia in Dubai',
-    hostCountry: 'United Arab Emirates',
-    hostCountryAr: 'الإمارات العربية المتحدة',
-    hostCountryCode: 'AE',
-    iso3: 'ARE',
-    city: 'Dubai',
-    cityAr: 'دبي',
-    missionType: 'CONSULATE_GENERAL',
-    status: 'ACTIVE',
-    riskLevelAr: 'منخفض',
-    coordinates: { lat: 25.2048, lng: 55.2708 },
-    coveredCountries: ['United Arab Emirates'],
-    coveredCountryCodes: ['AE'],
-    neighboringCountriesAr: ['عُمان', 'قطر', 'السعودية', 'إيران'],
-    coveredCities: ['Dubai', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah'],
-    coveredCitiesAr: ['دبي', 'الشارقة', 'عجمان', 'رأس الخيمة', 'الفجيرة'],
-    bounds: { latMin: 22.5, latMax: 26.5, lngMin: 51.0, lngMax: 56.5 },
-    mapZoom: 7,
-    ports: [
-      { nameAr: 'مطار دبي الدولي', type: 'AIRPORT', status: 'OPEN', coordinates: { lat: 25.2532, lng: 55.3657 } },
-      { nameAr: 'مطار آل مكتوم الدولي', type: 'AIRPORT', status: 'OPEN', coordinates: { lat: 24.8969, lng: 55.1614 } },
-      { nameAr: 'ميناء جبل علي', type: 'SEAPORT', status: 'OPEN', coordinates: { lat: 25.0113, lng: 55.0612 } },
-      { nameAr: 'معبر حتا البري (عُمان)', type: 'LAND_BORDER', status: 'OPEN', coordinates: { lat: 24.7690, lng: 56.1200 } },
-    ],
-    contacts: {
-      emergencyPhone: null,
-      phone: null,
-      email: null,
-      workingHoursAr: 'الاثنين – الجمعة، 8:30 ص – 3:30 م',
-      afterHoursAr: null,
-    },
-  },
-  {
-    id: 'switzerland-geneva-pm',
-    nameAr: 'البعثة الدائمة للمملكة العربية السعودية لدى الأمم المتحدة في جنيف',
-    nameEn: 'Permanent Mission of Saudi Arabia to the UN in Geneva',
-    hostCountry: 'Switzerland',
-    hostCountryAr: 'سويسرا',
-    hostCountryCode: 'CH',
-    iso3: 'CHE',
-    city: 'Geneva',
-    cityAr: 'جنيف',
-    missionType: 'PERMANENT_MISSION',
-    status: 'ACTIVE',
-    riskLevelAr: 'منخفض',
-    coordinates: { lat: 46.2226, lng: 6.1432 },
-    coveredCountries: ['Switzerland'],
-    coveredCountryCodes: ['CH'],
-    neighboringCountriesAr: ['فرنسا', 'ألمانيا', 'إيطاليا', 'النمسا'],
-    coveredCities: ['Geneva', 'Bern', 'Zurich', 'Lausanne'],
-    coveredCitiesAr: ['جنيف', 'برن', 'زيورخ', 'لوزان'],
-    bounds: { latMin: 45.7, latMax: 47.9, lngMin: 5.8, lngMax: 10.6 },
-    mapZoom: 7.4,
-    ports: [
-      { nameAr: 'مطار جنيف الدولي', type: 'AIRPORT', status: 'OPEN', coordinates: { lat: 46.2381, lng: 6.1090 } },
-      { nameAr: 'مطار زيورخ الدولي', type: 'AIRPORT', status: 'OPEN', coordinates: { lat: 47.4581, lng: 8.5555 } },
-      { nameAr: 'معبر بارديونيكس (فرنسا)', type: 'LAND_BORDER', status: 'OPEN', coordinates: { lat: 46.1119, lng: 6.1044 } },
-    ],
-    contacts: {
-      emergencyPhone: null,
-      phone: null,
-      email: null,
-      workingHoursAr: 'الاثنين – الجمعة، 9:00 ص – 5:00 م',
-      afterHoursAr: null,
-    },
-  },
+   Geographic fields (ISO codes, city coordinates, country names) are real,
+   public facts. Operational fields have no real backend yet: `ports` is empty
+   and every contact is null (renders "غير متاح", never a fake number). `status`
+   is ACTIVE (these are operating consulates) and `riskLevelAr` is a static
+   configuration value — the SAME mechanism the previous mission records used,
+   shown as-is in the list; wire it to the live per-country feed later if a
+   dynamic chip is wanted. */
+
+interface ConsulateSeed {
+  id: string;
+  countryAr: string;
+  countryEn: string;   // English name as the live feeds use it
+  code: string;        // ISO alpha-2
+  iso3: string;        // ISO alpha-3
+  riskLevelAr: string; // static config value (same as prior mission records)
+  cities: { ar: string; lat: number; lng: number }[]; // real city coordinates
+}
+
+// Order follows the requested list. Coordinates are the standard city centroids.
+const CONSULATE_SEEDS: ConsulateSeed[] = [
+  { id: 'egypt-consulates', countryAr: 'مصر', countryEn: 'Egypt', code: 'EG', iso3: 'EGY', riskLevelAr: 'متوسط',
+    cities: [ { ar: 'الإسكندرية', lat: 31.2001, lng: 29.9187 }, { ar: 'السويس', lat: 29.9668, lng: 32.5498 } ] },
+  { id: 'yemen-consulates', countryAr: 'اليمن', countryEn: 'Yemen', code: 'YE', iso3: 'YEM', riskLevelAr: 'مرتفع',
+    cities: [ { ar: 'عدن', lat: 12.7855, lng: 45.0187 } ] },
+  { id: 'pakistan-consulates', countryAr: 'باكستان', countryEn: 'Pakistan', code: 'PK', iso3: 'PAK', riskLevelAr: 'مرتفع',
+    cities: [ { ar: 'كراتشي', lat: 24.8607, lng: 67.0011 } ] },
+  { id: 'china-consulates', countryAr: 'الصين', countryEn: 'China', code: 'CN', iso3: 'CHN', riskLevelAr: 'منخفض',
+    cities: [ { ar: 'هونغ كونغ', lat: 22.3193, lng: 114.1694 } ] },
+  { id: 'turkey-consulates', countryAr: 'تركيا', countryEn: 'Turkey', code: 'TR', iso3: 'TUR', riskLevelAr: 'متوسط',
+    cities: [ { ar: 'إسطنبول', lat: 41.0082, lng: 28.9784 } ] },
+  { id: 'uae-consulates', countryAr: 'الإمارات', countryEn: 'United Arab Emirates', code: 'AE', iso3: 'ARE', riskLevelAr: 'منخفض',
+    cities: [ { ar: 'دبي', lat: 25.2048, lng: 55.2708 } ] },
+  { id: 'germany-consulates', countryAr: 'ألمانيا', countryEn: 'Germany', code: 'DE', iso3: 'DEU', riskLevelAr: 'منخفض',
+    cities: [ { ar: 'فرانكفورت', lat: 50.1109, lng: 8.6821 } ] },
+  { id: 'switzerland-consulates', countryAr: 'سويسرا', countryEn: 'Switzerland', code: 'CH', iso3: 'CHE', riskLevelAr: 'منخفض',
+    cities: [ { ar: 'جنيف', lat: 46.2044, lng: 6.1432 } ] },
+  { id: 'spain-consulates', countryAr: 'إسبانيا', countryEn: 'Spain', code: 'ES', iso3: 'ESP', riskLevelAr: 'منخفض',
+    cities: [ { ar: 'ملقا', lat: 36.7213, lng: -4.4214 } ] },
+  { id: 'uk-consulates', countryAr: 'المملكة المتحدة', countryEn: 'United Kingdom', code: 'GB', iso3: 'GBR', riskLevelAr: 'منخفض',
+    cities: [ { ar: 'لندن', lat: 51.5074, lng: -0.1278 } ] },
+  { id: 'usa-consulates', countryAr: 'الولايات المتحدة', countryEn: 'United States', code: 'US', iso3: 'USA', riskLevelAr: 'متوسط',
+    cities: [ { ar: 'لوس أنجلس', lat: 34.0522, lng: -118.2437 }, { ar: 'هيوستن', lat: 29.7604, lng: -95.3698 }, { ar: 'نيويورك', lat: 40.7128, lng: -74.0060 } ] },
+  { id: 'australia-consulates', countryAr: 'أستراليا', countryEn: 'Australia', code: 'AU', iso3: 'AUS', riskLevelAr: 'منخفض',
+    cities: [ { ar: 'سيدني', lat: -33.8688, lng: 151.2093 } ] },
+  { id: 'newzealand-consulates', countryAr: 'نيوزيلندا', countryEn: 'New Zealand', code: 'NZ', iso3: 'NZL', riskLevelAr: 'منخفض',
+    cities: [ { ar: 'أوكلاند', lat: -36.8485, lng: 174.7633 } ] },
+  { id: 'nigeria-consulates', countryAr: 'نيجيريا', countryEn: 'Nigeria', code: 'NG', iso3: 'NGA', riskLevelAr: 'مرتفع',
+    cities: [ { ar: 'كانو', lat: 12.0022, lng: 8.5920 } ] },
 ];
+
+function buildConsulate(s: ConsulateSeed): EmbassyConfig {
+  const many = s.cities.length > 1;
+  const primary = s.cities[0];
+  const lats = s.cities.map((c) => c.lat);
+  const lngs = s.cities.map((c) => c.lng);
+  const PAD = 3; // degrees — keeps offshore/nearby events in scope
+  return {
+    id: s.id,
+    nameAr: many
+      ? `قنصليات المملكة العربية السعودية في ${s.countryAr}`
+      : `قنصلية المملكة العربية السعودية في ${primary.ar}`,
+    nameEn: `Saudi Consulate${many ? 's' : ''} — ${s.countryEn}`,
+    hostCountry: s.countryEn,
+    hostCountryAr: s.countryAr,
+    hostCountryCode: s.code,
+    iso3: s.iso3,
+    city: '',
+    cityAr: primary.ar,
+    missionType: 'CONSULATE',
+    status: 'ACTIVE',
+    riskLevelAr: s.riskLevelAr,
+    coordinates: { lat: primary.lat, lng: primary.lng },
+    coveredCountries: [s.countryEn],
+    coveredCountryCodes: [s.code],
+    neighboringCountriesAr: [],
+    coveredCities: [],
+    coveredCitiesAr: s.cities.map((c) => c.ar),
+    consulateCitiesAr: s.cities.map((c) => c.ar),
+    bounds: {
+      latMin: Math.min(...lats) - PAD, latMax: Math.max(...lats) + PAD,
+      lngMin: Math.min(...lngs) - PAD, lngMax: Math.max(...lngs) + PAD,
+    },
+    mapZoom: many ? 4 : 7,
+    ports: [],
+    contacts: { emergencyPhone: null, phone: null, email: null, workingHoursAr: null, afterHoursAr: null },
+  };
+}
+
+export const EMBASSIES: EmbassyConfig[] = CONSULATE_SEEDS.map(buildConsulate);
+
 
 export function getEmbassyById(id: string): EmbassyConfig | null {
   return EMBASSIES.find((e) => e.id === id) ?? null;

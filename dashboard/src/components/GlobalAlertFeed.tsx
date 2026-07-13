@@ -6,6 +6,7 @@ import {
 import { TYPE_ICON } from '../constants';
 import { countryNameAr } from '../services/feed/countryNames';
 import { groupFeedCards, type FeedCardGroup } from '../services/feed/groupCards';
+import { classifyRiskByScore } from '../services/riskClassification';
 import type { FeedCard } from '../services/feed/feedCards';
 import type { EventType } from '../services/feed/types';
 import type { GeoEvent } from '../types';
@@ -22,25 +23,10 @@ interface GlobalAlertFeedProps {
   titleAr?: string;
 }
 
-/** Stage 5's score drives the colour, on the same thresholds as the severity word. */
-function scoreColor(score: number): string {
-  if (score >= 75) return '#FF1744'; // حرج
-  if (score >= 55) return '#FF6D00'; // مرتفع
-  if (score >= 30) return '#FFD600'; // متوسط
-  return '#00E676';                  // منخفض
-}
-
-/**
- * The original card's severity chip, restored. It used RISK_LABEL_AR[riskLevel];
- * riskLevel no longer exists, so the word is derived from Stage 5's score on the
- * same thresholds that pick the colour. Same vocabulary, same position.
- */
-function severityWord(score: number): string {
-  if (score >= 75) return 'حرج';
-  if (score >= 55) return 'مرتفع';
-  if (score >= 30) return 'متوسط';
-  return 'منخفض';
-}
+// Severity colour + word come from the app-wide central classifier, so a card's
+// score reads identically here, in the details popup, and in every other panel.
+const scoreColor = (score: number): string => classifyRiskByScore(score).color;
+const severityWord = (score: number): string => classifyRiskByScore(score).labelAr;
 
 /**
  * Per-type icon, restored. `geoType` carries the ORIGINAL GeoEvent['type'] for
