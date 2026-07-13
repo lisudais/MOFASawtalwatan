@@ -9,6 +9,16 @@ export interface FeedCard {
   id: string;
   /** ISO2, or null when Stage 2 could not resolve a watchlist country. */
   country: string | null;
+  /**
+   * Display-only location string, resolved server-side by the deterministic
+   * (non-AI) location resolver — never invented, always grounded in the
+   * source's own place text, real coordinates (reverse-geocoded), or a
+   * clearly-stated country. Falls back to "موقع غير محدد" only when none of
+   * those yielded a confident result. Independent of `country` (which stays
+   * the classifier's watchlist-constrained ISO2, used for grouping/scoring) —
+   * `location` can name a real, more specific or off-watchlist place.
+   */
+  location: string;
   eventType: EventType;
   score: number;
   tier: 1 | 2 | null;

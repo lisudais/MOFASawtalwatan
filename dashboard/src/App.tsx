@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Header from './components/Header';
-import WorldMap from './components/WorldMap';
+import WorldMap, { type AlertMarker } from './components/WorldMap';
 import IntelSidebar from './components/IntelSidebar';
 import SidebarResizeHandle from './components/SidebarResizeHandle';
 import EventDetail from './components/EventDetail';
@@ -8,6 +8,9 @@ import GlobalAlertFeed from './components/GlobalAlertFeed';
 import AlertDetailsPanel from './components/AlertDetailsPanel';
 import type { FeedCard } from './services/feed/feedCards';
 import { useFeedCards } from './services/feed/useFeedCards';
+import { groupFeedCards } from './services/feed/groupCards';
+import { resolveGeoEvent, hasValidCoords } from './services/feed/resolveGeoEvent';
+import { classifyRiskByScore } from './services/riskClassification';
 import { buildGlobalContextSummary } from './services/chatbotContext';
 import { useFlights, buildFlightStatusSummary } from './services/flightStatus';
 import HealthCountryDetailPanel from './components/HealthCountryDetailPanel';
@@ -306,11 +309,43 @@ function MainDashboard() {
     // When the cluster contains a geophysical signal that maps back to a
     // GeoEvent, also select it so the map fly-to keeps working. Cards with no
     // GeoEvent behind them (security / statements / GDELT) still open the
-    // details panel — it now renders from the card itself.
-    const geoIds = card.signalIds.map((id) => id.slice(id.indexOf(':') + 1));
-    const match = events.find((e) => geoIds.includes(e.id));
-    setSelectedRightAlert(match ?? null);
+    // details panel — it now renders from the card itself. Same resolver the
+    // map's alertMarkers are built with, below, so a card and its marker
+    // (when one exists) always agree.
+    setSelectedRightAlert(resolveGeoEvent(card, events));
   }, [events]);
+
+  // Global Alert Feed cards, rolled up exactly the way GlobalAlertFeed itself
+  // displays them (same pure function, same input) — this is what makes a map
+  // marker and its right-panel card the same alert, not two parallel lists.
+  const alertGroups = useMemo(() => groupFeedCards(feedCards), [feedCards]);
+
+  // One marker per right-panel card: MEDIUM/HIGH/CRITICAL severity only (LOW
+  // is never shown on the map), real source coordinates only (a card with no
+  // matching GeoEvent — security/health/economic/statement clusters — has no
+  // marker at all, never a guessed/centroid position), deduped by card id.
+  const alertMarkers = useMemo<AlertMarker[]>(() => {
+    const seen = new Set<string>();
+    const out: AlertMarker[] = [];
+    for (const group of alertGroups) {
+      const band = classifyRiskByScore(group.score).band;
+      if (band === 'LOW') continue;
+      if (seen.has(group.lead.id)) continue;
+      const geo = resolveGeoEvent(group.lead, events);
+      if (!geo || !hasValidCoords(geo)) continue;
+      seen.add(group.lead.id);
+      out.push({ id: group.lead.id, lat: geo.lat, lng: geo.lng, band, type: geo.type });
+    }
+    return out;
+  }, [alertGroups, events]);
+
+  // Clicking a map marker must do exactly what clicking its right-panel card
+  // does — so it reuses handleSelectCard, looking the FeedCard back up by the
+  // same id the marker was built with.
+  const handleSelectAlertMarker = useCallback((marker: AlertMarker) => {
+    const group = alertGroups.find((g) => g.lead.id === marker.id);
+    if (group) handleSelectCard(group.lead);
+  }, [alertGroups, handleSelectCard]);
 
   const dismissNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
@@ -406,10 +441,11 @@ function MainDashboard() {
               its card, and both open the same right-side details panel. The
               left sidebar's own `selectedEvent` flow is untouched. */}
           <WorldMap
-            events={events}
+            alertMarkers={alertMarkers}
+            selectedAlertId={selectedCard?.id ?? null}
+            onSelectAlert={handleSelectAlertMarker}
             travelers={travelers}
             selectedEvent={selectedRightAlert}
-            onSelectEvent={setSelectedRightAlert}
             selectedTraveler={trackedCitizen}
             countryRisk={countryRisk}
           />

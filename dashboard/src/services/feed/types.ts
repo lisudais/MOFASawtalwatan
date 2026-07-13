@@ -68,6 +68,18 @@ export interface RawSignal {
   coords: { lat: number; lng: number } | null;
 
   /**
+   * Free-text place description straight from the source (e.g. USGS's
+   * "12km SW of Banda Aceh, Indonesia", GDACS's title/region text) — for
+   * DISPLAY location resolution only (services/feed's location resolver /
+   * netlify/lib/locationCore.mjs). Distinct from `rawText` on purpose: it is
+   * NEVER read by Stage 2 classification or Stage 6 summarization, so adding
+   * it cannot change what those AI stages see. null when the source gives no
+   * such text (e.g. /api/security, whose `rawText` already IS the place-ish
+   * title and doubles as the location source instead).
+   */
+  placeText: string | null;
+
+  /**
    * The original GeoEvent['type'] for geophysical signals (EARTHQUAKE, FLOOD,
    * STORM, VOLCANO, WILDFIRE, DROUGHT…). Kept so the feed card can render the
    * SAME per-type icon it always did, instead of collapsing ten types onto the

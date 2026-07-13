@@ -167,7 +167,10 @@ function FeedGroupCard({
   const Icon = iconFor(group.lead.geoType, group.eventType);
   const isSelected = group.threats.some((t) => t.id === selectedCardId);
   const corroborated = group.tags.includes('corroborated');
-  const place = countryNameAr(group.country);
+  // Resolved server-side (city/region → coordinates → country → unknown, in
+  // that order) — see services/feed/feedCards.ts. Falls back to the plain
+  // country name for provisional fast-tier cards, which predate the resolver.
+  const place = group.location ?? countryNameAr(group.country);
   const provisional = group.lead.provisional === true;
 
   return (

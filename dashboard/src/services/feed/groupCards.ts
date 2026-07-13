@@ -26,6 +26,8 @@ export interface FeedCardGroup {
   /** Stable across refreshes: `${country}|${eventType}`, or the card id when ungrouped. */
   id: string;
   country: string | null;
+  /** The lead member's resolved display location — see FeedCard.location. */
+  location: string;
   eventType: FeedCard['eventType'];
   /** The highest-scoring member. Its score, summary and icon represent the group. */
   lead: FeedCard;
@@ -82,6 +84,7 @@ export function groupFeedCards(cards: FeedCard[]): FeedCardGroup[] {
     groups.push({
       id: key,
       country: lead.country,
+      location: lead.location,
       eventType: lead.eventType,
       lead,
       threats,
@@ -102,6 +105,7 @@ export function groupFeedCards(cards: FeedCard[]): FeedCardGroup[] {
     groups.push({
       id: card.id,
       country: null,
+      location: card.location,
       eventType: card.eventType,
       lead: card,
       threats: [card],

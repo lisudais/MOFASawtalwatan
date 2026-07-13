@@ -133,7 +133,7 @@ export default function AlertDetailsPanel({ card, event, travelers, onClose, onT
     setIsCitizensMenuOpen(false);
     setSelectedCitizen(null);
     setTrackNotice('');
-    const where = countryNameAr(card.country);
+    const where = card.location || countryNameAr(card.country);
     const action = event?.recommendedAction ?? '';
     setEditableRightAlertMessage(
       `تنبيه وزارة الخارجية: خطر ${severityWord(card.score)} في ${where}. ${action}`.trim()
@@ -149,7 +149,7 @@ export default function AlertDetailsPanel({ card, event, travelers, onClose, onT
   const color = scoreColor(card.score);
   const hasCoords = Boolean(event && (event.lat !== 0 || event.lng !== 0));
   const countryCode = card.country ?? event?.countryCode ?? '';
-  const placeAr = countryNameAr(card.country ?? (event?.countryCode || null));
+  const placeAr = card.location || countryNameAr(card.country ?? (event?.countryCode || null));
 
   const typeEn = event ? TYPE_LABEL_EN[event.type] : EVENT_TYPE_EN[card.eventType];
   const typeAr = event ? TYPE_LABEL_AR[event.type] : EVENT_TYPE_AR[card.eventType];

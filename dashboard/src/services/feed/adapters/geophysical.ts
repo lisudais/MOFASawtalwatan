@@ -76,6 +76,12 @@ function toSignal(event: GeoEvent, fetchedFrom: string): RawSignal | null {
     authorityCountry: null,
     eventType: 'natural_disaster', // known from the source, no AI needed
     coords: hasCoords(event) ? { lat: event.lat, lng: event.lng } : null,
+    // The title alone carries the source's own place text (e.g. USGS's
+    // "M6.8 Earthquake — 12km SW of Banda Aceh, Indonesia") — kept ONLY for
+    // display location resolution, never for classification/summarization
+    // (see types.ts). Description is the same place restated, so using just
+    // the title avoids parsing it twice and keeps the text predictable.
+    placeText: event.title || null,
     geoType: event.type, // restores the card's original per-type icon
     severityHint: severityHintFrom(event),
     url: null,

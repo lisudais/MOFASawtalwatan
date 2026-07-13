@@ -15,6 +15,7 @@ export type HospitalCategory = 'GOV' | 'PRIVATE' | 'UNKNOWN';
 
 export interface Hospital {
   id: string;
+  type: 'HOSPITAL';
   name: string;            // name:ar > name > name:en > fallback
   city: string | null;
   lat: number;
@@ -25,6 +26,30 @@ export interface Hospital {
   openingHours: string | null; // raw OSM opening_hours; null = unknown
   category: HospitalCategory;
   distanceFromMissionKm: number;
+}
+
+const NO_NAME_AR = 'مستشفى (بدون اسم مسجل)';
+
+/** "Major" score — OSM has no bed-count/traffic field, so this is the best
+ *  available proxy: a real registered name + 24/7 emergency capability + full
+ *  contact details read as a more established, more relevant facility than a
+ *  bare unnamed point. Ties broken by proximity to the mission. */
+function majorScore(h: Hospital): number {
+  let s = 0;
+  if (h.name !== NO_NAME_AR) s += 2;
+  if (h.emergency === true) s += 2;
+  if (h.phone) s += 1;
+  if (h.website) s += 1;
+  return s;
+}
+
+/** Picks up to `limit` major hospitals for the map layer — highest majorScore
+ *  first, nearest-to-mission as the tiebreaker. Returns fewer than `limit`
+ *  gracefully when the country genuinely has fewer valid results in scope. */
+export function pickTopHospitals(hospitals: Hospital[], limit = 3): Hospital[] {
+  return [...hospitals]
+    .sort((a, b) => majorScore(b) - majorScore(a) || a.distanceFromMissionKm - b.distanceFromMissionKm)
+    .slice(0, limit);
 }
 
 const OVERPASS_MIRRORS = [
@@ -54,9 +79,10 @@ function parseElements(elements: any[], embassy: EmbassyConfig, boundary: Countr
     // national boundary are ever returned.
     if (!isPointInsideBoundary(lat, lng, boundary)) continue;
     const tags: Record<string, string> = el.tags ?? {};
-    const name = tags['name:ar'] ?? tags.name ?? tags['name:en'] ?? 'مستشفى (بدون اسم مسجل)';
+    const name = tags['name:ar'] ?? tags.name ?? tags['name:en'] ?? NO_NAME_AR;
     out.push({
       id: `${el.type}-${el.id}`,
+      type: 'HOSPITAL',
       name,
       city: tags['addr:city'] ?? tags['addr:district'] ?? null,
       lat, lng,

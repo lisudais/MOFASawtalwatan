@@ -13,6 +13,8 @@
 // A production Netlify build would need this wired to a compiled bundle of the
 // pipeline; the dev middleware is the only consumer today.
 
+import { resolveLocations } from './locationCore.mjs';
+
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const FAST_CACHE_TTL_MS = 60 * 1000;
 
@@ -22,11 +24,17 @@ let inFlight = null;
 let fastCache = { at: 0, payload: null };
 let fastInFlight = null;
 
-/** Flattens the pipeline result into exactly what a feed card renders. */
-function toCards(result) {
+/**
+ * Flattens the pipeline result into exactly what a feed card renders, then
+ * resolves a display `location` string for every card — a deterministic,
+ * non-AI enrichment (see locationCore.mjs) that never touches eventType,
+ * country, score or summary. This is the ONLY thing this function adds on top
+ * of the real pipeline output.
+ */
+async function toCards(result, locationOptions = {}) {
   const signalsById = new Map(result.signals.map((s) => [s.id, s]));
 
-  return result.score.scored.map((sc) => {
+  const base = result.score.scored.map((sc) => {
     const members = sc.cluster.signalIds.map((id) => signalsById.get(id)).filter(Boolean);
     const summary = result.summarize.summaries.get(sc.cluster.id);
 
@@ -42,6 +50,10 @@ function toCards(result) {
     // Original GeoEvent type of the first geophysical member, so the card can
     // render the SAME icon it always did. null for security/statement/GDELT.
     const geoType = members.find((m) => m.geoType)?.geoType ?? null;
+
+    // First member with real coordinates — the ONLY thing the location
+    // resolver's reverse-geocode tier is allowed to use. Never a centroid.
+    const coords = members.find((m) => m.coords)?.coords ?? null;
 
     return {
       id: sc.cluster.id,
@@ -67,7 +79,19 @@ function toCards(result) {
       },
       // Lets the UI map a cluster back to a legacy GeoEvent for the map/detail panel.
       signalIds: sc.cluster.signalIds,
+      _members: members,
+      _coords: coords,
     };
+  });
+
+  const locations = await resolveLocations(
+    base.map((c) => ({ country: c.country, coords: c._coords, members: c._members })),
+    locationOptions
+  );
+
+  return base.map((c, i) => {
+    const { _members, _coords, ...card } = c;
+    return { ...card, location: locations[i].location };
   });
 }
 
@@ -87,7 +111,7 @@ export async function getFeedCards(runPipeline, options = {}) {
       const result = await runPipeline(options);
       const payload = {
         ok: true,
-        cards: toCards(result),
+        cards: await toCards(result),
         sourceStatus: result.ingest.sourceStatus,
         degraded: result.ingest.degraded,
         stats: {
@@ -136,7 +160,10 @@ export async function getFastFeedCards(runPipelineFast, warmFull) {
       const payload = {
         ok: true,
         provisional: true,
-        cards: toCards(result).map((c) => ({ ...c, provisional: true })),
+        // No reverse geocoding here — a network round-trip would blow the fast
+        // tier's ~2s budget. These locations (city-from-text / country) get
+        // upgraded automatically once the full run's cards replace these.
+        cards: (await toCards(result, { allowReverseGeocode: false })).map((c) => ({ ...c, provisional: true })),
         sourceStatus: result.ingest.sourceStatus,
         degraded: result.ingest.degraded,
         stats: {

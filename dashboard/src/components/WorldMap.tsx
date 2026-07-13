@@ -6,7 +6,8 @@ import type { Feature, FeatureCollection } from 'geojson';
 import 'leaflet/dist/leaflet.css';
 import { RISK_COLORS } from '../constants';
 import type { GeoEvent, Traveler, RiskLevel } from '../types';
-import { useFlights } from '../services/flightStatus';
+import FlightLayer from './FlightLayer';
+import CitizenPopupCard from './CitizenPopupCard';
 import { centroidFor, iso3For, ISO3_WITHOUT_POLYGON } from '../services/feed/countryCentroids';
 import { countryNameAr } from '../services/feed/countryNames';
 import { useBoundariesGeoJson } from '../services/geoBoundaries';
@@ -24,11 +25,31 @@ export interface CountryRisk {
   byCategory: Record<string, number>;
 }
 
+/** Only these two bands ever reach the map — LOW is filtered out before this
+ *  type is constructed (see App.tsx). One marker per Global Alert Feed card,
+ *  keyed by that card's own id, so the map and the right panel always agree
+ *  on which alert is which. */
+export type AlertMarkerBand = 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface AlertMarker {
+  /** Same id as the right-panel FeedCard this marker represents. */
+  id: string;
+  lat: number;
+  lng: number;
+  band: AlertMarkerBand;
+  /** Original GeoEvent type — picks the glyph (earthquake, flood, …). */
+  type: GeoEvent['type'];
+}
+
 interface WorldMapProps {
-  events: GeoEvent[];
+  alertMarkers: AlertMarker[];
+  /** The id of the FeedCard currently open in the right panel, if any. */
+  selectedAlertId: string | null;
+  onSelectAlert: (marker: AlertMarker) => void;
   travelers: Traveler[];
+  /** Drives fly-to only — set from the right panel's selected card via the
+   *  same GeoEvent resolution used to build `alertMarkers`. */
   selectedEvent: GeoEvent | null;
-  onSelectEvent: (e: GeoEvent) => void;
   selectedTraveler: Traveler | null;
   /**
    * Real per-country risk for the RED layer, keyed by ISO2. Aggregated in
@@ -111,25 +132,39 @@ export function eventDivIcon(event: GeoEvent, isSelected: boolean): L.DivIcon {
   });
 }
 
-// Aircraft marker — deliberately distinct from the round risk markers: a small
-// plane glyph rotated to the flight heading, in a cool cyan that reads clearly
-// on the dark map and never collides with the risk colour palette.
-function aircraftIcon(heading: number | null): L.DivIcon {
-  const rot = typeof heading === 'number' ? heading : 0;
-  return new L.DivIcon({
-    className: 'aircraft-map-icon',
-    html:
-      `<div class="aircraft-glyph" style="transform:rotate(${rot}deg)">` +
-      '<svg viewBox="0 0 24 24" width="18" height="18" fill="#7DD3FC" stroke="#0A1628" stroke-width="0.6">' +
-      '<path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L11 19v-5.5z"/>' +
-      '</svg></div>',
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
+// ── Alert markers (Global Alert Feed → map) ─────────────────────────────
+// Colour/size are driven by the card's severity BAND (the same 0-100 score
+// shown in the right panel), never the raw GeoEvent.riskLevel — a card and
+// its marker must always read the same severity. Per spec: MEDIUM is
+// yellow, HIGH/CRITICAL both read as red (unlike the 4-colour scale used
+// elsewhere in the app) so the map only ever shows two marker states.
+const ALERT_BAND_COLOR: Record<AlertMarkerBand, string> = {
+  MEDIUM: '#FFD600',
+  HIGH: '#FF1744',
+  CRITICAL: '#FF1744',
+};
+const ALERT_BAND_SIZE: Record<AlertMarkerBand, number> = { MEDIUM: 14, HIGH: 18, CRITICAL: 22 };
+
+export function alertMarkerIcon(marker: AlertMarker, isSelected: boolean): L.DivIcon {
+  const color = ALERT_BAND_COLOR[marker.band];
+  const size = Math.round((isSelected ? 1.3 : 1) * ALERT_BAND_SIZE[marker.band]);
+  const pulsing = marker.band === 'HIGH' || marker.band === 'CRITICAL';
+  return L.divIcon({
+    className: '',
+    html: `
+      <div style="
+        width:${size * 2}px;height:${size * 2}px;
+        background:${color}22;border:2px solid ${color};
+        border-radius:50%;display:flex;align-items:center;justify-content:center;
+        cursor:pointer;box-shadow:0 0 ${size}px ${color}88;
+        ${pulsing ? 'animation:eventIconPulse 2s infinite;' : ''}
+      ">
+        ${eventSvgIcon(marker.type, color, Math.round(size * 1.1))}
+      </div>`,
+    iconSize: [size * 2, size * 2],
+    iconAnchor: [size, size],
   });
 }
-
-const na = (v: unknown): string =>
-  v === null || v === undefined || v === '' ? 'غير متاح' : String(v);
 
 // An event with no usable coordinates must not move the map (and must not
 // crash) — the details panel still opens, showing "غير متاح" for its location.
@@ -200,14 +235,12 @@ function riskCountries(
 type RiskLayer = 'none' | 'current' | 'predicted';
 
 export default function WorldMap({
-  events, travelers, selectedEvent, onSelectEvent, selectedTraveler, countryRisk = {},
+  alertMarkers, selectedAlertId, onSelectAlert, travelers, selectedEvent, selectedTraveler, countryRisk = {},
 }: WorldMapProps) {
   // ── Flight monitoring (isolated from alert/risk state) ──────────────────
-  // Data now comes from the SHARED flight source (services/flightStatus.ts) so
-  // the AI assistant reads the exact same live feed with no duplicate fetch.
-  // The layer still drives its own polling only while it's toggled on.
+  // The imperative <FlightLayer> owns polling + smooth interpolation; this only
+  // toggles it. Polling runs only while the layer is enabled.
   const [showFlights, setShowFlights] = useState(false);
-  const flights = useFlights(showFlights);
   // ── Risk highlight layers — mutually exclusive with each other, independent
   //    of the flight layer. 'none' | 'current' (real RED) | 'predicted' (XGBoost outbreak forecast). ──
   const [riskLayer, setRiskLayer] = useState<RiskLayer>('none');
@@ -431,15 +464,18 @@ export default function WorldMap({
           );
         })}
 
-        {showEvents && events.map((event) => {
-          const isSelected = selectedEvent?.id === event.id;
+        {/* Alert markers — one per Global Alert Feed card (right panel), same id,
+            same severity colour, real source coordinates only. See App.tsx for
+            how this list is built (severity-filtered, deduped, geo-resolved). */}
+        {showEvents && alertMarkers.map((marker) => {
+          const isSelected = marker.id === selectedAlertId;
           return (
             <Marker
-              key={event.id}
-              position={[event.lat, event.lng]}
-              icon={eventDivIcon(event, isSelected)}
+              key={marker.id}
+              position={[marker.lat, marker.lng]}
+              icon={alertMarkerIcon(marker, isSelected)}
               zIndexOffset={isSelected ? 1000 : 0}
-              eventHandlers={{ click: () => onSelectEvent(event) }}
+              eventHandlers={{ click: () => onSelectAlert(marker) }}
             />
           );
         })}
@@ -447,29 +483,13 @@ export default function WorldMap({
         {showTravelers && travelers.map((traveler) => (
           <Marker key={traveler.id} position={[traveler.lat, traveler.lng]} icon={travelerIcon}>
             <Popup>
-              <strong>{traveler.nameEn}</strong>
-              <br />
-              {traveler.destination} · {traveler.status}
+              <CitizenPopupCard traveler={traveler} />
             </Popup>
           </Marker>
         ))}
 
-        {/* Aircraft markers — only when the toggle is enabled; hide only these */}
-        {showFlights && flights.map((f) => (
-          <Marker key={f.icao24} position={[f.latitude, f.longitude]} icon={aircraftIcon(f.heading)}>
-            <Popup>
-              <div dir="rtl" className="flight-popup">
-                <strong>رحلة: {na(f.callsign)}</strong>
-                <div>شركة الطيران: غير متاح</div>
-                <div>المنشأ: {na(f.originCountry)}</div>
-                <div>الوجهة: غير متاح</div>
-                <div>الارتفاع: {f.baroAltitude != null ? `${Math.round(f.baroAltitude)} م` : 'غير متاح'}</div>
-                <div>السرعة: {f.velocity != null ? `${Math.round(f.velocity * 3.6)} كم/س` : 'غير متاح'}</div>
-                <div>آخر تحديث: {f.lastContact != null ? new Date(f.lastContact * 1000).toLocaleTimeString('ar-SA-u-nu-latn') : 'غير متاح'}</div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {/* Aircraft layer — owns its own polling + smooth interpolation; toggled here */}
+        <FlightLayer enabled={showFlights} />
       </MapContainer>
 
       {/* The single outbreak details component — same card the health panel opens */}

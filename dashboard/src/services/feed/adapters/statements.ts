@@ -56,6 +56,8 @@ function toSignal(s: Statement): RawSignal {
     authorityCountry: s.countryCode || null,
     eventType: null,       // ← needs Stage 2 classification
     coords: null,
+    // rawText already doubles as the location resolver's text source here.
+    placeText: null,
     geoType: null,
     severityHint: null,    // the API's `urgency` is LLM-derived; not a source fact
     url: s.sourceUrl || null,

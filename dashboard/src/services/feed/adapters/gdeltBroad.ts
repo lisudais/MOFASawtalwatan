@@ -53,6 +53,8 @@ function toSignal(a: Article): RawSignal {
     authorityCountry: null,
     eventType: null,  // ← Stage 2 resolves
     coords: null,
+    // rawText already doubles as the location resolver's text source here.
+    placeText: null,
     geoType: null,
     severityHint: null,
     url: a.url,

@@ -5,10 +5,14 @@ import L from 'leaflet';
 import type { FeatureCollection } from 'geojson';
 import 'leaflet/dist/leaflet.css';
 import { eventDivIcon, travelerIcon } from '../WorldMap';
+import CitizenPopupCard from '../CitizenPopupCard';
 import MapLayersPanel, { type MapLayer } from '../MapLayersPanel';
 import { useBoundariesGeoJson } from '../../services/geoBoundaries';
-import { hospitalsForEmbassy, saudiPresencePoints } from '../../services/embassyFacilities';
-import { PORT_STATUS_AR, PORT_STATUS_COLOR, type EmbassyConfig } from '../../services/embassies';
+import { saudiPresencePoints } from '../../services/embassyFacilities';
+import { fetchCountryBoundary } from '../../services/countryBoundary';
+import { fetchHospitals, pickTopHospitals, type Hospital } from '../../services/hospitals';
+import { fetchAirports, pickTopAirports, type Airport } from '../../services/airports';
+import type { EmbassyConfig } from '../../services/embassies';
 import type { GeoEvent, Traveler } from '../../types';
 
 interface EmbassyMapProps {
@@ -157,12 +161,58 @@ export default function EmbassyMap({ embassy, events, travelers, selectedEvent, 
     return f ? { type: 'FeatureCollection' as const, features: [f] } : null;
   }, [worldGeo, embassy.hostCountry]);
 
-  const hospitals = useMemo(() => hospitalsForEmbassy(embassy.id), [embassy.id]);
-  const airportPorts = useMemo(
-    () => embassy.ports.filter((p) => p.type === 'AIRPORT' && p.coordinates),
-    [embassy.ports],
-  );
   const presencePoints = useMemo(() => saudiPresencePoints(embassy.id), [embassy.id]);
+
+  // ── Hospitals / Airports — real OSM data (Overpass), fetched lazily the
+  //    first time each layer is switched on for this embassy, then cached
+  //    in-memory here AND inside hospitals.ts/airports.ts (24h) so toggling
+  //    the layer off/on or revisiting the mission never re-requests. ───────
+  const [hospitalsByEmbassy, setHospitalsByEmbassy] = useState<Record<string, Hospital[]>>({});
+  const [airportsByEmbassy, setAirportsByEmbassy] = useState<Record<string, Airport[]>>({});
+  // Up to 3 major facilities per country — full lists are cached above so
+  // this re-slice is free; the pick itself is deterministic (see majorScore
+  // in hospitals.ts/airports.ts), never random.
+  const hospitals = useMemo(
+    () => pickTopHospitals(hospitalsByEmbassy[embassy.id] ?? []),
+    [hospitalsByEmbassy, embassy.id],
+  );
+  const airports = useMemo(
+    () => pickTopAirports(airportsByEmbassy[embassy.id] ?? []),
+    [airportsByEmbassy, embassy.id],
+  );
+  // Tracks which embassy ids already have a fetch in flight/done, so the
+  // effects below never issue a second request for the same mission even
+  // though `hospitalsByEmbassy`/`airportsByEmbassy` aren't in their deps.
+  const hospitalsRequestedRef = useRef(new Set<string>());
+  const airportsRequestedRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (!showHospitals || hospitalsRequestedRef.current.has(embassy.id)) return;
+    hospitalsRequestedRef.current.add(embassy.id);
+    let cancelled = false;
+    (async () => {
+      const boundary = await fetchCountryBoundary(embassy);
+      const result = await fetchHospitals(embassy, boundary);
+      if (cancelled) return;
+      if (result === null) hospitalsRequestedRef.current.delete(embassy.id); // allow retry on next toggle
+      setHospitalsByEmbassy((prev) => ({ ...prev, [embassy.id]: result ?? [] }));
+    })();
+    return () => { cancelled = true; };
+  }, [showHospitals, embassy]);
+
+  useEffect(() => {
+    if (!showAirports || airportsRequestedRef.current.has(embassy.id)) return;
+    airportsRequestedRef.current.add(embassy.id);
+    let cancelled = false;
+    (async () => {
+      const boundary = await fetchCountryBoundary(embassy);
+      const result = await fetchAirports(embassy, boundary);
+      if (cancelled) return;
+      if (result === null) airportsRequestedRef.current.delete(embassy.id); // allow retry on next toggle
+      setAirportsByEmbassy((prev) => ({ ...prev, [embassy.id]: result ?? [] }));
+    })();
+    return () => { cancelled = true; };
+  }, [showAirports, embassy]);
 
   function handleLayerToggle(id: string) {
     switch (id) {
@@ -237,34 +287,31 @@ export default function EmbassyMap({ embassy, events, travelers, selectedEvent, 
           )
         )}
 
-        {/* Airports — the same port records/status shown in "المطارات والحدود"
-            (services/embassies.ts), just plotted at their real coordinates
-            instead of listed in a panel. No separate data source. */}
-        {showAirports && airportPorts.map((p) => (
-          <Marker key={p.nameAr} position={[p.coordinates!.lat, p.coordinates!.lng]} icon={airportIcon}>
+        {/* Airports — live OpenStreetMap data (services/airports.ts), up to 3
+            major airports (scheduled/IATA-coded first) inside the host
+            country's real boundary. */}
+        {showAirports && airports.map((a) => (
+          <Marker key={a.id} position={[a.lat, a.lng]} icon={airportIcon}>
             <Popup>
               <div dir="rtl" className="flight-popup">
-                <strong>{p.nameAr}</strong>
-                <div>
-                  مطار ·{' '}
-                  <span style={{ color: PORT_STATUS_COLOR[p.status], fontWeight: 700 }}>
-                    {PORT_STATUS_AR[p.status]}
-                  </span>
-                </div>
+                <strong>{a.name}</strong>
+                <div>مطار{a.city ? ` · ${a.city}` : ''}</div>
+                {a.iata && <div>رمز آياتا: {a.iata}</div>}
+                <div style={{ opacity: 0.7 }}>{a.lat.toFixed(4)}, {a.lng.toFixed(4)}</div>
               </div>
             </Popup>
           </Marker>
         ))}
 
-        {/* Hospitals — mock/representative, see services/embassyFacilities.ts
-            TODO for the real facility-registry source this should become. */}
+        {/* Hospitals — live OpenStreetMap data (services/hospitals.ts), up to
+            3 major hospitals inside the host country's real boundary. */}
         {showHospitals && hospitals.map((h) => (
           <Marker key={h.id} position={[h.lat, h.lng]} icon={hospitalIcon}>
             <Popup>
               <div dir="rtl" className="flight-popup">
-                <strong>{h.nameAr}</strong>
-                <div>مستشفى · {h.cityAr}</div>
-                {h.addressAr && <div style={{ opacity: 0.7 }}>{h.addressAr}</div>}
+                <strong>{h.name}</strong>
+                <div>مستشفى{h.city ? ` · ${h.city}` : ''}</div>
+                <div style={{ opacity: 0.7 }}>{h.lat.toFixed(4)}, {h.lng.toFixed(4)}</div>
               </div>
             </Popup>
           </Marker>
@@ -314,9 +361,7 @@ export default function EmbassyMap({ embassy, events, travelers, selectedEvent, 
         {travelers.map((t) => (
           <Marker key={t.id} position={[t.lat, t.lng]} icon={travelerIcon}>
             <Popup>
-              <strong>{t.nameAr}</strong>
-              <br />
-              {t.destination} · {t.status}
+              <CitizenPopupCard traveler={t} />
             </Popup>
           </Marker>
         ))}

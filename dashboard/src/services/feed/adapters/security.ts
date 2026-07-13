@@ -67,6 +67,9 @@ function toSignal(
     authorityCountry: null,
     eventType: 'security',
     coords: null, // /api/security gives no coordinates. We never fabricate one.
+    // rawText (the title) already doubles as the location resolver's text
+    // source for this adapter — see types.ts.
+    placeText: null,
     geoType: null,
     severityHint: member.severity || null, // 'CRITICAL' | 'HIGH' | … verbatim
     url: member.url || null,
