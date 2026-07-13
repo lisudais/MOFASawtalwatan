@@ -140,5 +140,5 @@ export function markAlertSent(id: string, sentByAr: string): void {
 
 /** Shared by both dashboards for approval/execution timestamps. */
 export function formatDateTimeAr(d: Date): string {
-  return d.toLocaleString('ar-SA', { dateStyle: 'medium', timeStyle: 'short' });
+  return d.toLocaleString('ar-SA-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' });
 }

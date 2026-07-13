@@ -55,7 +55,7 @@ export default function AiSituationReportCard({ report, isFetching, isError, onR
             </div>
           )}
           <div className="situation-report-timestamp">
-            آخر تحديث: {new Date(report.generatedAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+            آخر تحديث: {new Date(report.generatedAt).toLocaleTimeString('ar-SA-u-nu-latn', { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
       )}

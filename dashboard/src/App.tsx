@@ -9,6 +9,7 @@ import AlertDetailsPanel from './components/AlertDetailsPanel';
 import type { FeedCard } from './services/feed/feedCards';
 import { useFeedCards } from './services/feed/useFeedCards';
 import { buildGlobalContextSummary } from './services/chatbotContext';
+import { useFlights, buildFlightStatusSummary } from './services/flightStatus';
 import HealthCountryDetailPanel from './components/HealthCountryDetailPanel';
 import DisasterDetailPanel from './components/DisasterDetailPanel';
 import OfficialStatementDetailPanel from './components/OfficialStatementDetailPanel';
@@ -276,13 +277,22 @@ function MainDashboard() {
     return byCountry;
   }, [feedCards]);
 
+  // Shared live flight feed — the SAME source the map's "حركة الطيران" layer
+  // uses (services/flightStatus.ts). Kept always-active here so the assistant
+  // can answer flight questions even when the map layer is toggled off; the
+  // ref-counted loop guarantees a single shared fetch, never a duplicate.
+  const flights = useFlights(true);
+
   // Live situation summary for the GLOBAL assistant (no embassy scope). Built
   // only from data already on screen; recomputed whenever any source changes,
   // so the assistant is always grounded in the current board — never a refusal.
-  const globalSummaryAr = useMemo(
-    () => buildGlobalContextSummary({ feedCards, events, securityCountries, healthCountries }),
-    [feedCards, events, securityCountries, healthCountries],
-  );
+  // The live flight-status summary is appended so "ماهي حالة الطيران الآن؟" is
+  // answered from the real feed instead of a generic refusal.
+  const globalSummaryAr = useMemo(() => {
+    const base = buildGlobalContextSummary({ feedCards, events, securityCountries, healthCountries });
+    const flightSummary = buildFlightStatusSummary(flights);
+    return [base, flightSummary].filter(Boolean).join('\n\n');
+  }, [feedCards, events, securityCountries, healthCountries, flights]);
 
   /**
    * Clicking a card selects it. When the cluster contains a signal that came

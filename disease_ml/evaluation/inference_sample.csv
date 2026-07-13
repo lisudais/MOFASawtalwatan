@@ -1,0 +1,6 @@
+country,disease_name,week,outbreak_probability,outbreak_label,predicted_future_cases_4w,explanation_ar,explanation_en
+China,Acute respiratory syndrome,2024-03-04,1.0,1,25.2,ارتفع خطر التفشي بسبب نشاط مرضي في دول مجاورة.,Outbreak risk increased because neighboring-country activity was present.
+"Congo, The Democratic Republic of the",Ebola virus disease,2024-03-04,1.0,1,10.1,ارتفع خطر التفشي بسبب نشاط مرضي في دول مجاورة.,Outbreak risk increased because neighboring-country activity was present.
+Mozambique,Cholera,2024-03-04,1.0,1,2.6,ارتفع خطر التفشي بسبب نشاط مرضي في دول مجاورة.,Outbreak risk increased because neighboring-country activity was present.
+Zambia,Cholera,2024-03-04,1.0,1,21.4,ارتفع خطر التفشي بسبب نشاط مرضي في دول مجاورة.,Outbreak risk increased because neighboring-country activity was present.
+Angola,Wild poliovirus type 1,2024-03-04,0.0,0,0.0,انخفض خطر التفشي بسبب استمرار التفشي الحالي، وتسارع النمو الأسبوعي للحالات، ونشاط مرضي في دول مجاورة.,"Outbreak risk is low because the outbreak remained active, weekly case growth accelerated, neighboring-country activity was present."

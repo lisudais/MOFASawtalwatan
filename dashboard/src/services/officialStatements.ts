@@ -92,7 +92,7 @@ export function timeAgoAr(date: Date): string {
 
 // Full publish date + time in Arabic, e.g. "٧ يوليو ٢٠٢٦، ١٤:٣٠".
 export function formatDateTimeAr(date: Date): string {
-  return date.toLocaleString('ar-SA', {
+  return date.toLocaleString('ar-SA-u-nu-latn', {
     year: 'numeric', month: 'long', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });

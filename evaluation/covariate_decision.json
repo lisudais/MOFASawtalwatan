@@ -1,0 +1,94 @@
+{
+  "covariates_used": [
+    "roll4",
+    "roll8",
+    "trend",
+    "month"
+  ],
+  "per_event_type": {
+    "EARTHQUAKE": {
+      "univariate": {
+        "WAPE": 1.004539675381966,
+        "MAE": 0.18602586581147518
+      },
+      "covariate": {
+        "WAPE": 1.0052025281242094,
+        "MAE": 0.18614861631929805
+      },
+      "covariate_improves": false,
+      "chosen": "chronos-2"
+    },
+    "FLOOD": {
+      "univariate": {
+        "WAPE": 1.0024337988113985,
+        "MAE": 0.0982778234128822
+      },
+      "covariate": {
+        "WAPE": 1.005812188400887,
+        "MAE": 0.09860903807851833
+      },
+      "covariate_improves": false,
+      "chosen": "chronos-2"
+    },
+    "STORM": {
+      "univariate": {
+        "WAPE": 1.0038158037258607,
+        "MAE": 0.13244791854716217
+      },
+      "covariate": {
+        "WAPE": 1.01408450060377,
+        "MAE": 0.13380281605188632
+      },
+      "covariate_improves": false,
+      "chosen": "chronos-2"
+    },
+    "VOLCANO": {
+      "univariate": {
+        "WAPE": 1.0040150281662743,
+        "MAE": 0.10040150281662742
+      },
+      "covariate": {
+        "WAPE": 1.0033637173473835,
+        "MAE": 0.10033637173473835
+      },
+      "covariate_improves": true,
+      "chosen": "chronos-2-cov"
+    },
+    "WILDFIRE": {
+      "univariate": {
+        "WAPE": 1.002437909420293,
+        "MAE": 0.13574680023399802
+      },
+      "covariate": {
+        "WAPE": 1.0016126924266036,
+        "MAE": 0.1356350520994359
+      },
+      "covariate_improves": true,
+      "chosen": "chronos-2-cov"
+    },
+    "DISEASE_OUTBREAK": {
+      "univariate": {
+        "WAPE": 1.004501250690256,
+        "MAE": 0.2311947323017256
+      },
+      "covariate": {
+        "WAPE": 1.0076217663329865,
+        "MAE": 0.2319129462194969
+      },
+      "covariate_improves": false,
+      "chosen": "chronos-2"
+    },
+    "TSUNAMI": {
+      "univariate": {
+        "WAPE": 1.0029145485189344,
+        "MAE": 0.10969377874425845
+      },
+      "covariate": {
+        "WAPE": 1.0033577284110444,
+        "MAE": 0.10974225154495798
+      },
+      "covariate_improves": false,
+      "chosen": "chronos-2"
+    }
+  }
+}

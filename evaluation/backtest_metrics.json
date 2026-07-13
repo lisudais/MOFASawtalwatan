@@ -1,0 +1,222 @@
+{
+  "config": {
+    "horizon_weeks": 4,
+    "max_folds_per_series": 3,
+    "min_series_len": 16,
+    "season": 52,
+    "since": "2021-01-01",
+    "note": "Real backtest on sparse weekly event-count series."
+  },
+  "by_event_type": {
+    "DISEASE_OUTBREAK": {
+      "chronos-2": {
+        "MAE": 0.2311947323017256,
+        "RMSE": 0.9113028579623607,
+        "WAPE": 1.004501250690256,
+        "interval_coverage_p10_p90": 0.9603174603174603,
+        "n_folds": 189
+      },
+      "hist_mean": {
+        "MAE": 0.2648591641803591,
+        "RMSE": 0.9038710518436075,
+        "WAPE": 1.1507674029905248,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 189
+      },
+      "seasonal_naive": {
+        "MAE": 0.27070063694267515,
+        "RMSE": 0.9968101992096629,
+        "WAPE": 1.1643835616438356,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 157
+      },
+      "last_value": {
+        "MAE": 0.26455026455026454,
+        "RMSE": 0.9690992927215658,
+        "WAPE": 1.1494252873563218,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 189
+      }
+    },
+    "EARTHQUAKE": {
+      "chronos-2": {
+        "MAE": 0.18602586581147518,
+        "RMSE": 0.5606324475561807,
+        "WAPE": 1.004539675381966,
+        "interval_coverage_p10_p90": 0.9675925925925926,
+        "n_folds": 108
+      },
+      "hist_mean": {
+        "MAE": 0.23660937811304433,
+        "RMSE": 0.5354485252926013,
+        "WAPE": 1.2776906418104395,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 108
+      },
+      "seasonal_naive": {
+        "MAE": 0.22395833333333334,
+        "RMSE": 0.6208193510729725,
+        "WAPE": 1.1466666666666667,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 96
+      },
+      "last_value": {
+        "MAE": 0.24074074074074073,
+        "RMSE": 0.6490734136415512,
+        "WAPE": 1.3,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 108
+      }
+    },
+    "FLOOD": {
+      "chronos-2": {
+        "MAE": 0.0982778234128822,
+        "RMSE": 0.3130056694137741,
+        "WAPE": 1.0024337988113985,
+        "interval_coverage_p10_p90": 1.0,
+        "n_folds": 51
+      },
+      "hist_mean": {
+        "MAE": 0.11579269903944599,
+        "RMSE": 0.308095073751996,
+        "WAPE": 1.1810855302023495,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 51
+      },
+      "seasonal_naive": {
+        "MAE": 0.1111111111111111,
+        "RMSE": 0.3333333333333333,
+        "WAPE": 1.1111111111111112,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 45
+      },
+      "last_value": {
+        "MAE": 0.10784313725490197,
+        "RMSE": 0.32839478871459266,
+        "WAPE": 1.1,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 51
+      }
+    },
+    "STORM": {
+      "chronos-2": {
+        "MAE": 0.13244791854716217,
+        "RMSE": 0.36302538216828745,
+        "WAPE": 1.0038158037258607,
+        "interval_coverage_p10_p90": 0.9930555555555556,
+        "n_folds": 36
+      },
+      "hist_mean": {
+        "MAE": 0.16154920707268838,
+        "RMSE": 0.3504798064593556,
+        "WAPE": 1.2243729378140593,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 36
+      },
+      "seasonal_naive": {
+        "MAE": 0.19696969696969696,
+        "RMSE": 0.44381268229929727,
+        "WAPE": 1.4444444444444444,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 33
+      },
+      "last_value": {
+        "MAE": 0.1875,
+        "RMSE": 0.4330127018922193,
+        "WAPE": 1.4210526315789473,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 36
+      }
+    },
+    "TSUNAMI": {
+      "chronos-2": {
+        "MAE": 0.10969377874425845,
+        "RMSE": 0.3305965548162546,
+        "WAPE": 1.0029145485189344,
+        "interval_coverage_p10_p90": 0.9895833333333334,
+        "n_folds": 48
+      },
+      "hist_mean": {
+        "MAE": 0.12947740784135198,
+        "RMSE": 0.3225746037155646,
+        "WAPE": 1.183793443120932,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 48
+      },
+      "seasonal_naive": {
+        "MAE": 0.11046511627906977,
+        "RMSE": 0.3323629285571268,
+        "WAPE": 1.0555555555555556,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 43
+      },
+      "last_value": {
+        "MAE": 0.109375,
+        "RMSE": 0.33071891388307384,
+        "WAPE": 1.0,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 48
+      }
+    },
+    "VOLCANO": {
+      "chronos-2": {
+        "MAE": 0.10040150281662742,
+        "RMSE": 0.36505637895279236,
+        "WAPE": 1.0040150281662743,
+        "interval_coverage_p10_p90": 0.9833333333333333,
+        "n_folds": 15
+      },
+      "hist_mean": {
+        "MAE": 0.12733828337942962,
+        "RMSE": 0.35680282395672575,
+        "WAPE": 1.2733828337942958,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 15
+      },
+      "seasonal_naive": {
+        "MAE": 0.1388888888888889,
+        "RMSE": 0.44095855184409843,
+        "WAPE": 1.25,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 9
+      },
+      "last_value": {
+        "MAE": 0.1,
+        "RMSE": 0.3651483716701107,
+        "WAPE": 1.0,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 15
+      }
+    },
+    "WILDFIRE": {
+      "chronos-2": {
+        "MAE": 0.13574680023399802,
+        "RMSE": 0.420668233895641,
+        "WAPE": 1.002437909420293,
+        "interval_coverage_p10_p90": 0.9791666666666666,
+        "n_folds": 24
+      },
+      "hist_mean": {
+        "MAE": 0.1548958013047254,
+        "RMSE": 0.4131966593895283,
+        "WAPE": 1.1438459173272029,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 24
+      },
+      "seasonal_naive": {
+        "MAE": 0.1527777777777778,
+        "RMSE": 0.45643546458763845,
+        "WAPE": 1.1,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 18
+      },
+      "last_value": {
+        "MAE": 0.15625,
+        "RMSE": 0.44487826050130463,
+        "WAPE": 1.1538461538461537,
+        "interval_coverage_p10_p90": null,
+        "n_folds": 24
+      }
+    }
+  }
+}

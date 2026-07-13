@@ -114,9 +114,9 @@ export default function SecurityDetailPanel({ profile, onClose }: SecurityDetail
                 <span className="health-detail-section-title-standalone">المواطنون السعوديون</span>
               </div>
               <div className="sec-saudi-grid">
-                <div className="sec-saudi-box"><span className="sec-saudi-val mono-num">{(presence?.residents ?? 0).toLocaleString('ar-SA')}</span><span className="sec-saudi-lbl">مقيمون</span></div>
-                <div className="sec-saudi-box"><span className="sec-saudi-val mono-num">{(presence?.visitors ?? 0).toLocaleString('ar-SA')}</span><span className="sec-saudi-lbl">زوّار</span></div>
-                <div className="sec-saudi-box"><span className="sec-saudi-val mono-num">{(presence?.visaHolders ?? 0).toLocaleString('ar-SA')}</span><span className="sec-saudi-lbl">حاملو تأشيرات</span></div>
+                <div className="sec-saudi-box"><span className="sec-saudi-val mono-num">{(presence?.residents ?? 0).toLocaleString('en-US')}</span><span className="sec-saudi-lbl">مقيمون</span></div>
+                <div className="sec-saudi-box"><span className="sec-saudi-val mono-num">{(presence?.visitors ?? 0).toLocaleString('en-US')}</span><span className="sec-saudi-lbl">زوّار</span></div>
+                <div className="sec-saudi-box"><span className="sec-saudi-val mono-num">{(presence?.visaHolders ?? 0).toLocaleString('en-US')}</span><span className="sec-saudi-lbl">حاملو تأشيرات</span></div>
               </div>
               <div className="sec-note">أرقام التواجد السعودي تقديرية (بيانات تجريبية) وليست إحصاءات رسمية.</div>
             </div>
@@ -138,7 +138,7 @@ export default function SecurityDetailPanel({ profile, onClose }: SecurityDetail
                         </span>
                         <span className="sec-threat-title">{t.title}</span>
                         <span className="sec-threat-meta">
-                          {new Date(t.time).toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' })} · المصدر: {t.source}
+                          {new Date(t.time).toLocaleDateString('ar-SA-u-nu-latn', { day: 'numeric', month: 'short' })} · المصدر: {t.source}
                         </span>
                       </div>
                     );

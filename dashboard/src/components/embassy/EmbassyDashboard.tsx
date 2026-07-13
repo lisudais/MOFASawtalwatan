@@ -33,6 +33,7 @@ import {
 } from '../../services/alertApprovals';
 import { filterByCountry } from '../../services/countryFilter';
 import { sortAlertsBySeverity } from '../../services/feed/sortAlerts';
+import { useFlights, buildFlightStatusSummary } from '../../services/flightStatus';
 import { fetchEmbassyWeather, type EmbassyWeather } from '../../services/embassyOps';
 import { RISK_COLORS, TYPE_LABEL_AR } from '../../constants';
 import type { GeoEvent, RiskLevel } from '../../types';
@@ -524,6 +525,10 @@ export default function EmbassyDashboard({ embassy, onBack }: EmbassyDashboardPr
     [security]
   );
 
+  // Shared live flight feed (same source as the map layer). Filtered to the
+  // host country below so the assistant only ever sees in-scope flight data.
+  const flights = useFlights(true);
+
   // Scoped situation summary handed to the assistant — the ONLY data it sees.
   const chatbotScope = useMemo(() => ({
     embassyNameAr: embassy.nameAr,
@@ -538,9 +543,16 @@ export default function EmbassyDashboard({ embassy, onBack }: EmbassyDashboardPr
       latestStatement ? `آخر بيان رسمي: ${latestStatement.title} — ${latestStatement.authority}.` : '',
       `حالة المنافذ: ${embassy.ports.map((p) => `${p.nameAr}: ${PORT_STATUS_AR[p.status]}`).join('؛ ')}.`,
       weather ? `الطقس: ${weather.descriptionAr}، ${weather.temperatureC}°م.` : '',
+      // Live flight status, scoped to THIS embassy's host-country airspace only
+      // (same shared OpenSky feed the map layer uses; filtered by bounds + name).
+      buildFlightStatusSummary(flights, {
+        countryEn: embassy.hostCountry,
+        countryAr: embassy.hostCountryAr,
+        bounds: embassy.bounds,
+      }),
     ].filter(Boolean).join('\n'),
   }), [embassy, overallRisk, events.length, dangerEvents.length, travelers.length,
-       citizensNearDanger.length, activeCases, disasters, latestStatement, weather]);
+       citizensNearDanger.length, activeCases, disasters, latestStatement, weather, flights]);
 
   // Compact stat bar (replaces the three large stat cards). Colour by status;
   // registered + near-danger still come from MOCK_EMBASSY_STATS (no real

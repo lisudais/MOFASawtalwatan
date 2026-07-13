@@ -1,0 +1,56 @@
+{
+  "threshold": 0.73,
+  "calibrated": true,
+  "predictions": [
+    {
+      "country": "China",
+      "disease_name": "Acute respiratory syndrome",
+      "week": "2024-03-04",
+      "outbreak_probability": 1.0,
+      "outbreak_label": 1,
+      "predicted_future_cases_4w": 25.2,
+      "explanation_ar": "ارتفع خطر التفشي بسبب نشاط مرضي في دول مجاورة.",
+      "explanation_en": "Outbreak risk increased because neighboring-country activity was present."
+    },
+    {
+      "country": "Congo, The Democratic Republic of the",
+      "disease_name": "Ebola virus disease",
+      "week": "2024-03-04",
+      "outbreak_probability": 1.0,
+      "outbreak_label": 1,
+      "predicted_future_cases_4w": 10.1,
+      "explanation_ar": "ارتفع خطر التفشي بسبب نشاط مرضي في دول مجاورة.",
+      "explanation_en": "Outbreak risk increased because neighboring-country activity was present."
+    },
+    {
+      "country": "Mozambique",
+      "disease_name": "Cholera",
+      "week": "2024-03-04",
+      "outbreak_probability": 1.0,
+      "outbreak_label": 1,
+      "predicted_future_cases_4w": 2.6,
+      "explanation_ar": "ارتفع خطر التفشي بسبب نشاط مرضي في دول مجاورة.",
+      "explanation_en": "Outbreak risk increased because neighboring-country activity was present."
+    },
+    {
+      "country": "Zambia",
+      "disease_name": "Cholera",
+      "week": "2024-03-04",
+      "outbreak_probability": 1.0,
+      "outbreak_label": 1,
+      "predicted_future_cases_4w": 21.4,
+      "explanation_ar": "ارتفع خطر التفشي بسبب نشاط مرضي في دول مجاورة.",
+      "explanation_en": "Outbreak risk increased because neighboring-country activity was present."
+    },
+    {
+      "country": "Angola",
+      "disease_name": "Wild poliovirus type 1",
+      "week": "2024-03-04",
+      "outbreak_probability": 0.0,
+      "outbreak_label": 0,
+      "predicted_future_cases_4w": 0.0,
+      "explanation_ar": "انخفض خطر التفشي بسبب استمرار التفشي الحالي، وتسارع النمو الأسبوعي للحالات، ونشاط مرضي في دول مجاورة.",
+      "explanation_en": "Outbreak risk is low because the outbreak remained active, weekly case growth accelerated, neighboring-country activity was present."
+    }
+  ]
+}

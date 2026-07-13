@@ -12,7 +12,7 @@ export interface AppHeaderProps {
   statusBadge?: { label: string; variant: 'live' | 'limited' | 'default' };
   /** Buttons pinned to the end (left in RTL). */
   actions?: ReactNode;
-  /** Last refresh time — rendered at the end, formatted in ar-SA. */
+  /** Last refresh time — rendered at the end (Arabic text, Latin digits). */
   lastUpdated?: Date | null;
 }
 
@@ -66,7 +66,7 @@ export default function AppHeader({
         {actions}
         {lastUpdated && (
           <span className="header-updated">
-            آخر تحديث {lastUpdated.toLocaleTimeString('ar-SA')}
+            آخر تحديث {lastUpdated.toLocaleTimeString('ar-SA-u-nu-latn')}
           </span>
         )}
         {onBack && (

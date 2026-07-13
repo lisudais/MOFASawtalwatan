@@ -1,0 +1,7 @@
+task,model,PR_AUC,precision,recall,F1,MAE,RMSE,WAPE,RMSLE
+classification,always_no_outbreak,0.0432,0.0,0.0,0.0,,,,
+classification,active_outbreak,0.0405,0.0296,0.2022,0.0516,,,,
+classification,recent_growth>0,0.044,0.0562,0.0562,0.0562,,,,
+regression,predict_zero,,,,,115.434,2118.555,1.0,0.8478
+regression,last_week,,,,,813.516,20278.477,7.0474,1.6288
+regression,rolling4x4,,,,,5450.453,95768.804,47.2169,3.1136

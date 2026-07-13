@@ -47,7 +47,7 @@ export default function AlertApprovalModal({
           </div>
           <div className="modal-field">
             <label>عدد المتأثرين المتوقع</label>
-            <p className="rd-text">{expectedAffected.toLocaleString('ar-SA')}</p>
+            <p className="rd-text">{expectedAffected.toLocaleString('en-US')}</p>
           </div>
         </div>
 

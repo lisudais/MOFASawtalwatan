@@ -40,19 +40,24 @@ const SAUDI_RESIDENTS: Record<string, number> = {
   LT: 200, LV: 180, EE: 150, IS: 90, XK: 100,
 };
 
-/**
- * Stable small estimate (8–80) for any ISO2 not in SAUDI_RESIDENTS. Deterministic
- * (FNV-1a hash of the code) so a country's number never flickers between renders
- * and is never zero-by-accident — a small figure is always better than the
- * error-looking "غير متوفر".
- */
-function fallbackResidents(iso2: string): number {
+/** Stable 32-bit FNV-1a hash of a country code — drives all per-country ratios
+ *  so a country's figures never flicker between renders. */
+function hash32(s: string): number {
   let h = 2166136261;
-  for (let i = 0; i < iso2.length; i++) {
-    h ^= iso2.charCodeAt(i);
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
     h = Math.imul(h, 16777619);
   }
-  return 8 + (Math.abs(h) % 73); // 8..80
+  return h >>> 0;
+}
+
+/**
+ * Stable small estimate (8–80) for any ISO2 not in SAUDI_RESIDENTS. Never
+ * zero-by-accident — a small figure is always better than the error-looking
+ * "غير متوفر".
+ */
+function fallbackResidents(iso2: string): number {
+  return 8 + (hash32(iso2) % 73); // 8..80
 }
 
 /** Estimated Saudi residents for ANY country code. Always a positive number. */
@@ -68,17 +73,31 @@ export interface SaudiPresence {
 }
 
 /**
- * Mock Saudi presence for ANY country — never "unavailable". Residents always
- * resolve (explicit table or stable fallback); visitors and visa-holders are
- * deterministic fractions of residents so they read as plausible related figures
- * (a real "0" only in the theoretical zero-residents case, never a missing value).
- * Illustrative demo data, not official statistics.
+ * Mock Saudi presence for ANY country — never "unavailable", and with a REALISTIC
+ * relationship between the three figures:
+ *
+ *   • residents   — the base (largest standing community for big-diaspora states)
+ *   • visitors    — a country-specific fraction of residents (tourism- vs
+ *                   work-heavy states differ), deterministic per country
+ *   • visaHolders — the BROADEST category: everyone who has entered or may enter,
+ *                   so it is ALWAYS ≥ residents + visitors (that sum plus a margin)
+ *
+ * All ratios are derived deterministically from the country code, so the numbers
+ * are stable and self-consistent. Illustrative demo data, not official statistics.
  */
 export function getSaudiPresence(countryCode: string): SaudiPresence {
-  const residents = saudiResidents(countryCode);
-  return {
-    residents,
-    visitors: Math.round(residents * 0.4),
-    visaHolders: Math.round(residents * 0.15),
-  };
+  const code = (countryCode ?? '').toUpperCase() || 'XX';
+  const residents = saudiResidents(code);
+  const h = hash32(code);
+
+  // Visitors: 35%–90% of residents, varying by country (season/tourism profile).
+  const visitorRatio = 0.35 + (h % 56) / 100;
+  const visitors = Math.round(residents * visitorRatio);
+
+  // Visa holders ⊇ residents ∪ visitors: the sum plus a 5%–30% margin, so it is
+  // always the largest of the three.
+  const surplus = 0.05 + ((h >>> 8) % 26) / 100;
+  const visaHolders = Math.round((residents + visitors) * (1 + surplus));
+
+  return { residents, visitors, visaHolders };
 }

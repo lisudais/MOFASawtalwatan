@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Send, ExternalLink, Sparkles, AlertTriangle, Globe, ShieldAlert, ClipboardList } from 'lucide-react';
+import { X, ExternalLink, Sparkles, AlertTriangle, Globe, ShieldAlert, ClipboardList } from 'lucide-react';
 import type { CountryHealthEntry } from '../services/healthAnalysis';
 import { analyzeHealthOutbreak, healthAiCacheKey, type HealthRisk, type HealthConfidence } from '../services/healthAi';
 import { getSaudiPresence } from '../services/mockData';
@@ -29,10 +29,9 @@ const CONFIDENCE_LABEL: Record<HealthConfidence, string> = { HIGH: 'ثقة عا�
 // show the raw WHO data with a clear warning (never a fabricated analysis).
 export default function HealthCountryDetailPanel({ country, onClose }: HealthCountryDetailPanelProps) {
   const [displayed, setDisplayed] = useState<CountryHealthEntry | null>(null);
-  const [sent, setSent] = useState(false);
 
   useEffect(() => {
-    if (country) { setDisplayed(country); setSent(false); }
+    if (country) { setDisplayed(country); }
   }, [country]);
 
   // The raw WHO data (below) renders instantly and unconditionally — the AI
@@ -52,7 +51,7 @@ export default function HealthCountryDetailPanel({ country, onClose }: HealthCou
   return (
     <>
       <div className={`health-detail-backdrop${isOpen ? ' open' : ''}`} onClick={onClose} />
-      <div className={`health-detail-panel${isOpen ? ' open' : ''}`}>
+      <div className={`health-detail-panel${isOpen ? ' open' : ''}`} dir="rtl">
         {d && (
           <>
             <div className="health-detail-topbar">
@@ -159,13 +158,13 @@ export default function HealthCountryDetailPanel({ country, onClose }: HealthCou
               <div className="health-detail-presence-grid">
                 <div className="health-detail-presence-box">
                   <div className="health-detail-presence-value mono-num">
-                    {getSaudiPresence(d.countryCode).visaHolders.toLocaleString('ar-SA')}
+                    {getSaudiPresence(d.countryCode).visaHolders.toLocaleString('en-US')}
                   </div>
                   <div className="health-detail-presence-label">حاملو التأشيرات</div>
                 </div>
                 <div className="health-detail-presence-box">
                   <div className="health-detail-presence-value mono-num">
-                    {(d.saudiTravelersCount > 0 ? d.saudiTravelersCount : getSaudiPresence(d.countryCode).residents).toLocaleString('ar-SA')}
+                    {(d.saudiTravelersCount > 0 ? d.saudiTravelersCount : getSaudiPresence(d.countryCode).residents).toLocaleString('en-US')}
                   </div>
                   <div className="health-detail-presence-label">مقيمون</div>
                 </div>
@@ -177,16 +176,6 @@ export default function HealthCountryDetailPanel({ country, onClose }: HealthCou
               <ExternalLink size={13} />
               المصدر الأصلي · {d.sourceName ?? 'المصدر'}
             </SafeSourceLink>
-
-            <button
-              className="health-detail-send-btn"
-              style={{ background: color }}
-              onClick={() => setSent(true)}
-              disabled={sent}
-            >
-              <Send size={13} />
-              {sent ? 'تم الإرسال' : 'أرسل إشعاراً للمواطنين'}
-            </button>
           </>
         )}
       </div>

@@ -6,15 +6,16 @@ import type { Feature, FeatureCollection } from 'geojson';
 import 'leaflet/dist/leaflet.css';
 import { RISK_COLORS } from '../constants';
 import type { GeoEvent, Traveler, RiskLevel } from '../types';
-import { fetchFlights, type Flight } from '../services/opensky';
+import { useFlights } from '../services/flightStatus';
 import { centroidFor, iso3For, ISO3_WITHOUT_POLYGON } from '../services/feed/countryCentroids';
 import { countryNameAr } from '../services/feed/countryNames';
 import { useBoundariesGeoJson } from '../services/geoBoundaries';
 import MapLayersPanel, { type MapLayer } from './MapLayersPanel';
 import {
-  loadForecasts, topForecastByIso2, bandFor, FORECAST_EVENT_TYPE_AR, FORECAST_SOURCE_AR,
-  MODEL_NAME, type ResolvedForecast, type ForecastBand,
-} from '../services/forecasting/forecastData';
+  loadOutbreakForecasts, loadOutbreakMeta, topOutbreakByIso2, riskBandFor,
+  OUTBREAK_SOURCE_AR, MARKER_THRESHOLD, type ResolvedOutbreak, type OutbreakMeta,
+} from '../services/forecasting/outbreakForecast';
+import OutbreakDetailCard from './OutbreakDetailCard';
 
 /** Per-country risk from App: max Stage 5 score + the category that produced it. */
 export interface CountryRisk {
@@ -50,15 +51,6 @@ const CATEGORY_AR: Record<string, string> = {
 };
 
 const RED = '#FF1744';
-
-// Chronos-2 forecast severity bands → the project's existing severity palette.
-// The "Risk Forecast" layer colours each country by the highest predicted value
-// across the next 4 weeks (thirds of the displayed group's range).
-const BAND_COLOR: Record<ForecastBand, string> = {
-  high: '#FF1744',    // red
-  medium: '#FF6D00',  // orange
-  low: '#FFD600',     // yellow
-};
 
 const WORLD_BOUNDARIES_URL = '/world-countries-110m.geojson';
 
@@ -181,9 +173,8 @@ interface RiskCountry {
   score: number;
   category: string | null;
   byCategory: Record<string, number> | null;
-  // Forecast layer only: severity band + the full Chronos-2 forecast for popups.
-  band?: ForecastBand;
-  forecast?: ResolvedForecast;
+  // Forecast layer only: the full outbreak forecast for colour + popups.
+  outbreak?: ResolvedOutbreak;
 }
 
 // Resolves a per-country risk map into the countries to highlight at/above the
@@ -212,10 +203,13 @@ export default function WorldMap({
   events, travelers, selectedEvent, onSelectEvent, selectedTraveler, countryRisk = {},
 }: WorldMapProps) {
   // ── Flight monitoring (isolated from alert/risk state) ──────────────────
+  // Data now comes from the SHARED flight source (services/flightStatus.ts) so
+  // the AI assistant reads the exact same live feed with no duplicate fetch.
+  // The layer still drives its own polling only while it's toggled on.
   const [showFlights, setShowFlights] = useState(false);
-  const [flights, setFlights] = useState<Flight[]>([]);
+  const flights = useFlights(showFlights);
   // ── Risk highlight layers — mutually exclusive with each other, independent
-  //    of the flight layer. 'none' | 'current' (real RED) | 'predicted' (Chronos-2 forecast). ──
+  //    of the flight layer. 'none' | 'current' (real RED) | 'predicted' (XGBoost outbreak forecast). ──
   const [riskLayer, setRiskLayer] = useState<RiskLayer>('none');
   // ── Event/traveler marker layers — previously always-on; now toggleable
   //    from the same layers panel. Default true so nothing already on screen
@@ -226,24 +220,20 @@ export default function WorldMap({
   const [layersOpen, setLayersOpen] = useState(false);
   const layersBtnRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    if (!showFlights) return;
-    let cancelled = false;
-    const load = async () => {
-      const data = await fetchFlights();
-      if (!cancelled) setFlights(data);
-    };
-    load();
-    const id = setInterval(load, 15000); // safe 15s refresh
-    return () => { cancelled = true; clearInterval(id); };
-  }, [showFlights]);
-
-  // ── Chronos-2 forecast layer data — loaded once from the local file
+  // ── XGBoost outbreak-forecast layer data — loaded once from the local file
   //    (/data/forecasts.json via the shared loader). No API, no mock. ──────
-  const [forecastByIso2, setForecastByIso2] = useState<Record<string, ResolvedForecast>>({});
+  const [forecastByIso2, setForecastByIso2] = useState<Record<string, ResolvedOutbreak>>({});
+  const [fcMeta, setFcMeta] = useState<OutbreakMeta | null>(null);
+  // The single outbreak details component — opened by clicking a forecast
+  // country/marker (same OutbreakDetailCard the health card opens).
+  const [selectedOutbreak, setSelectedOutbreak] = useState<ResolvedOutbreak | null>(null);
   useEffect(() => {
     let cancelled = false;
-    loadForecasts().then((list) => { if (!cancelled) setForecastByIso2(topForecastByIso2(list)); });
+    Promise.all([loadOutbreakForecasts(), loadOutbreakMeta()]).then(([list, meta]) => {
+      if (cancelled) return;
+      setForecastByIso2(topOutbreakByIso2(list));
+      setFcMeta(meta);
+    });
     return () => { cancelled = true; };
   }, []);
 
@@ -279,22 +269,21 @@ export default function WorldMap({
   const worldGeo = useBoundariesGeoJson(WORLD_BOUNDARIES_URL, riskLayer !== 'none');
 
   const redCountries = riskLayer === 'current' ? riskCountries(countryRisk, RISK_HIGHLIGHT_THRESHOLD) : [];
-  // Forecast layer: one entry per country = its highest-peak Chronos-2 forecast,
-  // coloured by severity band (thirds of the displayed group's peak range).
-  const forecastGroupMax = useMemo(
-    () => Math.max(1, ...Object.values(forecastByIso2).map((f) => f.peak)),
-    [forecastByIso2],
-  );
+  // Forecast layer: one entry per country = its highest-probability outbreak
+  // forecast, coloured by the risk level (green→dark red).
   const forecastCountries: RiskCountry[] = riskLayer === 'predicted'
     ? Object.values(forecastByIso2).map((f) => ({
-        iso2: f.iso2, iso3: iso3For(f.iso2), score: f.peak,
-        category: f.event_type, byCategory: null,
-        band: bandFor(f.peak, forecastGroupMax), forecast: f,
+        iso2: f.iso2, iso3: iso3For(f.iso2), score: Math.round(f.probability * 100),
+        category: f.disease, byCategory: null, outbreak: f,
       }))
     : [];
   const active = riskLayer === 'current' ? redCountries : riskLayer === 'predicted' ? forecastCountries : [];
   const isPredicted = riskLayer === 'predicted';
-  const colorFor = (c: RiskCountry) => (isPredicted && c.band ? BAND_COLOR[c.band] : RED);
+  const colorFor = (c: RiskCountry) => (isPredicted && c.outbreak ? riskBandFor(c.outbreak.probability).color : RED);
+  // Countries at/above the marker threshold get a visible emphasis marker.
+  const forecastMarkers = isPredicted
+    ? active.filter((c) => c.outbreak && c.outbreak.probability >= MARKER_THRESHOLD)
+    : [];
 
   // Polygon subset of the world GeoJSON limited to the active countries. Keyed
   // by riskLayer + the id list so react-leaflet rebuilds it when the set changes.
@@ -342,7 +331,7 @@ export default function WorldMap({
       {riskLayer === 'predicted' && (
         <div className="predict-banner" dir="rtl">
           <TrendingUp size={12} />
-          {FORECAST_SOURCE_AR}
+          {OUTBREAK_SOURCE_AR}
         </div>
       )}
 
@@ -355,7 +344,7 @@ export default function WorldMap({
         <MapResizeObserver />
 
         {/* Risk highlight — country-polygon shading. 'current' = real Stage 5
-            risk (solid red). 'predicted' = real Chronos-2 forecast, coloured by
+            risk (solid red). 'predicted' = XGBoost outbreak forecast, coloured by
             severity band (red/orange/yellow). Only the active layer renders. */}
         {polyFeatures && polyFeatures.features.length > 0 && (
           <GeoJSON
@@ -370,18 +359,10 @@ export default function WorldMap({
               const c = byIso3.get(String(feature.id));
               if (!c) return;
               const name = countryNameAr(c.iso2);
-              if (isPredicted && c.forecast) {
-                const f = c.forecast;
-                const evAr = FORECAST_EVENT_TYPE_AR[f.event_type] ?? f.event_type;
-                const weeks = f.forecast_dates
-                  .map((d, i) => `${d}: ${f.predicted_counts[i]} (${f.lower_bound[i]}–${f.upper_bound[i]})`)
-                  .join('<br>');
-                layer.bindPopup(
-                  `<div dir="rtl" class="flight-popup"><strong>${name}</strong>` +
-                  `<div>نوع الحدث: ${evAr}</div>` +
-                  `<div>توقّع الأسابيع الأربعة (القيمة · الأدنى–الأعلى):<br>${weeks}</div>` +
-                  `<div style="opacity:.7">النموذج: ${MODEL_NAME}</div></div>`
-                );
+              if (isPredicted && c.outbreak) {
+                // Open the single OutbreakDetailCard — no legacy popup.
+                const f = c.outbreak;
+                layer.on('click', () => setSelectedOutbreak(f));
               } else {
                 const catAr = c.category ? (CATEGORY_AR[c.category] ?? c.category) : 'غير محدد';
                 const breakdown = c.byCategory
@@ -415,27 +396,38 @@ export default function WorldMap({
                 fillColor: colorFor(c),
                 fillOpacity: isPredicted ? 0.4 : 0.3,
               }}
+              eventHandlers={isPredicted && c.outbreak ? { click: () => setSelectedOutbreak(c.outbreak!) } : undefined}
             >
-              <Popup>
-                <div dir="rtl" className="flight-popup">
-                  <strong>{countryNameAr(c.iso2)}</strong>
-                  {isPredicted && c.forecast ? (
-                    <>
-                      <div>نوع الحدث: {FORECAST_EVENT_TYPE_AR[c.forecast.event_type] ?? c.forecast.event_type}</div>
-                      <div>توقّع الأسابيع الأربعة (القيمة · الأدنى–الأعلى):</div>
-                      {c.forecast.forecast_dates.map((d, i) => (
-                        <div key={d} className="mono-num">
-                          {d}: {c.forecast!.predicted_counts[i]} ({c.forecast!.lower_bound[i]}–{c.forecast!.upper_bound[i]})
-                        </div>
-                      ))}
-                      <div style={{ opacity: 0.7 }}>النموذج: {MODEL_NAME}</div>
-                    </>
-                  ) : (
+              {!isPredicted && (
+                <Popup>
+                  <div dir="rtl" className="flight-popup">
+                    <strong>{countryNameAr(c.iso2)}</strong>
                     <div>مستوى الخطر: {c.score}/100 — المصدر: {c.category ? (CATEGORY_AR[c.category] ?? c.category) : 'غير محدد'}</div>
-                  )}
-                </div>
-              </Popup>
+                  </div>
+                </Popup>
+              )}
             </CircleMarker>
+          );
+        })}
+
+        {/* Emphasis marker for countries at/above the marker threshold (>=5%) */}
+        {forecastMarkers.map((c) => {
+          const center = centroidFor(c.iso2);
+          const f = c.outbreak!;
+          if (!center) return null;
+          const col = riskBandFor(f.probability).color;
+          return (
+            <Marker
+              key={`fc-marker-${c.iso2}`}
+              position={center}
+              icon={L.divIcon({
+                className: '',
+                html: `<div style="width:14px;height:14px;border-radius:50%;background:${col};` +
+                  `border:2px solid #fff;box-shadow:0 0 8px ${col};cursor:pointer;"></div>`,
+                iconSize: [14, 14], iconAnchor: [7, 7],
+              })}
+              eventHandlers={{ click: () => setSelectedOutbreak(f) }}
+            />
           );
         })}
 
@@ -448,13 +440,7 @@ export default function WorldMap({
               icon={eventDivIcon(event, isSelected)}
               zIndexOffset={isSelected ? 1000 : 0}
               eventHandlers={{ click: () => onSelectEvent(event) }}
-            >
-              <Popup>
-                <strong>{event.title}</strong>
-                <br />
-                {event.country} · {event.riskLevel}
-              </Popup>
-            </Marker>
+            />
           );
         })}
 
@@ -479,12 +465,17 @@ export default function WorldMap({
                 <div>الوجهة: غير متاح</div>
                 <div>الارتفاع: {f.baroAltitude != null ? `${Math.round(f.baroAltitude)} م` : 'غير متاح'}</div>
                 <div>السرعة: {f.velocity != null ? `${Math.round(f.velocity * 3.6)} كم/س` : 'غير متاح'}</div>
-                <div>آخر تحديث: {f.lastContact != null ? new Date(f.lastContact * 1000).toLocaleTimeString('ar-SA') : 'غير متاح'}</div>
+                <div>آخر تحديث: {f.lastContact != null ? new Date(f.lastContact * 1000).toLocaleTimeString('ar-SA-u-nu-latn') : 'غير متاح'}</div>
               </div>
             </Popup>
           </Marker>
         ))}
       </MapContainer>
+
+      {/* The single outbreak details component — same card the health panel opens */}
+      {selectedOutbreak && (
+        <OutbreakDetailCard f={selectedOutbreak} meta={fcMeta} onClose={() => setSelectedOutbreak(null)} />
+      )}
     </>
   );
 }

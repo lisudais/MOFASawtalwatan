@@ -1,0 +1,116 @@
+{
+  "unit": "one (country, disease, epidemiological week)",
+  "rows": 13720,
+  "features": 33,
+  "date_range": [
+    "2004-02-02",
+    "2026-09-14"
+  ],
+  "countries": 145,
+  "diseases": 241,
+  "sources": {
+    "outbreak_and_cases": "WHO Disease Outbreak News (dataset/cache/who-don.json)",
+    "population": "World Bank SP.POP.TOTL (most recent)",
+    "geo_area_borders": "world-countries-110m.geojson (centroid, spherical area, adjacency)",
+    "iso_continent": "pycountry / pycountry_convert"
+  },
+  "split": {
+    "type": "chronological (no shuffle)",
+    "ratios": "70/15/15",
+    "train": 9604,
+    "validation": 2058,
+    "test": 2058,
+    "train_range": [
+      "2004-02-02",
+      "2021-08-30"
+    ],
+    "validation_range": [
+      "2021-08-30",
+      "2024-03-04"
+    ],
+    "test_range": [
+      "2024-03-04",
+      "2026-09-14"
+    ]
+  },
+  "targets": {
+    "future_outbreak": {
+      "type": "binary",
+      "positive_rate": 0.1142,
+      "positives": 1567,
+      "negatives": 12153
+    },
+    "future_cases_4w": {
+      "type": "regression",
+      "min": 0.0,
+      "median": 0.0,
+      "max": 816658.0,
+      "mean": 507.01
+    }
+  },
+  "quality_checks": {
+    "duplicate_rows": 0,
+    "missing_pct_by_column": {
+      "week_start": 0.0,
+      "week": 0.0,
+      "month": 0.0,
+      "year": 0.0,
+      "season": 0.0,
+      "country": 0.0,
+      "iso3": 0.0,
+      "continent": 0.28,
+      "latitude": 1.81,
+      "longitude": 1.81,
+      "disease_name": 0.0,
+      "disease_category": 0.0,
+      "current_cases": 20.34,
+      "current_deaths": 36.98,
+      "current_case_fatality_rate": 39.11,
+      "cases_last_week": 0.0,
+      "cases_last_2_weeks": 0.0,
+      "cases_last_4_weeks": 0.0,
+      "rolling_mean_4w": 0.0,
+      "rolling_mean_8w": 0.0,
+      "rolling_std_4w": 0.0,
+      "weekly_growth_rate": 0.0,
+      "weekly_death_growth_rate": 0.0,
+      "trend_direction": 0.0,
+      "weeks_since_last_outbreak": 0.0,
+      "active_outbreak": 0.0,
+      "historical_peak_cases": 20.34,
+      "historical_peak_deaths": 36.98,
+      "neighbouring_countries_with_active_outbreak": 0.0,
+      "regional_cases": 0.28,
+      "regional_growth_rate": 80.91,
+      "population": 0.39,
+      "population_density": 1.9,
+      "future_outbreak": 0.0,
+      "future_cases_4w": 0.0
+    },
+    "class_balance_future_outbreak": {
+      "positive_pct": 11.42
+    },
+    "top_abs_correlation_with_future_cases_4w": {
+      "weeks_since_last_outbreak": 0.158,
+      "future_outbreak": 0.095,
+      "longitude": 0.037,
+      "population_density": 0.024,
+      "year": 0.019,
+      "active_outbreak": 0.017,
+      "week": 0.015,
+      "month": 0.014,
+      "neighbouring_countries_with_active_outbreak": 0.012,
+      "population": 0.01,
+      "trend_direction": 0.009,
+      "latitude": 0.007
+    },
+    "outlier_counts_iqr": {
+      "current_cases": 1714,
+      "future_cases_4w": 842,
+      "cases_last_4_weeks": 2807,
+      "regional_cases": 2676
+    }
+  },
+  "leakage_control": "All features use week <= t; both targets use weeks t+1..t+4 only.",
+  "missing_value_policy": "Genuine unknowns left as NaN (XGBoost handles NaN natively) — never imputed with invented values."
+}

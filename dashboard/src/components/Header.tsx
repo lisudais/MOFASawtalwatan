@@ -23,7 +23,7 @@ export default function Header({ lastUpdated, missionsMenu, onExportReport }: He
         {missionsMenu && <MissionsDropdown />}
         {lastUpdated && (
           <span className="header-updated">
-            آخر تحديث {lastUpdated.toLocaleTimeString('ar-SA')}
+            آخر تحديث {lastUpdated.toLocaleTimeString('ar-SA-u-nu-latn')}
           </span>
         )}
       </div>

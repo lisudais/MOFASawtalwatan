@@ -1,0 +1,131 @@
+{
+  "model": "XGBClassifier",
+  "target": "future_outbreak",
+  "test": {
+    "at_0.50": {
+      "PR_AUC": 0.7015588785870732,
+      "ROC_AUC": 0.8239110710393116,
+      "precision": 0.324468085106383,
+      "recall": 0.6853932584269663,
+      "F1": 0.4404332129963899,
+      "balanced_accuracy": 0.8104467561814872,
+      "log_loss": 0.24062158167362213,
+      "threshold": 0.5
+    },
+    "at_selected": {
+      "PR_AUC": 0.7015588785870732,
+      "ROC_AUC": 0.8239110710393116,
+      "precision": 0.7023809523809523,
+      "recall": 0.6629213483146067,
+      "F1": 0.6820809248554913,
+      "balanced_accuracy": 0.8251122739541545,
+      "log_loss": 0.24062158167362213,
+      "threshold": 0.73
+    },
+    "val_at_selected": {
+      "PR_AUC": 0.9218644416902854,
+      "ROC_AUC": 0.9585145671545201,
+      "precision": 1.0,
+      "recall": 0.8307291666666666,
+      "F1": 0.9075391180654339,
+      "balanced_accuracy": 0.9153645833333333,
+      "log_loss": 0.1561802476644516,
+      "threshold": 0.73
+    },
+    "calibration": {
+      "brier_uncalibrated": 0.06546224653720856,
+      "brier_calibrated": 0.018771227449178696,
+      "prauc_uncalibrated": 0.7015588785870732,
+      "prauc_calibrated": 0.6969453395464158,
+      "calibration_applied": true
+    }
+  },
+  "baselines": [
+    {
+      "task": "classification",
+      "model": "always_no_outbreak",
+      "PR_AUC": 0.0432,
+      "precision": 0.0,
+      "recall": 0.0,
+      "F1": 0.0,
+      "MAE": NaN,
+      "RMSE": NaN,
+      "WAPE": NaN,
+      "RMSLE": NaN
+    },
+    {
+      "task": "classification",
+      "model": "active_outbreak",
+      "PR_AUC": 0.0405,
+      "precision": 0.0296,
+      "recall": 0.2022,
+      "F1": 0.0516,
+      "MAE": NaN,
+      "RMSE": NaN,
+      "WAPE": NaN,
+      "RMSLE": NaN
+    },
+    {
+      "task": "classification",
+      "model": "recent_growth>0",
+      "PR_AUC": 0.044,
+      "precision": 0.0562,
+      "recall": 0.0562,
+      "F1": 0.0562,
+      "MAE": NaN,
+      "RMSE": NaN,
+      "WAPE": NaN,
+      "RMSLE": NaN
+    }
+  ],
+  "top_features_gain": [
+    [
+      "weeks_since_last_outbreak",
+      259.55938720703125
+    ],
+    [
+      "year",
+      118.55513763427734
+    ],
+    [
+      "historical_peak_deaths",
+      103.4759292602539
+    ],
+    [
+      "season",
+      78.59603118896484
+    ],
+    [
+      "disease_category",
+      67.08684539794922
+    ],
+    [
+      "longitude",
+      57.663970947265625
+    ],
+    [
+      "continent",
+      55.58268737792969
+    ],
+    [
+      "month",
+      54.92523193359375
+    ],
+    [
+      "population",
+      49.984642028808594
+    ],
+    [
+      "current_case_fatality_rate",
+      44.56212615966797
+    ],
+    [
+      "population_density",
+      43.655662536621094
+    ],
+    [
+      "current_deaths",
+      37.94830322265625
+    ]
+  ]
+}

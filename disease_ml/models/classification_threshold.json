@@ -1,0 +1,4 @@
+{
+  "threshold": 0.73,
+  "selection": "validation F-beta(2), precision>=0.15"
+}

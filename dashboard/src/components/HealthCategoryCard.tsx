@@ -1,47 +1,41 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Share2, RefreshCw, TrendingUp, TrendingDown, Minus, AlertTriangle } from 'lucide-react';
 import { type CountryHealthEntry } from '../services/healthAnalysis';
 import { fetchHealthCountries } from '../services/healthFeed';
 import { RISK_LEVEL_BAR_COLORS } from '../constants';
+import OutbreakDetailCard from './OutbreakDetailCard';
 import {
-  loadForecasts, loadForecastMeta, diseaseForecastByIso2, relativeRisk, bandFor,
-  MODEL_BADGE_AR, type ResolvedForecast, type ForecastBand,
-} from '../services/forecasting/forecastData';
+  loadOutbreakForecasts, loadOutbreakMeta, riskBandFor, TREND_AR, CONFIDENCE_AR,
+  OUTBREAK_MODEL_AR, OFFICIAL_THRESHOLD,
+  type ResolvedOutbreak, type OutbreakMeta,
+} from '../services/forecasting/outbreakForecast';
 
-// Outbreak-forecast trend semantics are inverted from the app's general TREND_COLOR
-// (constants.ts): here RISING means the outbreak is getting worse, so it's red, and
-// FALLING (improving) is green — the opposite of a generic "activity increasing" signal.
+// Live-health-list trend colours (this list is the WHO/disease.sh feed, separate
+// from the ML outbreak forecast below).
 const FORECAST_TREND_ICON = { RISING: TrendingUp, FALLING: TrendingDown, STABLE: Minus };
 const FORECAST_TREND_COLOR = { RISING: 'var(--danger-critical)', FALLING: 'var(--danger-low)', STABLE: 'var(--text-muted)' };
 
-// Chronos-2 severity band → the project's existing severity palette (same reds/
-// oranges/yellows used by the map's forecast layer, kept consistent here).
-const BAND_COLOR: Record<ForecastBand, string> = {
-  high: '#FF1744',    // red
-  medium: '#FF6D00',  // orange
-  low: '#FFD600',     // yellow
-};
-
 const REFRESH_MS = 10 * 60 * 1000;
+const TOP_N = 10;
 
 interface HealthCategoryCardProps {
   onSelectCountry: (entry: CountryHealthEntry) => void;
-  // Fired with the fresh list after every successful load — lets the parent
-  // (App.tsx) fold real health-risk data into the sidebar's aggregate stats.
   onDataLoaded?: (countries: CountryHealthEntry[]) => void;
 }
 
-// Live global-health card. The ranked country list is fetched from real, keyless
-// sources (WHO Disease Outbreak News + disease.sh). The "التوقعات الصحية الإقليمية"
-// section below is driven ENTIRELY by the local Amazon Chronos-2 forecast output
-// (services/forecasting/forecastData.ts → /data/forecasts.json), matched by
-// event_type = disease. No mock/demo forecast values remain.
+// Global-health card. Top: the live ranked country list (WHO Disease Outbreak
+// News + disease.sh). Bottom: the OUTBREAK FORECAST section, driven entirely by
+// the local XGBoost outbreak classifier — probability of an outbreak in the next
+// 4 weeks per country + disease. Display bands are base-rate-aware; the official
+// 0.73 alert threshold is kept separate. Probabilities are shown, never rescaled.
 export default function HealthCategoryCard({ onSelectCountry, onDataLoaded }: HealthCategoryCardProps) {
   const [countries, setCountries] = useState<CountryHealthEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [diseaseFc, setDiseaseFc] = useState<Record<string, ResolvedForecast>>({});
-  const [fcGeneratedAt, setFcGeneratedAt] = useState<string | null>(null);
+  const [outbreaks, setOutbreaks] = useState<ResolvedOutbreak[]>([]);
+  const [fcMeta, setFcMeta] = useState<OutbreakMeta | null>(null);
+  const [selected, setSelected] = useState<ResolvedOutbreak | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -64,33 +58,21 @@ export default function HealthCategoryCard({ onSelectCountry, onDataLoaded }: He
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Chronos-2 disease forecasts — loaded once from the local file.
   useEffect(() => {
     let cancelled = false;
-    Promise.all([loadForecasts(), loadForecastMeta()]).then(([list, meta]) => {
+    Promise.all([loadOutbreakForecasts(), loadOutbreakMeta()]).then(([list, meta]) => {
       if (cancelled) return;
-      setDiseaseFc(diseaseForecastByIso2(list));
-      setFcGeneratedAt(meta.generatedAtUtc);
+      setOutbreaks(list);
+      setFcMeta(meta);
     });
     return () => { cancelled = true; };
   }, []);
 
-  // Regional forecast view = every Chronos-2 disease forecast, ranked by its peak
-  // predicted value; percentages are relative-risk scores vs. the group's max.
-  const forecastView = useMemo(() => {
-    const items = Object.values(diseaseFc);
-    if (items.length === 0) return null;
-    const groupMax = Math.max(...items.map((f) => f.peak), 1);
-    const rows = items
-      .map((f) => ({ fc: f, relRisk: relativeRisk(f.peak, groupMax), band: bandFor(f.peak, groupMax) }))
-      .sort((a, b) => b.fc.peak - a.fc.peak);
-    return { rows };
-  }, [diseaseFc]);
-
-  const openForecastCountry = (iso2: string) => {
-    const entry = countries.find((c) => c.countryCode === iso2);
-    if (entry) onSelectCountry(entry);
-  };
+  const pct = (p: number) => Math.round(p * 100);
+  // Bar shows proximity to the official 0.73 alert (visual only) — the % label is
+  // always the real calibrated probability.
+  const barW = (p: number) => Math.min(100, Math.round((p / OFFICIAL_THRESHOLD) * 100));
+  const shown = showAll ? outbreaks : outbreaks.slice(0, TOP_N);
 
   return (
     <div className="region-card health-card">
@@ -143,70 +125,61 @@ export default function HealthCategoryCard({ onSelectCountry, onDataLoaded }: He
             })}
           </div>
 
-          {/* ── التوقعات الصحية الإقليمية — real Amazon Chronos-2 forecasts ── */}
+          {/* ── أعلى توقعات التفشي — XGBoost outbreak classifier ── */}
           <div className="health-regional-forecast">
             <div className="health-regional-header">
-              <span className="health-regional-title">التوقعات الصحية الإقليمية</span>
-              <span className="health-regional-badge">{MODEL_BADGE_AR}</span>
-              {fcGeneratedAt && (
-                <span className="health-regional-timestamp mono-num">{fcGeneratedAt.slice(0, 10)}</span>
-              )}
+              <span className="health-regional-title">أعلى توقعات التفشي خلال 4 أسابيع</span>
+              <span className="health-regional-badge">{OUTBREAK_MODEL_AR}</span>
             </div>
 
-            {!forecastView ? (
-              <div className="widget-empty-state">لا توجد توقعات متاحة لهذه المنطقة</div>
+            {outbreaks.length === 0 ? (
+              <div className="widget-empty-state">لا توجد توقعات متاحة</div>
             ) : (
               <>
-                <div className="health-regional-heatmap">
-                  {forecastView.rows.slice(0, 6).map((r) => (
-                    <div key={r.fc.iso2} className="health-heatmap-cell" style={{ background: BAND_COLOR[r.band] }}>
-                      <span className="health-heatmap-value mono-num">{r.relRisk}</span>
-                      <span className="health-heatmap-metric-label">مؤشر خطر نسبي</span>
-                      <span className="health-heatmap-label">{r.fc.countryAr}</span>
-                    </div>
+                <div className="health-watchlist">
+                  {shown.map((f) => (
+                    <button
+                      key={`${f.country}-${f.disease}`}
+                      className="health-prob-item"
+                      onClick={() => setSelected(f)}
+                    >
+                      <div className="health-prob-row">
+                        <span className="outbreak-risk-dot" style={{ background: riskBandFor(f.probability).color }} />
+                        <span className="health-prob-country">{f.countryAr} · {f.disease}</span>
+                        <div className="health-prob-bar-track">
+                          <div className="health-prob-bar-fill" style={{ width: `${barW(f.probability)}%`, background: riskBandFor(f.probability).color }} />
+                        </div>
+                        <span className="health-prob-value mono-num">{pct(f.probability)}%</span>
+                      </div>
+                      <div className="outbreak-meta">
+                        <span className="outbreak-risk-chip" style={{ color: riskBandFor(f.probability).color, borderColor: riskBandFor(f.probability).color }}>
+                          {riskBandFor(f.probability).ar}
+                        </span>
+                        <span>{f.probability_vs_base_rate_ratio}× المعدل الأساسي</span>
+                        <span>الاتجاه: {TREND_AR[f.trend]}</span>
+                        <span>الثقة: {CONFIDENCE_AR[f.confidence]}</span>
+                      </div>
+                      <div className="outbreak-expl">{f.base_rate_comparison_ar}</div>
+                    </button>
                   ))}
                 </div>
 
-                <div className="health-regional-stat">
-                  <span className="mono-num">{forecastView.rows.length}</span>{' '}دولة ذات توقّع نشط · النموذج: Chronos-2
-                </div>
+                {outbreaks.length > TOP_N && (
+                  <button type="button" className="outbreak-viewall" onClick={() => setShowAll((v) => !v)}>
+                    {showAll ? 'عرض أعلى 10 فقط' : `عرض كل التوقعات (${outbreaks.length})`}
+                  </button>
+                )}
 
-                <div className="health-forecast-legend">
-                  التوقّع للأسابيع الأربعة القادمة — القيمة المتوقعة (النطاق الأدنى–الأعلى)
-                </div>
-
-                <div className="health-watchlist">
-                  {forecastView.rows.slice(0, 8).map((r) => {
-                    const f = r.fc;
-                    return (
-                      <button key={f.iso2} className="health-prob-item" onClick={() => openForecastCountry(f.iso2)}>
-                        <div className="health-prob-row">
-                          <span className="health-prob-country">{f.countryAr}</span>
-                          <div className="health-prob-bar-track">
-                            <div className="health-prob-bar-fill" style={{ width: `${r.relRisk}%`, background: BAND_COLOR[r.band] }} />
-                          </div>
-                          <span className="health-prob-value mono-num" title="مؤشر خطر نسبي — نسبة إلى أعلى قيمة متوقعة في المجموعة">
-                            {r.relRisk}%
-                          </span>
-                        </div>
-                        <div className="health-forecast-weeks">
-                          {f.forecast_dates.map((d, i) => (
-                            <span className="health-fc-week" key={d}>
-                              <span className="health-fc-date">{d.slice(5)}</span>
-                              <span className="health-fc-count mono-num">{f.predicted_counts[i]}</span>
-                              <span className="health-fc-range mono-num">{f.lower_bound[i]}–{f.upper_bound[i]}</span>
-                            </span>
-                          ))}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                {fcMeta?.display_note_ar && (
+                  <div className="outbreak-note">{fcMeta.display_note_ar}</div>
+                )}
               </>
             )}
           </div>
         </div>
       )}
+
+      {selected && <OutbreakDetailCard f={selected} meta={fcMeta} onClose={() => setSelected(null)} />}
     </div>
   );
 }

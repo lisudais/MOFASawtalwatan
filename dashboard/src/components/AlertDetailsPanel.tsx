@@ -297,7 +297,7 @@ export default function AlertDetailsPanel({ card, event, travelers, onClose, onT
             </button>
             <div className="presence-visa-card">
               {/* Mock visa-holder estimate for this country (always a number). */}
-              <div className="presence-visa-count mono-num">{getSaudiPresence(countryCode).visaHolders.toLocaleString('ar-SA')}</div>
+              <div className="presence-visa-count mono-num">{getSaudiPresence(countryCode).visaHolders.toLocaleString('en-US')}</div>
               <div className="presence-visa-label">
                 Visa Holders
                 <span className="panel-header-ar" style={{ marginRight: 0 }}>حاملو التأشيرات</span>
