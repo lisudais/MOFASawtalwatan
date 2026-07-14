@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import {
-  Radar, Zap, AlertTriangle, ChevronLeft, MapPin, Clock, ExternalLink,
+  Radar, Zap, AlertTriangle, ChevronLeft, MapPin, Clock,
   HeartPulse, Crosshair, TrendingUp, TrendingDown, Activity, Mountain, Wind, CloudRain, Flame,
 } from 'lucide-react';
 import { classifyRiskByScore } from '../services/riskClassification';
@@ -166,17 +166,6 @@ function AlertRow({ alert, selected, onSelect }: AlertRowProps) {
               <Clock size={9} />
               {timeAgoAr(alert.occurredAt)}
             </span>
-            {alert.url && (
-              <a
-                className="feed-link"
-                href={alert.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <ExternalLink size={9} /> المصدر
-              </a>
-            )}
           </div>
         </div>
 

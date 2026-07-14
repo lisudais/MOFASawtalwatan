@@ -866,24 +866,27 @@ body {
   flex: 1;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); /* reflows to more columns as the sidebar widens, falls back to 1 when squeezed, instead of a rigid 2-up grid */
-  grid-auto-rows: min-content; /* each row's height is driven purely by its own row's content, so a resize can never leave a stale/mismatched row height behind */
-  align-items: start; /* aspect-ratio items should size from their own ratio, not the row's stretch height — avoids the cross-browser stretch+aspect-ratio sizing bugs that caused cards to bleed into each other on resize */
-  gap: 8px;
-  padding: 8px;
+  grid-template-columns: 1fr; /* single column — every section spans the full sidebar width, one per row */
+  grid-auto-rows: min-content;
+  align-items: start;
+  gap: 10px;
+  padding: 10px;
 }
 
 .region-card {
   position: relative;
-  aspect-ratio: 3 / 2; /* locks each box's shape — width changes with the sidebar, height follows the same ratio instead of distorting */
+  /* Single-column layout: no aspect-ratio (that made a full-width card far too
+     tall). A fixed height keeps every section a consistent full-width block with
+     its own internal scroll (bodies keep overflow-y:auto). */
+  height: 260px;
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 0; /* lets the card shrink below its content's intrinsic size instead of forcing the grid row taller than the aspect-ratio box, which is what let it overlap the next row */
+  min-height: 0;
 }
 .region-accent-bar { height: 3px; background: var(--text-muted); flex-shrink: 0; }
 .region-accent-bar.critical { background: var(--danger-critical); }
@@ -891,15 +894,15 @@ body {
 .region-card-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 8px;
+  gap: 8px;
+  padding: 10px 12px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
   flex-wrap: nowrap; /* icons/badges never wrap onto a new line — only the name truncates */
   flex-shrink: 0;
   min-width: 0;
 }
 .region-count {
-  font-size: 11px; font-size: clamp(8px, 3cqw, 11px);
+  font-size: 13px; font-size: clamp(11px, 3cqw, 14px);
   color: var(--text-secondary); font-weight: 600; flex-shrink: 0;
 }
 .region-icon-btn {
@@ -941,7 +944,7 @@ body {
   min-width: 0; overflow: hidden;
 }
 .region-name-ar {
-  font-size: 12px; font-size: clamp(9px, 3.6cqw, 13px);
+  font-size: 15px; font-size: clamp(13px, 3.6cqw, 16px);
   font-weight: 700; color: var(--text-primary); font-family: var(--font-arabic);
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
@@ -1207,6 +1210,35 @@ body {
 
 .flight-popup { font-size: 11px; line-height: 1.6; }
 .flight-popup strong { color: #0A1628; }
+
+/* "No flight data" notice — shown when the حركة الطيران layer is on but OpenSky
+   returned nothing (e.g. anonymous rate-limit). Small pill, top-centre of map. */
+.flight-empty-notice {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 600;
+  display: flex; align-items: center; gap: 7px; max-width: min(92%, 460px);
+  padding: 7px 12px; font-size: 11px; line-height: 1.5; color: var(--text-primary);
+  background: var(--bg-glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(125,211,252,0.4); border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.flight-empty-notice svg { color: #7DD3FC; flex-shrink: 0; }
+
+/* Hover tooltip for the current-risk choropleth (see WorldMap.tsx) — dark,
+   compact chip so a country's name + numeric risk_score reads instantly over
+   the shaded polygon without a click. */
+.leaflet-tooltip.risk-choropleth-tooltip {
+  background: rgba(10, 22, 40, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #F1F5F9;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+}
+.leaflet-tooltip.risk-choropleth-tooltip strong { color: #FFFFFF; }
+.leaflet-tooltip.risk-choropleth-tooltip::before { border-top-color: rgba(10, 22, 40, 0.95); }
 
 /* Pulse for CRITICAL/HIGH event-type risk markers (see eventDivIcon in
    WorldMap.tsx) — opacity/scale pulse, distinct from the older unused
@@ -1496,6 +1528,17 @@ body {
   font-size: 11px; font-weight: 700; color: var(--text-primary);
   font-family: var(--font-arabic);
 }
+/* 🔄 regenerate-via-gpt-oss button, pinned to the end of the label row. */
+.editable-message-regen {
+  margin-inline-start: auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; flex-shrink: 0;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border-gold);
+  color: var(--text-secondary); border-radius: 6px; cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.editable-message-regen:hover:not(:disabled) { color: var(--saudi-gold); border-color: var(--saudi-gold); }
+.editable-message-regen:disabled { opacity: 0.5; cursor: not-allowed; }
 .editable-message-textarea {
   width: 100%; resize: vertical; min-height: 80px;
   background: rgba(255,255,255,0.03); border: 1px solid var(--border);
@@ -2023,7 +2066,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 6px 8px;
+  padding: 8px 12px;
 }
 
 .health-forecast-row { display: flex; align-items: center; gap: 6px; }
@@ -2091,12 +2134,12 @@ body {
 .health-country-row {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 7px;
   width: 100%;
   background: none;
   border: none;
-  border-radius: 4px;
-  padding: 3px 4px;
+  border-radius: 5px;
+  padding: 6px 8px;
   cursor: pointer;
   text-align: right;
   direction: rtl;
@@ -2105,16 +2148,16 @@ body {
 }
 .health-country-row:hover { background: rgba(255,255,255,0.05); }
 .health-country-dot {
-  width: 6px; height: 6px; border-radius: 50%;
+  width: 8px; height: 8px; border-radius: 50%;
   flex-shrink: 0;
 }
 .health-country-name {
-  font-size: 10px; font-size: clamp(7.5px, 2.6cqw, 10px);
+  font-size: 12.5px; font-size: clamp(11px, 2.6cqw, 13px);
   font-weight: 700; color: var(--text-primary);
   flex-shrink: 0;
 }
 .health-country-disease {
-  font-size: 9px; font-size: clamp(6.5px, 2.3cqw, 9px);
+  font-size: 11px; font-size: clamp(9px, 2.3cqw, 11.5px);
   color: var(--text-muted);
   flex: 1;
   min-width: 0;
@@ -2123,7 +2166,7 @@ body {
   white-space: nowrap;
 }
 .health-country-prob {
-  font-size: 9px; font-size: clamp(6.5px, 2.3cqw, 9px);
+  font-size: 11px; font-size: clamp(9px, 2.3cqw, 11.5px);
   color: var(--text-secondary);
   flex-shrink: 0;
 }
@@ -2495,7 +2538,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 6px 8px 12px;
+  padding: 6px 12px 14px;
   direction: rtl;
 }
 
@@ -2527,47 +2570,47 @@ body {
 .dz-row {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 7px;
   width: 100%;
-  min-height: 30px;
+  min-height: 38px;
   text-align: start;
   font: inherit;
-  padding: 6px 7px;
+  padding: 8px 10px;
   background: rgba(255,255,255,0.02);
   border: 1px solid transparent;
-  border-inline-start: 2px solid var(--text-muted);
-  border-radius: 6px;
+  border-inline-start: 3px solid var(--text-muted);
+  border-radius: 7px;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 .dz-row:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
-.dz-flag { font-size: 12px; line-height: 1; flex-shrink: 0; }
+.dz-flag { font-size: 15px; line-height: 1; flex-shrink: 0; }
 .dz-flag-icon { color: var(--text-muted); flex-shrink: 0; }
 .dz-country {
-  font-size: 10px; font-size: clamp(8px, 2.7cqw, 11px);
+  font-size: 12.5px; font-size: clamp(11px, 2.7cqw, 13.5px);
   font-weight: 700; color: var(--text-primary);
   font-family: var(--font-arabic);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 96px; flex-shrink: 0;
+  max-width: 150px; flex-shrink: 0;
 }
 .dz-type {
-  display: flex; align-items: center; gap: 3px;
-  font-size: 8.5px; font-size: clamp(7px, 2.3cqw, 9px);
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-size: clamp(9px, 2.3cqw, 11px);
   color: var(--text-secondary);
   flex: 1; min-width: 0; white-space: nowrap; overflow: hidden;
 }
 .dz-type svg { flex-shrink: 0; color: var(--text-muted); }
 .dz-value {
-  font-size: 9px; font-size: clamp(7.5px, 2.4cqw, 10px);
+  font-size: 12px; font-size: clamp(10px, 2.4cqw, 12.5px);
   font-weight: 700; color: var(--text-primary);
   flex-shrink: 0; white-space: nowrap;
 }
 .dz-risk {
-  font-size: 8px; font-size: clamp(6.5px, 2.2cqw, 8.5px);
+  font-size: 10px; font-size: clamp(8.5px, 2.2cqw, 10.5px);
   font-weight: 700;
   font-family: var(--font-arabic);
   border: 1px solid; border-radius: 8px;
-  padding: 1px 6px; flex-shrink: 0; white-space: nowrap;
+  padding: 2px 8px; flex-shrink: 0; white-space: nowrap;
 }
 
 /* Disaster detail popup — extra bits layered onto the shared .health-detail-*
@@ -2633,7 +2676,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 11px;
-  padding: 8px 8px 12px;
+  padding: 10px 12px 14px;
   direction: rtl;
 }
 
@@ -2667,26 +2710,26 @@ body {
 
 .eco-block-head { display: flex; align-items: center; gap: 6px; }
 .eco-name {
-  font-size: 12px; font-size: clamp(9px, 3cqw, 13px);
+  font-size: 14px; font-size: clamp(12px, 3cqw, 15px);
   font-weight: 700; color: var(--text-primary);
   font-family: var(--font-arabic);
 }
 .eco-unit {
-  font-size: 8.5px; font-size: clamp(7px, 2.3cqw, 9px);
+  font-size: 10px; font-size: clamp(8.5px, 2.3cqw, 11px);
   color: var(--text-muted);
   font-family: var(--font-arabic);
 }
 .eco-delta {
   display: flex; align-items: center; gap: 3px;
   margin-inline-start: auto;
-  font-size: 10px; font-size: clamp(8px, 2.5cqw, 11px);
+  font-size: 12px; font-size: clamp(10px, 2.5cqw, 13px);
   font-weight: 700; white-space: nowrap;
 }
 .eco-delta svg { flex-shrink: 0; }
 
 .eco-block-main { display: flex; align-items: center; gap: 16px; padding-top: 2px; }
 .eco-value {
-  font-size: 18px; font-size: clamp(14px, 4.6cqw, 20px);
+  font-size: 20px; font-size: clamp(16px, 4.6cqw, 23px);
   font-weight: 700; color: var(--text-primary);
   line-height: 1; flex-shrink: 0; letter-spacing: -0.3px;
   padding-inline-start: 2px;
@@ -2913,25 +2956,25 @@ body {
 .sec-row-top { display: flex; align-items: center; gap: 6px; }
 .sec-flag { font-size: 14px; line-height: 1; flex-shrink: 0; }
 .sec-country {
-  font-size: 12px; font-size: clamp(9px, 3cqw, 13px);
+  font-size: 14px; font-size: clamp(12px, 3cqw, 15px);
   font-weight: 700; color: var(--text-primary); line-height: 1.5;
   font-family: var(--font-arabic);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .sec-iso {
-  font-size: 8px; font-size: clamp(6.5px, 2cqw, 8.5px);
+  font-size: 10px; font-size: clamp(8px, 2cqw, 10.5px);
   color: var(--text-muted); flex-shrink: 0; white-space: nowrap;
-  border: 1px solid var(--border); border-radius: 5px; padding: 1px 4px;
+  border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px;
 }
 .sec-level {
-  font-size: 8px; font-size: clamp(6.5px, 2.2cqw, 8.5px);
+  font-size: 10px; font-size: clamp(8.5px, 2.2cqw, 10.5px);
   font-weight: 700; font-family: var(--font-arabic);
-  border: 1px solid; border-radius: 8px; padding: 1px 7px;
+  border: 1px solid; border-radius: 8px; padding: 2px 8px;
   margin-inline-start: auto; flex-shrink: 0; white-space: nowrap;
 }
 .sec-score {
-  font-size: 15px; font-size: clamp(12px, 3.6cqw, 16px);
-  font-weight: 700; flex-shrink: 0; min-width: 24px; text-align: end;
+  font-size: 17px; font-size: clamp(14px, 3.6cqw, 19px);
+  font-weight: 700; flex-shrink: 0; min-width: 26px; text-align: end;
 }
 .sec-bar-track {
   width: 100%; height: 5px; border-radius: 3px; overflow: hidden;
@@ -2941,14 +2984,14 @@ body {
 .sec-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
 .sec-row-meta { display: flex; align-items: center; gap: 8px; direction: rtl; }
 .sec-incidents {
-  display: flex; align-items: center; gap: 3px;
-  font-size: 8px; font-size: clamp(6.5px, 2.1cqw, 8.5px);
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; font-size: clamp(8.5px, 2.1cqw, 10.5px);
   color: var(--text-secondary); white-space: nowrap;
 }
 .sec-incidents svg { flex-shrink: 0; }
 .sec-time {
-  display: flex; align-items: center; gap: 3px;
-  font-size: 8px; font-size: clamp(6.5px, 2.1cqw, 8.5px);
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; font-size: clamp(8.5px, 2.1cqw, 10.5px);
   color: var(--text-muted); margin-inline-start: auto; white-space: nowrap;
 }
 .sec-time svg { flex-shrink: 0; }

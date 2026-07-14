@@ -141,11 +141,17 @@ def main():
         if i2:
             active_weeks.setdefault(i2, []).append(r["week_start"])
     mm = json.load(open(os.path.join(MODELS, "model_metadata.json"), encoding="utf-8"))
+    _cal_method = mm.get("calibration_method", "none")
+    _cal_label = {
+        "platt": "معايرة Platt (سيغمويد) على مجموعة التحقق",
+        "isotonic": "معايرة أيزوتونية على مجموعة التحقق",
+        "none": "غير معاير",
+    }.get(_cal_method, "غير معاير")
     model_info = {
         "model_name": "XGBoost Outbreak Classifier",
         "prediction_type": "احتمال معاير لحدوث تفشٍّ خلال 4 أسابيع (تصنيف ثنائي معاير)",
         "prediction_type_en": "Calibrated probability of an outbreak within 4 weeks (calibrated binary classification)",
-        "calibration": "معايرة أيزوتونية على مجموعة التحقق" if os.path.exists(os.path.join(MODELS, "outbreak_calibrator.joblib")) else "غير معاير",
+        "calibration": _cal_label,
         "training_date": mm.get("training_date_utc"),
         "model_version": f"XGBoost {mm.get('xgboost_version', '')}".strip(),
     }

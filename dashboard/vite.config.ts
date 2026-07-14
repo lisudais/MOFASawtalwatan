@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import type { Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 // @ts-ignore — plain-JS backend cores shared with the Netlify functions (no types)
@@ -177,6 +177,18 @@ function backendApiDev(): Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), backendApiDev()],
+export default defineConfig(({ mode }) => {
+  // Vite only exposes VITE_-prefixed vars to the browser (import.meta.env). The
+  // dev-only backend middleware above runs in Node and reads server-side secrets
+  // from process.env (e.g. OPENSKY_CLIENT_ID/SECRET, ACLED_*, RELIEFWEB_APPNAME),
+  // exactly like the Netlify Functions do in production. Vite does NOT populate
+  // process.env from .env, so load ALL keys (no prefix filter) and merge them in
+  // — without overriding anything already set in the real environment.
+  const env = loadEnv(mode, process.cwd(), '')
+  for (const [k, v] of Object.entries(env)) {
+    if (process.env[k] === undefined) process.env[k] = v
+  }
+  return {
+    plugins: [react(), backendApiDev()],
+  }
 })

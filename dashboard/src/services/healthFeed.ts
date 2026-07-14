@@ -1,16 +1,19 @@
 // Live health feed for the الصحة card — NO mock data.
 //
-// Primary + fallback, both keyless and CORS-open (callable straight from the
-// browser):
+// Single source, keyless and CORS-open (callable straight from the browser):
 //   • WHO Disease Outbreak News API  → diverse, current official outbreaks
 //     (Ebola, cholera, Nipah, yellow fever…). https://www.who.int/api/news
-//   • disease.sh                     → per-country COVID depth (real numbers).
-//     https://disease.sh
-// If one source fails the other still populates the card; only if BOTH fail
-// does fetchHealthCountries() throw (→ the card's error/retry state).
+// If it fails, fetchHealthCountries() throws (→ the card's error/retry state).
 //
-// All analytical fields are derived DETERMINISTICALLY from the real data
-// (severity of the named disease, recency of the report, live case numbers).
+// disease.sh (per-country COVID) was removed on purpose: it no longer carries a
+// live COVID signal — `todayCases` and `critical` are 0 for every country, and
+// only a frozen cumulative `active` total remains. Run through the scoring
+// formula that made every COVID country collapse to the same saturated score
+// (10 + capped-45 + 0 + 0 = 55), which read as fabricated data. Rather than
+// invent a signal that isn't in the source, we drop the source entirely.
+//
+// All analytical fields are derived DETERMINISTICALLY from the real WHO data
+// (severity of the named disease, recency of the report).
 // Nothing is invented; the model is not used to fabricate outbreaks.
 
 import { lookupCountry } from './countryNames';
@@ -24,7 +27,6 @@ import {
 
 const WHO_DON_URL =
   'https://www.who.int/api/news/diseaseoutbreaknews?$top=25&$orderby=PublicationDateAndTime%20desc';
-const DISEASE_SH_URL = 'https://disease.sh/v3/covid-19/countries?sort=active';
 const TIMEOUT = 9000;
 
 /* ─── ISO2 → coarse health region (for the regional rollup) ──────────── */
@@ -48,14 +50,6 @@ const ISO2_REGION: Record<string, HealthRegion> = {
 };
 function regionForIso2(iso2: string): HealthRegion {
   return ISO2_REGION[iso2.toUpperCase()] ?? 'AFRICA';
-}
-function continentToRegion(c: string): HealthRegion {
-  const s = c.toLowerCase();
-  if (s.includes('africa')) return 'AFRICA';
-  if (s.includes('europe')) return 'EUROPE';
-  if (s.includes('america')) return 'AMERICAS';
-  if (s.includes('oceania') || s.includes('australia')) return 'OCEANIA';
-  return 'ASIA';
 }
 
 /* ─── Disease knowledge (factual, not invented): Arabic name + baseline
@@ -152,68 +146,21 @@ async function fetchWhoDon(): Promise<CountryHealthEntry[]> {
   }).filter((e): e is CountryHealthEntry => e !== null);
 }
 
-/* ─── Source 2 · disease.sh (supplementary — COVID depth, real numbers) ── */
-async function fetchDiseaseSh(): Promise<CountryHealthEntry[]> {
-  const res = await fetch(DISEASE_SH_URL, { signal: AbortSignal.timeout(TIMEOUT) });
-  if (!res.ok) throw new Error(`disease.sh ${res.status}`);
-  const rows: any[] = await res.json();
-
-  return rows.slice(0, 8).map((r) => {
-    const population = r.population || 0;
-    const active = r.active || 0;
-    const critical = r.critical || 0;
-    const today = r.todayCases || 0;
-    const perM = population > 0 ? (active / population) * 1e6 : 0;
-    const critR = active > 0 ? critical / active : 0;
-    const score = clamp(Math.round(10 + Math.min(45, perM / 40) + Math.min(25, critR * 600) + Math.min(20, today / 300)), 5, 90);
-    const cat = categoryFor(score);
-    const iso2 = r.countryInfo?.iso2 || '';
-    const info = lookupCountry(r.country);
-    const country = info?.ar ?? r.country;
-
-    // LIGHT signal only (sort/colour). Real figures are kept verbatim in
-    // sourceText and analysed by gpt-oss, not templated into an analysis here.
-    const figures = `الحالات النشطة: ${active.toLocaleString('en-US')} · حالات اليوم: ${today.toLocaleString('en-US')} · الحالات الحرجة: ${critical.toLocaleString('en-US')} · عدد السكان: ${population.toLocaleString('en-US')}`;
-    const analysis: HealthAnalysisResult = {
-      outbreak_forecast: { probability: score, trend: today > 0 ? 'RISING' : 'STABLE', summary: '' },
-      risk_level: { score, category: cat, primary_driver: 'كوفيد-19' },
-      news_digest: [],
-      early_warning: { triggered: today > 0 && perM > 200, message: '' },
-      recommended_action: { action: '' },
-      disease_definition: '',
-      related_countries: [],
-    };
-
-    return {
-      country, countryCode: iso2,
-      region: r.continent ? continentToRegion(r.continent) : regionForIso2(iso2),
-      disease: 'كوفيد-19', riskScore: score, saudiTravelersCount: 0, analysis,
-      sourceName: 'disease.sh', sourceUrl: 'https://disease.sh',
-      updatedAt: new Date(r.updated || Date.now()).toISOString(),
-      sourceTitle: `كوفيد-19 — ${country}`,  // → gpt-oss
-      sourceText: figures,                    // real disease.sh figures → gpt-oss
-    } as CountryHealthEntry;
-  });
-}
-
-// Orchestrator: both sources in parallel, merge, de-dupe, sort, fallback.
+// Orchestrator: WHO DON only — de-dupe, sort, cap. Throws (→ card error/retry
+// state) if WHO fails or returns nothing usable. No mock fallback is ever used.
 export async function fetchHealthCountries(): Promise<CountryHealthEntry[]> {
-  const [don, ds] = await Promise.allSettled([fetchWhoDon(), fetchDiseaseSh()]);
-  const merged = [
-    ...(don.status === 'fulfilled' ? don.value : []),
-    ...(ds.status === 'fulfilled' ? ds.value : []),
-  ];
+  const list = await fetchWhoDon();
 
   const seen = new Set<string>();
-  const list: CountryHealthEntry[] = [];
-  for (const e of merged) {
+  const deduped: CountryHealthEntry[] = [];
+  for (const e of list) {
     const key = `${e.countryCode || e.country}|${e.disease}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    list.push(e);
+    deduped.push(e);
   }
-  if (list.length === 0) throw new Error('تعذّر جلب بيانات الصحة من المصادر');
+  if (deduped.length === 0) throw new Error('تعذّر جلب بيانات الصحة من المصادر');
 
-  list.sort((a, b) => b.riskScore - a.riskScore);
-  return list.slice(0, 15);
+  deduped.sort((a, b) => b.riskScore - a.riskScore);
+  return deduped.slice(0, 15);
 }

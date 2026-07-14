@@ -5,6 +5,7 @@ import {
   DISASTER_TYPE_LABEL_AR,
   SEVERITY_LABEL_AR,
   SEVERITY_COLOR,
+  disasterPlaceAr,
   type DisasterType,
   type DisasterEvent,
 } from '../services/naturalDisasterFeed';
@@ -140,7 +141,7 @@ export default function DisasterCategoryCard({ onSelectDisaster, onDataLoaded }:
                   {d.countryCode.length === 2
                     ? <span className="dz-flag">{flagEmoji(d.countryCode)}</span>
                     : <Globe size={12} className="dz-flag-icon" />}
-                  <span className="dz-country">{d.country || 'غير محدّد'}</span>
+                  <span className="dz-country">{disasterPlaceAr(d) || d.title}</span>
                   <span className="dz-type"><Icon size={9} /> {DISASTER_TYPE_LABEL_AR[d.disasterType]}</span>
                   {magnitude && <span className="dz-value mono-num">{magnitude}</span>}
                   <span className="dz-risk" style={{ color, borderColor: color, background: `${color}1A` }}>

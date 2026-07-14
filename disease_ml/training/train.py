@@ -13,7 +13,7 @@ Writes models to disease_ml/models/ and evaluation to disease_ml/evaluation/.
 """
 from __future__ import annotations
 
-import json, os, warnings
+import json, os, sys, warnings
 from datetime import datetime, timezone
 
 import joblib
@@ -22,6 +22,10 @@ import pandas as pd
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.isotonic import IsotonicRegression
+
+# Shared calibrator (importable by both training and generate_forecast).
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from calibration import PlattCalibrator  # noqa: E402
 from sklearn.metrics import (average_precision_score, roc_auc_score, precision_score,
                              recall_score, f1_score, balanced_accuracy_score, log_loss,
                              confusion_matrix, brier_score_loss, mean_absolute_error,
@@ -104,22 +108,31 @@ def reg_metrics(y, p):
             "MedAE": float(median_absolute_error(y, p)), "n": int(len(y))}
 
 # ── STEP 3 — classification ─────────────────────────────────────────────────
-def train_classifier(Xtr, ytr, Xva, yva, spw):
+def train_classifier(Xtr, ytr, Xva, yva, spw_candidates):
+    """Wider search over hyper-parameters AND scale_pos_weight. A gentler
+    scale_pos_weight (e.g. sqrt of the class ratio) usually yields better-ranked,
+    better-calibratable scores than the full inverse ratio, so both are tried and
+    the best validation PR-AUC wins. More trees + early stopping than before."""
     grid = [
-        dict(max_depth=3, learning_rate=0.05, min_child_weight=1, subsample=0.8, colsample_bytree=0.8, reg_alpha=0.0, reg_lambda=1.0),
-        dict(max_depth=4, learning_rate=0.05, min_child_weight=5, subsample=0.8, colsample_bytree=0.8, reg_alpha=0.0, reg_lambda=1.0),
-        dict(max_depth=5, learning_rate=0.05, min_child_weight=5, subsample=0.7, colsample_bytree=0.7, reg_alpha=0.1, reg_lambda=2.0),
-        dict(max_depth=4, learning_rate=0.10, min_child_weight=3, subsample=0.8, colsample_bytree=0.8, reg_alpha=0.0, reg_lambda=1.0),
+        dict(max_depth=3, learning_rate=0.05, min_child_weight=1,  subsample=0.8, colsample_bytree=0.8, reg_alpha=0.0, reg_lambda=1.0, gamma=0.0),
+        dict(max_depth=4, learning_rate=0.05, min_child_weight=5,  subsample=0.8, colsample_bytree=0.8, reg_alpha=0.0, reg_lambda=1.0, gamma=0.0),
+        dict(max_depth=4, learning_rate=0.03, min_child_weight=3,  subsample=0.9, colsample_bytree=0.9, reg_alpha=0.0, reg_lambda=1.5, gamma=0.0),
+        dict(max_depth=5, learning_rate=0.05, min_child_weight=5,  subsample=0.7, colsample_bytree=0.7, reg_alpha=0.1, reg_lambda=2.0, gamma=0.1),
+        dict(max_depth=5, learning_rate=0.03, min_child_weight=8,  subsample=0.8, colsample_bytree=0.8, reg_alpha=0.1, reg_lambda=2.0, gamma=0.2),
+        dict(max_depth=6, learning_rate=0.03, min_child_weight=10, subsample=0.7, colsample_bytree=0.7, reg_alpha=0.5, reg_lambda=3.0, gamma=0.2),
+        dict(max_depth=4, learning_rate=0.10, min_child_weight=3,  subsample=0.8, colsample_bytree=0.8, reg_alpha=0.0, reg_lambda=1.0, gamma=0.0),
     ]
     best, best_ap, best_params = None, -1, None
-    for params in grid:
-        m = xgb.XGBClassifier(n_estimators=600, eval_metric="aucpr", early_stopping_rounds=40,
-                              scale_pos_weight=spw, random_state=SEED, tree_method="hist",
-                              n_jobs=0, **params)
-        m.fit(Xtr, ytr, eval_set=[(Xva, yva)], verbose=False)
-        ap = average_precision_score(yva, m.predict_proba(Xva)[:, 1])
-        if ap > best_ap:
-            best, best_ap, best_params = m, ap, {**params, "best_iteration": int(m.best_iteration)}
+    for spw in spw_candidates:
+        for params in grid:
+            m = xgb.XGBClassifier(n_estimators=1500, eval_metric="aucpr", early_stopping_rounds=60,
+                                  scale_pos_weight=spw, random_state=SEED, tree_method="hist",
+                                  n_jobs=0, **params)
+            m.fit(Xtr, ytr, eval_set=[(Xva, yva)], verbose=False)
+            ap = average_precision_score(yva, m.predict_proba(Xva)[:, 1])
+            if ap > best_ap:
+                best, best_ap = m, ap
+                best_params = {**params, "scale_pos_weight": round(float(spw), 3), "best_iteration": int(m.best_iteration)}
     print(f"STEP 3 — classifier: best val PR-AUC={best_ap:.4f} params={best_params}")
     return best, best_params
 
@@ -226,9 +239,12 @@ def main():
 
     ytr_c, yva_c, yte_c = tr[TARGET_CLS].values, va[TARGET_CLS].values, te[TARGET_CLS].values
     spw = float((ytr_c == 0).sum() / max(1, (ytr_c == 1).sum()))
-    print(f"  scale_pos_weight = {spw:.2f}")
+    # Full inverse ratio maximises recall but over-inflates positive scores; the
+    # gentler sqrt keeps ranking while producing better-calibratable probabilities.
+    spw_candidates = sorted({round(spw, 3), round(spw ** 0.5, 3)})
+    print(f"  scale_pos_weight candidates = {spw_candidates}")
 
-    clf, clf_params = train_classifier(Xtr, ytr_c, Xva, yva_c, spw)
+    clf, clf_params = train_classifier(Xtr, ytr_c, Xva, yva_c, spw_candidates)
     pva = clf.predict_proba(Xva)[:, 1]; pte = clf.predict_proba(Xte)[:, 1]
     thr = select_threshold(yva_c, pva)
     print(f"  validation-selected threshold (F2, precision>=0.15) = {thr:.3f}")
@@ -240,24 +256,63 @@ def main():
     pd.DataFrame(cm, index=["actual_0", "actual_1"], columns=["pred_0", "pred_1"]).to_csv(
         os.path.join(EVAL, "confusion_matrix.csv"))
 
-    # ── STEP 7 — calibration ────────────────────────────────────────────────
-    brier_unc = brier_score_loss(yte_c, pte)
+    # ── STEP 7 — calibration (isotonic vs Platt vs none) ─────────────────────
+    # Calibrators are FITTED ON VALIDATION and SELECTED using validation metrics
+    # only (the test set is never used to choose). Isotonic minimises Brier but is
+    # a coarse step function (few distinct outputs) that also erodes ranking;
+    # Platt is smooth and monotonic, so it keeps ranking AND granularity while
+    # still improving Brier over the raw scores. We require a calibrator to both
+    # improve Brier and PRESERVE granularity (many distinct outputs) — which
+    # deterministically selects Platt here and fixes "many forecasts share the
+    # exact same %".
+    def distinct_ratio(v):
+        return len(set(np.round(np.asarray(v, float), 6))) / max(1, len(v))
+
     iso = IsotonicRegression(out_of_bounds="clip").fit(pva, yva_c)
-    pte_cal = iso.predict(pte)
-    brier_cal = brier_score_loss(yte_c, pte_cal)
-    prauc_unc = average_precision_score(yte_c, pte)
-    prauc_cal = average_precision_score(yte_c, pte_cal)
-    use_cal = (brier_cal < brier_unc) and (prauc_cal >= prauc_unc - 0.02)
-    print(f"STEP 7 — Brier: uncal={brier_unc:.4f} cal={brier_cal:.4f} | "
-          f"PR-AUC uncal={prauc_unc:.4f} cal={prauc_cal:.4f} -> keep_calibration={use_cal}")
-    if use_cal:
-        joblib.dump(iso, os.path.join(MODELS, "outbreak_calibrator.joblib"))
-        pte_final = pte_cal
-    else:
-        pte_final = pte
-    cls_test["calibration"] = {"brier_uncalibrated": float(brier_unc), "brier_calibrated": float(brier_cal),
+    platt = PlattCalibrator.fit(pva, yva_c)
+    candidates = {
+        "none":     (None, pva, pte),
+        "isotonic": (iso, iso.predict(pva), iso.predict(pte)),
+        "platt":    (platt, platt.predict(pva), platt.predict(pte)),
+    }
+    stats = {}
+    for name, (_obj, pv, _pt) in candidates.items():
+        stats[name] = {
+            "val_brier": float(brier_score_loss(yva_c, pv)),
+            "val_prauc": float(average_precision_score(yva_c, pv)),
+            "val_distinct_ratio": float(distinct_ratio(pv)),
+        }
+    raw_prauc = stats["none"]["val_prauc"]; raw_brier = stats["none"]["val_brier"]
+    # Eligible = improves Brier, keeps ranking (PR-AUC within 0.01 of raw), and
+    # stays granular (>50% distinct outputs). Prefer the lowest Brier among those;
+    # Platt breaks ties toward granularity by construction.
+    eligible = [n for n in ("platt", "isotonic")
+                if stats[n]["val_brier"] < raw_brier
+                and stats[n]["val_prauc"] >= raw_prauc - 0.01
+                and stats[n]["val_distinct_ratio"] >= 0.5]
+    cal_method = min(eligible, key=lambda n: stats[n]["val_brier"]) if eligible else "none"
+    cal_obj, _, pte_final = candidates[cal_method]
+    for name, s in stats.items():
+        print(f"STEP 7 — {name:8s} val: Brier={s['val_brier']:.4f} PR-AUC={s['val_prauc']:.4f} "
+              f"distinct={s['val_distinct_ratio']*100:.0f}%")
+    print(f"STEP 7 — selected calibration = {cal_method}")
+
+    # Always persist a calibrator with a .predict(raw)->calibrated interface so
+    # generate_forecast.py stays unchanged; 'none' saves an identity Platt map.
+    save_obj = cal_obj if cal_obj is not None else PlattCalibrator(1.0, 0.0)
+    joblib.dump(save_obj, os.path.join(MODELS, "outbreak_calibrator.joblib"))
+
+    brier_unc = brier_score_loss(yte_c, pte); brier_cal = brier_score_loss(yte_c, pte_final)
+    prauc_unc = average_precision_score(yte_c, pte); prauc_cal = average_precision_score(yte_c, pte_final)
+    test_distinct = int(len(set(np.round(pte_final, 6))))
+    print(f"STEP 7 — TEST Brier: uncal={brier_unc:.4f} -> {cal_method}={brier_cal:.4f} | "
+          f"PR-AUC uncal={prauc_unc:.4f} -> {prauc_cal:.4f} | distinct test probs={test_distinct}/{len(pte_final)}")
+    cls_test["calibration"] = {"method": cal_method,
+                               "brier_uncalibrated": float(brier_unc), "brier_calibrated": float(brier_cal),
                                "prauc_uncalibrated": float(prauc_unc), "prauc_calibrated": float(prauc_cal),
-                               "calibration_applied": bool(use_cal)}
+                               "test_distinct_probabilities": test_distinct,
+                               "validation_selection": stats,
+                               "calibration_applied": cal_method != "none"}
 
     # ── regression ──────────────────────────────────────────────────────────
     ytr_r, yva_r, yte_r = tr[TARGET_REG].values, va[TARGET_REG].values, te[TARGET_REG].values
@@ -292,6 +347,7 @@ def main():
         "categorical_columns": cat, "numeric_columns": numeric,
         "classifier_params": clf_params, "regressor_params": reg_params,
         "scale_pos_weight": spw, "selected_threshold": thr,
+        "calibration_method": cal_method,
         "dataset_paths": {k: os.path.join(DATA, f"{k}.csv") for k in ["train", "validation", "test"]},
         "date_ranges": {"train": [tr.week_start.min(), tr.week_start.max()],
                         "validation": [va.week_start.min(), va.week_start.max()],
@@ -324,14 +380,14 @@ def main():
                       "explanation_ar": ar, "explanation_en": en})
     pd.DataFrame(preds).to_csv(os.path.join(EVAL, "test_predictions.csv"), index=False)
 
-    write_report(meta, cls_test, reg_test, base_df, thr, top_clf, top_reg, use_cal)
+    write_report(meta, cls_test, reg_test, base_df, thr, top_clf, top_reg, cal_method)
     print("\nDONE — models + evaluation written.")
     print(f"  TEST classification: PR-AUC={cls_test['at_selected']['PR_AUC']:.3f} "
           f"recall@sel={cls_test['at_selected']['recall']:.3f} precision@sel={cls_test['at_selected']['precision']:.3f}")
     print(f"  TEST regression: MAE={reg_test['overall']['MAE']:.1f} WAPE={reg_test['overall']['WAPE']} "
           f"RMSLE={reg_test['overall']['RMSLE']:.3f}")
 
-def write_report(meta, cls_test, reg_test, base_df, thr, top_clf, top_reg, use_cal):
+def write_report(meta, cls_test, reg_test, base_df, thr, top_clf, top_reg, cal_method):
     cb = base_df[base_df.task == "classification"]
     rb = base_df[base_df.task == "regression"]
     sel = cls_test["at_selected"]
@@ -347,7 +403,8 @@ def write_report(meta, cls_test, reg_test, base_df, thr, top_clf, top_reg, use_c
          f"precision {sel['precision']:.3f} · recall {sel['recall']:.3f} · F1 {sel['F1']:.3f} · "
          f"balanced-acc {sel['balanced_accuracy']:.3f} · logloss {sel['log_loss']:.3f}.",
          f"- Test @ 0.50: precision {cls_test['at_0.50']['precision']:.3f} · recall {cls_test['at_0.50']['recall']:.3f} · F1 {cls_test['at_0.50']['F1']:.3f}.",
-         f"- Calibration applied: **{use_cal}** (Brier {cls_test['calibration']['brier_uncalibrated']:.4f} → {cls_test['calibration']['brier_calibrated']:.4f}).",
+         f"- Calibration: **{cal_method}** (Brier {cls_test['calibration']['brier_uncalibrated']:.4f} → {cls_test['calibration']['brier_calibrated']:.4f}; "
+         f"distinct test probabilities: {cls_test['calibration'].get('test_distinct_probabilities', 'n/a')}).",
          "\n## 2. Regression (future_cases_4w, log1p)",
          f"- **Test overall:** MAE **{reg_test['overall']['MAE']:.1f}** · RMSE {reg_test['overall']['RMSE']:.1f} · "
          f"WAPE **{reg_test['overall']['WAPE']}** · RMSLE {reg_test['overall']['RMSLE']:.3f} · MedAE {reg_test['overall']['MedAE']:.1f}.",

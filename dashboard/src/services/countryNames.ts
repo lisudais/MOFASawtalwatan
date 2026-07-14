@@ -28,6 +28,10 @@ const MAP: Record<string, CountryInfo> = {
   india: { ar: 'الهند', iso2: 'IN' }, bangladesh: { ar: 'بنغلاديش', iso2: 'BD' },
   nepal: { ar: 'نيبال', iso2: 'NP' }, 'sri lanka': { ar: 'سريلانكا', iso2: 'LK' },
   china: { ar: 'الصين', iso2: 'CN' }, taiwan: { ar: 'تايوان', iso2: 'TW' },
+  georgia: { ar: 'جورجيا', iso2: 'GE' }, armenia: { ar: 'أرمينيا', iso2: 'AM' },
+  azerbaijan: { ar: 'أذربيجان', iso2: 'AZ' }, kazakhstan: { ar: 'كازاخستان', iso2: 'KZ' },
+  uzbekistan: { ar: 'أوزبكستان', iso2: 'UZ' }, 'kyrgyzstan': { ar: 'قيرغيزستان', iso2: 'KG' },
+  tajikistan: { ar: 'طاجيكستان', iso2: 'TJ' }, turkmenistan: { ar: 'تركمانستان', iso2: 'TM' },
   japan: { ar: 'اليابان', iso2: 'JP' }, 'south korea': { ar: 'كوريا الجنوبية', iso2: 'KR' },
   'north korea': { ar: 'كوريا الشمالية', iso2: 'KP' }, mongolia: { ar: 'منغوليا', iso2: 'MN' },
   indonesia: { ar: 'إندونيسيا', iso2: 'ID' }, malaysia: { ar: 'ماليزيا', iso2: 'MY' },
@@ -44,6 +48,14 @@ const MAP: Record<string, CountryInfo> = {
   spain: { ar: 'إسبانيا', iso2: 'ES' }, portugal: { ar: 'البرتغال', iso2: 'PT' },
   greece: { ar: 'اليونان', iso2: 'GR' }, iceland: { ar: 'آيسلندا', iso2: 'IS' },
   norway: { ar: 'النرويج', iso2: 'NO' }, 'svalbard and jan mayen': { ar: 'سفالبارد ويان ماين', iso2: 'SJ' },
+  poland: { ar: 'بولندا', iso2: 'PL' }, netherlands: { ar: 'هولندا', iso2: 'NL' },
+  belgium: { ar: 'بلجيكا', iso2: 'BE' }, switzerland: { ar: 'سويسرا', iso2: 'CH' },
+  austria: { ar: 'النمسا', iso2: 'AT' }, sweden: { ar: 'السويد', iso2: 'SE' },
+  finland: { ar: 'فنلندا', iso2: 'FI' }, denmark: { ar: 'الدنمارك', iso2: 'DK' },
+  ireland: { ar: 'أيرلندا', iso2: 'IE' }, romania: { ar: 'رومانيا', iso2: 'RO' },
+  hungary: { ar: 'المجر', iso2: 'HU' }, serbia: { ar: 'صربيا', iso2: 'RS' },
+  'czech republic': { ar: 'التشيك', iso2: 'CZ' }, czechia: { ar: 'التشيك', iso2: 'CZ' },
+  bulgaria: { ar: 'بلغاريا', iso2: 'BG' }, croatia: { ar: 'كرواتيا', iso2: 'HR' },
   'united states': { ar: 'الولايات المتحدة', iso2: 'US' }, usa: { ar: 'الولايات المتحدة', iso2: 'US' },
   canada: { ar: 'كندا', iso2: 'CA' }, mexico: { ar: 'المكسيك', iso2: 'MX' },
   guatemala: { ar: 'غواتيمالا', iso2: 'GT' }, honduras: { ar: 'هندوراس', iso2: 'HN' },
@@ -81,6 +93,38 @@ function hasWord(haystack: string, needle: string): boolean {
   return new RegExp(`(^|[^a-z])${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(haystack);
 }
 
+// Detect a country named ANYWHERE in a free-text message (Arabic or English) —
+// used by the assistant to recognise "ماذا عن الأرجنتين؟" and pull that country's
+// live data, even when it isn't on screen. Arabic names are matched with/without
+// the leading "ال"; English via whole-word. Returns the first (longest-name)
+// match so "جنوب السودان" wins over "السودان". null when no country is named.
+const AR_INDEX: { ar: string; bare: string; info: CountryInfo }[] = (() => {
+  const seen = new Set<string>();
+  const out: { ar: string; bare: string; info: CountryInfo }[] = [];
+  for (const key in MAP) {
+    const info = MAP[key];
+    if (seen.has(info.ar)) continue;
+    seen.add(info.ar);
+    out.push({ ar: info.ar, bare: info.ar.replace(/^ال/, ''), info });
+  }
+  // Longest Arabic name first so multi-word names match before their substrings.
+  return out.sort((a, b) => b.ar.length - a.ar.length);
+})();
+
+export function detectCountryInText(text?: string): CountryInfo | null {
+  if (!text) return null;
+  // Arabic: substring match on the full name or the article-stripped form.
+  for (const { ar, bare, info } of AR_INDEX) {
+    if (text.includes(ar) || (bare.length >= 3 && text.includes(bare))) return info;
+  }
+  // English: whole-word match against the map keys (longest key first).
+  const s = text.toLowerCase();
+  const keys = Object.keys(MAP).sort((a, b) => b.length - a.length);
+  for (const st of US_STATES) if (hasWord(s, st)) return US_INFO;
+  for (const key of keys) if (hasWord(s, key)) return MAP[key];
+  return null;
+}
+
 // Resolve a raw source location string to { ar, iso2 }, or null if unknown.
 export function lookupCountry(raw?: string): CountryInfo | null {
   if (!raw) return null;
@@ -96,5 +140,70 @@ export function lookupCountry(raw?: string): CountryInfo | null {
 
   for (const key in MAP) if (hasWord(s, key)) return MAP[key];
 
+  return null;
+}
+
+// ── Sub-national region (state / province) extraction ──────────────────────
+// Disaster sources report a country, but their raw title/description usually
+// also names the state or province (EONET wildfires → "…, California"; USGS
+// quakes already carry a locality in `city`). We surface that extra level so
+// two events in the same country are told apart ("الولايات المتحدة - كاليفورنيا"
+// vs "…- أوريغون") instead of every row reading just "الولايات المتحدة".
+//
+// Canadian provinces + Australian states are included alongside the US states
+// because those are the other high-volume wildfire countries. Detection is by
+// whole-word match; translation is best-effort — a region we recognise but have
+// no Arabic for is shown in English rather than dropped (never "غير محدد").
+const OTHER_REGIONS: readonly string[] = [
+  // Canadian provinces & territories
+  'british columbia', 'alberta', 'saskatchewan', 'manitoba', 'ontario', 'quebec',
+  'nova scotia', 'new brunswick', 'newfoundland and labrador', 'prince edward island',
+  'yukon', 'nunavut', 'northwest territories',
+  // Australian states & territories
+  'new south wales', 'victoria', 'queensland', 'south australia', 'western australia',
+  'tasmania', 'northern territory', 'australian capital territory',
+];
+
+// Longest first so multi-word regions ("new south wales") win over any substring.
+const REGION_KEYS: readonly string[] = [...US_STATES, ...OTHER_REGIONS].sort(
+  (a, b) => b.length - a.length,
+);
+
+// Arabic display names. Any REGION_KEYS entry missing here falls back to the
+// title-cased English name (see lookupRegion) — intentionally, not an omission.
+const REGION_AR: Record<string, string> = {
+  alabama: 'ألاباما', alaska: 'ألاسكا', arizona: 'أريزونا', arkansas: 'أركنساس',
+  california: 'كاليفورنيا', colorado: 'كولورادو', connecticut: 'كونيتيكت', delaware: 'ديلاوير',
+  florida: 'فلوريدا', idaho: 'أيداهو', illinois: 'إلينوي', indiana: 'إنديانا', iowa: 'آيوا',
+  kansas: 'كانساس', kentucky: 'كنتاكي', louisiana: 'لويزيانا', maine: 'مين', maryland: 'ماريلاند',
+  massachusetts: 'ماساتشوستس', michigan: 'ميشيغان', minnesota: 'مينيسوتا', mississippi: 'ميسيسيبي',
+  missouri: 'ميزوري', montana: 'مونتانا', nebraska: 'نبراسكا', nevada: 'نيفادا',
+  'new hampshire': 'نيوهامبشير', 'new jersey': 'نيوجيرسي', 'new mexico': 'نيومكسيكو',
+  'new york': 'نيويورك', 'north carolina': 'نورث كارولينا', 'north dakota': 'نورث داكوتا',
+  ohio: 'أوهايو', oklahoma: 'أوكلاهوما', oregon: 'أوريغون', pennsylvania: 'بنسلفانيا',
+  'south carolina': 'ساوث كارولينا', tennessee: 'تينيسي', texas: 'تكساس', utah: 'يوتا',
+  vermont: 'فيرمونت', virginia: 'فرجينيا', washington: 'واشنطن', 'west virginia': 'ويست فرجينيا',
+  wisconsin: 'ويسكونسن', wyoming: 'وايومنغ', hawaii: 'هاواي', 'puerto rico': 'بورتوريكو',
+  'british columbia': 'كولومبيا البريطانية', alberta: 'ألبرتا', saskatchewan: 'ساسكاتشوان',
+  manitoba: 'مانيتوبا', ontario: 'أونتاريو', quebec: 'كيبيك', 'nova scotia': 'نوفا سكوشا',
+  'new brunswick': 'نيو برونزويك', 'newfoundland and labrador': 'نيوفاوندلاند ولابرادور',
+  'new south wales': 'نيو ساوث ويلز', victoria: 'فيكتوريا', queensland: 'كوينزلاند',
+  'south australia': 'جنوب أستراليا', 'western australia': 'غرب أستراليا', tasmania: 'تسمانيا',
+  'northern territory': 'الإقليم الشمالي',
+};
+
+const titleCase = (s: string): string => s.replace(/\b\w/g, (c) => c.toUpperCase());
+
+/**
+ * Pull a state/province display name out of a raw source string (title and/or
+ * description), or null if none is recognised. Arabic when we have it, English
+ * otherwise — never a placeholder.
+ */
+export function lookupRegion(raw?: string): string | null {
+  if (!raw) return null;
+  const s = raw.toLowerCase();
+  for (const key of REGION_KEYS) {
+    if (hasWord(s, key)) return REGION_AR[key] ?? titleCase(key);
+  }
   return null;
 }

@@ -26,7 +26,9 @@ function monthYear(d: string | null | undefined): string {
 // gpt-oss only words the "why"; the recommendation is deterministic.
 export default function OutbreakDetailCard({ f, meta, onClose }:
   { f: ResolvedOutbreak; meta: OutbreakMeta | null; onClose: () => void }) {
-  const pct = Math.round(f.probability * 100);
+  // ONE decimal — the exact calibrated probability, matching the list; never
+  // rounded to a whole number (keeps display == raw calibrated value).
+  const pct = (f.probability * 100).toFixed(1);
   const band = riskBandFor(f.probability);
   const score = riskScore10(f.probability);
   const col = band.color;

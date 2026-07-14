@@ -1,12 +1,12 @@
 # XGBoost Training Report — disease_ml
 
-_Trained 2026-07-13T10:23:34Z · seed 42 · xgboost 3.3.0 · CPU · no external API_
+_Trained 2026-07-14T09:26:23Z · seed 42 · xgboost 3.3.0 · CPU · no external API_
 
 ## 1. Classification (future_outbreak)
-- scale_pos_weight = 7.78; validation-selected threshold = **0.730** (F-beta=2, precision≥0.15).
-- **Test @ selected threshold:** PR-AUC **0.702** · ROC-AUC 0.8239110710393116 · precision 0.702 · recall 0.663 · F1 0.682 · balanced-acc 0.825 · logloss 0.241.
-- Test @ 0.50: precision 0.324 · recall 0.685 · F1 0.440.
-- Calibration applied: **True** (Brier 0.0655 → 0.0188).
+- scale_pos_weight = 7.78; validation-selected threshold = **0.890** (F-beta=2, precision≥0.15).
+- **Test @ selected threshold:** PR-AUC **0.703** · ROC-AUC 0.8083838827671606 · precision 0.983 · recall 0.663 · F1 0.792 · balanced-acc 0.831 · logloss 0.235.
+- Test @ 0.50: precision 0.310 · recall 0.708 · F1 0.432.
+- Calibration: **platt** (Brier 0.0646 → 0.0319; distinct test probabilities: 1914).
 
 ## 2. Regression (future_cases_4w, log1p)
 - **Test overall:** MAE **115.6** · RMSE 2118.0 · WAPE **1.0012887160540411** · RMSLE 0.714 · MedAE 0.2.
@@ -17,7 +17,7 @@ _Trained 2026-07-13T10:23:34Z · seed 42 · xgboost 3.3.0 · CPU · no external 
 - always_no_outbreak: PR-AUC 0.0432 · F1 0.0 · recall 0.0
 - active_outbreak: PR-AUC 0.0405 · F1 0.0516 · recall 0.2022
 - recent_growth>0: PR-AUC 0.044 · F1 0.0562 · recall 0.0562
-- **XGBoost**: PR-AUC 0.702 · F1 0.682 · recall 0.663
+- **XGBoost**: PR-AUC 0.703 · F1 0.792 · recall 0.663
 
 **Regression** (WAPE / MAE):
 - predict_zero: WAPE 1.0 · MAE 115.434
@@ -26,11 +26,11 @@ _Trained 2026-07-13T10:23:34Z · seed 42 · xgboost 3.3.0 · CPU · no external 
 - **XGBoost**: WAPE 1.0012887160540411 · MAE 115.6
 
 ## 4. Did XGBoost meaningfully beat baselines?
-- Classification: **YES** (XGBoost PR-AUC 0.702 vs best baseline 0.044).
+- Classification: **YES** (XGBoost PR-AUC 0.703 vs best baseline 0.044).
 - Regression: **NO / marginal** (XGBoost WAPE 1.0012887160540411 vs best baseline 1.0).
 
 ## 5. Most influential features (gain)
-- Classifier: weeks_since_last_outbreak, year, historical_peak_deaths, season, disease_category, longitude, continent, month
+- Classifier: weeks_since_last_outbreak, year, season, longitude, disease_category, historical_peak_deaths, month, population
 - Regressor: weeks_since_last_outbreak, disease_category, country, historical_peak_deaths, rolling_std_4w, population, population_density, current_cases
 
 ## 6. Limitations

@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, CircleMarker, GeoJSON, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, GeoJSON, Marker, Popup, Tooltip, useMap } from 'react-leaflet';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plane, ShieldAlert, TrendingUp, Layers, AlertTriangle, Users } from 'lucide-react';
 import L from 'leaflet';
@@ -14,9 +14,11 @@ import { useBoundariesGeoJson } from '../services/geoBoundaries';
 import MapLayersPanel, { type MapLayer } from './MapLayersPanel';
 import {
   loadOutbreakForecasts, loadOutbreakMeta, topOutbreakByIso2, riskBandFor,
-  OUTBREAK_SOURCE_AR, MARKER_THRESHOLD, type ResolvedOutbreak, type OutbreakMeta,
+  MAP_DISPLAY_MIN, type ResolvedOutbreak, type OutbreakMeta,
 } from '../services/forecasting/outbreakForecast';
 import OutbreakDetailCard from './OutbreakDetailCard';
+import { allSaudiPoints, saudiPointRadius } from '../services/saudiDistribution';
+import { classifyRiskByScore } from '../services/riskClassification';
 
 /** Per-country risk from App: max Stage 5 score + the category that produced it. */
 export interface CountryRisk {
@@ -25,18 +27,20 @@ export interface CountryRisk {
   byCategory: Record<string, number>;
 }
 
-/** Only these two bands ever reach the map — LOW is filtered out before this
- *  type is constructed (see App.tsx). One marker per Global Alert Feed card,
- *  keyed by that card's own id, so the map and the right panel always agree
+/** Every severity band reaches the map (LOW→CRITICAL) so an event that meets the
+ *  display condition is never silently hidden. One marker per aggregated alert,
+ *  keyed by that alert's own id, so the map and the right panel always agree
  *  on which alert is which. */
-export type AlertMarkerBand = 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type AlertMarkerBand = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 export interface AlertMarker {
-  /** Same id as the right-panel FeedCard this marker represents. */
+  /** Same id as the right-panel aggregated alert this marker represents. */
   id: string;
   lat: number;
   lng: number;
   band: AlertMarkerBand;
+  /** 0-100 score — used to keep the most severe marker when several collapse to one point. */
+  score: number;
   /** Original GeoEvent type — picks the glyph (earthquake, flood, …). */
   type: GeoEvent['type'];
 }
@@ -47,9 +51,9 @@ interface WorldMapProps {
   selectedAlertId: string | null;
   onSelectAlert: (marker: AlertMarker) => void;
   travelers: Traveler[];
-  /** Drives fly-to only — set from the right panel's selected card via the
-   *  same GeoEvent resolution used to build `alertMarkers`. */
-  selectedEvent: GeoEvent | null;
+  /** Drives fly-to only — the coordinates of the currently-selected alert
+   *  (from the right panel or a marker click). */
+  flyTo: { lat: number; lng: number } | null;
   selectedTraveler: Traveler | null;
   /**
    * Real per-country risk for the RED layer, keyed by ISO2. Aggregated in
@@ -67,10 +71,13 @@ interface WorldMapProps {
   detailOpen?: boolean;
 }
 
-// A country is highlighted red when its overall score (the max across its
-// categories) is >= this. 75 matches the Security sidebar's own red cutoff, so
-// the map's red set mirrors the countries already shown red there.
-const RISK_HIGHLIGHT_THRESHOLD = 75;
+// The "current risk" layer is a full choropleth: EVERY country that carries any
+// real risk score is shaded, coloured by the app-wide unified bands
+// (classifyRiskByScore → green/yellow/orange/red). A country needs at least this
+// score to be painted; 1 means "has any active risk at all". Countries with no
+// score are absent from countryRisk entirely, so they keep their natural basemap
+// colour (no overlay) — exactly the "no data ⇒ no tint" requirement.
+const RISK_CHOROPLETH_MIN = 1;
 
 const CATEGORY_AR: Record<string, string> = {
   security: 'أمني',
@@ -81,6 +88,9 @@ const CATEGORY_AR: Record<string, string> = {
 };
 
 const RED = '#FF1744';
+// Saudi distribution points — Saudi-gold so they read as "our people abroad",
+// distinct from the risk (red) and traveler (green) layers.
+const SAUDI_PRESENCE_GOLD = '#C9A84C';
 
 const WORLD_BOUNDARIES_URL = '/world-countries-110m.geojson';
 
@@ -141,18 +151,18 @@ export function eventDivIcon(event: GeoEvent, isSelected: boolean): L.DivIcon {
   });
 }
 
-// ── Alert markers (Global Alert Feed → map) ─────────────────────────────
-// Colour/size are driven by the card's severity BAND (the same 0-100 score
-// shown in the right panel), never the raw GeoEvent.riskLevel — a card and
-// its marker must always read the same severity. Per spec: MEDIUM is
-// yellow, HIGH/CRITICAL both read as red (unlike the 4-colour scale used
-// elsewhere in the app) so the map only ever shows two marker states.
+// ── Alert markers (aggregated four-section feed → map) ───────────────────
+// Colour/size are driven by the alert's severity BAND (the same 0-100 score
+// shown in the right panel), via the app-wide unified 4-colour palette
+// (green/yellow/orange/red) — so a marker, its right-panel card, and its
+// source section card all read the same severity and the same colour.
 const ALERT_BAND_COLOR: Record<AlertMarkerBand, string> = {
+  LOW: '#00E676',
   MEDIUM: '#FFD600',
-  HIGH: '#FF1744',
+  HIGH: '#FF6D00',
   CRITICAL: '#FF1744',
 };
-const ALERT_BAND_SIZE: Record<AlertMarkerBand, number> = { MEDIUM: 14, HIGH: 18, CRITICAL: 22 };
+const ALERT_BAND_SIZE: Record<AlertMarkerBand, number> = { LOW: 12, MEDIUM: 14, HIGH: 18, CRITICAL: 22 };
 
 export function alertMarkerIcon(marker: AlertMarker, isSelected: boolean): L.DivIcon {
   const color = ALERT_BAND_COLOR[marker.band];
@@ -184,14 +194,14 @@ function hasCoords(target: { lat: number; lng: number }): boolean {
   );
 }
 
-function FlyToSelection({ event, traveler }: { event: GeoEvent | null; traveler: Traveler | null }) {
+function FlyToSelection({ flyTo, traveler }: { flyTo: { lat: number; lng: number } | null; traveler: Traveler | null }) {
   const map = useMap();
   useEffect(() => {
-    const target = event ?? traveler;
+    const target = flyTo ?? traveler;
     if (target && hasCoords(target)) {
       map.flyTo([target.lat, target.lng], Math.max(map.getZoom(), 4), { duration: 0.8 });
     }
-  }, [event, traveler, map]);
+  }, [flyTo, traveler, map]);
   return null;
 }
 
@@ -244,13 +254,16 @@ function riskCountries(
 type RiskLayer = 'none' | 'current' | 'predicted';
 
 export default function WorldMap({
-  alertMarkers, selectedAlertId, onSelectAlert, travelers, selectedEvent, selectedTraveler, countryRisk = {},
+  alertMarkers, selectedAlertId, onSelectAlert, travelers, flyTo, selectedTraveler, countryRisk = {},
   detailOpen = false,
 }: WorldMapProps) {
   // ── Flight monitoring (isolated from alert/risk state) ──────────────────
   // The imperative <FlightLayer> owns polling + smooth interpolation; this only
   // toggles it. Polling runs only while the layer is enabled.
   const [showFlights, setShowFlights] = useState(false);
+  // Live aircraft count + reason (from FlightLayer) — drives the "no flight data"
+  // notice so the layer is never a silently-blank toggle.
+  const [flightStatus, setFlightStatus] = useState<{ count: number; reason?: string }>({ count: 0 });
   // ── Risk highlight layers — mutually exclusive with each other, independent
   //    of the flight layer. 'none' | 'current' (real RED) | 'predicted' (XGBoost outbreak forecast). ──
   const [riskLayer, setRiskLayer] = useState<RiskLayer>('none');
@@ -259,6 +272,10 @@ export default function WorldMap({
   //    disappears for existing sessions. ──────────────────────────────────
   const [showEvents, setShowEvents] = useState(true);
   const [showTravelers, setShowTravelers] = useState(true);
+  // ── Saudi distribution layer — aggregate presence points (gold circles) sized
+  //    by community size. Default OFF so the map stays clean (green citizen dots
+  //    only); it can still be switched on from the layers panel when needed. ──
+  const [showDistribution, setShowDistribution] = useState(false);
   // ── Layers dropdown (replaces the old row of separate toggle buttons). ──
   const [layersOpen, setLayersOpen] = useState(false);
   const layersBtnRef = useRef<HTMLButtonElement>(null);
@@ -305,6 +322,7 @@ export default function WorldMap({
       case 'risk-predicted': toggleLayer('predicted'); break;
       case 'events': setShowEvents((v) => !v); break;
       case 'travelers': setShowTravelers((v) => !v); break;
+      case 'distribution': setShowDistribution((v) => !v); break;
     }
   }
 
@@ -316,27 +334,42 @@ export default function WorldMap({
       icon: <TrendingUp size={13} />, enabled: riskLayer === 'predicted',
     },
     { id: 'events', labelAr: 'أحداث ومخاطر الخريطة', icon: <AlertTriangle size={13} />, enabled: showEvents },
-    { id: 'travelers', labelAr: 'المسافرون المسجّلون', icon: <Users size={13} />, enabled: showTravelers },
+    { id: 'travelers', labelAr: 'المواطنون السعوديون', icon: <Users size={13} />, enabled: showTravelers },
+    { id: 'distribution', labelAr: 'كثافة السعوديين', icon: <Users size={13} />, enabled: showDistribution, accentColor: SAUDI_PRESENCE_GOLD },
   ];
   const activeLayerCount = mapLayers.filter((l) => l.enabled).length;
 
   const worldGeo = useBoundariesGeoJson(WORLD_BOUNDARIES_URL, riskLayer !== 'none');
 
-  const redCountries = riskLayer === 'current' ? riskCountries(countryRisk, RISK_HIGHLIGHT_THRESHOLD) : [];
+  // Current-risk choropleth: every country with any real score, coloured below
+  // by its unified band. Not just the red (>=76) set — the whole gradient.
+  const currentRiskCountries = riskLayer === 'current' ? riskCountries(countryRisk, RISK_CHOROPLETH_MIN) : [];
   // Forecast layer: one entry per country = its highest-probability outbreak
   // forecast, coloured by the risk level (green→dark red).
+  // Only "Monitor" and above (probability ≥ MAP_DISPLAY_MIN = 0.15) are drawn on
+  // the map — "Very Low" and "Low" forecasts are dropped HERE, so they are never
+  // shaded or marked. This filter is scoped to the predicted layer only; the
+  // current-risk layer above and the full ranked list elsewhere are untouched.
   const forecastCountries: RiskCountry[] = riskLayer === 'predicted'
-    ? Object.values(forecastByIso2).map((f) => ({
-        iso2: f.iso2, iso3: iso3For(f.iso2), score: Math.round(f.probability * 100),
-        category: f.disease, byCategory: null, outbreak: f,
-      }))
+    ? Object.values(forecastByIso2)
+        .filter((f) => f.probability >= MAP_DISPLAY_MIN)
+        .map((f) => ({
+          iso2: f.iso2, iso3: iso3For(f.iso2), score: Math.round(f.probability * 100),
+          category: f.disease, byCategory: null, outbreak: f,
+        }))
     : [];
-  const active = riskLayer === 'current' ? redCountries : riskLayer === 'predicted' ? forecastCountries : [];
+  const active = riskLayer === 'current' ? currentRiskCountries : riskLayer === 'predicted' ? forecastCountries : [];
   const isPredicted = riskLayer === 'predicted';
-  const colorFor = (c: RiskCountry) => (isPredicted && c.outbreak ? riskBandFor(c.outbreak.probability).color : RED);
-  // Countries at/above the marker threshold get a visible emphasis marker.
+  // Predicted layer keeps its outbreak band colour. Current layer now uses the
+  // unified score→colour classifier (classifyRiskByScore) so every country is
+  // shaded green/yellow/orange/red by its real risk_score — a true choropleth,
+  // not a single flat red for the >=76 set.
+  const colorFor = (c: RiskCountry) =>
+    isPredicted && c.outbreak ? riskBandFor(c.outbreak.probability).color : classifyRiskByScore(c.score).color;
+  // Emphasis markers follow the same Monitor+ rule (active is already filtered to
+  // ≥ MAP_DISPLAY_MIN, so this simply drops any country without an outbreak).
   const forecastMarkers = isPredicted
-    ? active.filter((c) => c.outbreak && c.outbreak.probability >= MARKER_THRESHOLD)
+    ? active.filter((c) => c.outbreak && c.outbreak.probability >= MAP_DISPLAY_MIN)
     : [];
 
   // Polygon subset of the world GeoJSON limited to the active countries. Keyed
@@ -385,26 +418,18 @@ export default function WorldMap({
         </div>
       )}
 
-      {/* Provenance banner while the forecast layer is on — also hidden while a
-          detail panel is open (it floats at the map's top edge). */}
-      {riskLayer === 'predicted' && !controlsHidden && (
-        <div className="predict-banner" dir="rtl">
-          <TrendingUp size={12} />
-          {OUTBREAK_SOURCE_AR}
-        </div>
-      )}
-
       <MapContainer center={[20, 30]} zoom={2.4} minZoom={2} worldCopyJump zoomControl={false} style={{ width: '100%', height: '100%' }}>
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           attribution=""
         />
-        <FlyToSelection event={selectedEvent} traveler={selectedTraveler} />
+        <FlyToSelection flyTo={flyTo} traveler={selectedTraveler} />
         <MapResizeObserver />
 
         {/* Risk highlight — country-polygon shading. 'current' = real Stage 5
-            risk (solid red). 'predicted' = XGBoost outbreak forecast, coloured by
-            severity band (red/orange/yellow). Only the active layer renders. */}
+            risk as a full choropleth (green/yellow/orange/red per country score).
+            'predicted' = XGBoost outbreak forecast, coloured by severity band
+            (red/orange/yellow). Only the active layer renders. */}
         {polyFeatures && polyFeatures.features.length > 0 && (
           <GeoJSON
             key={polyKey}
@@ -429,6 +454,14 @@ export default function WorldMap({
                       .sort((a, b) => b[1] - a[1])
                       .map(([k, v]) => `${CATEGORY_AR[k] ?? k}: ${v}`).join('، ')
                   : '';
+                // Hover tooltip: country name + its numeric risk_score + Arabic
+                // band label (same classifier the shading uses), so hovering any
+                // shaded country reads its severity without a click.
+                const bandAr = classifyRiskByScore(c.score).labelAr;
+                layer.bindTooltip(
+                  `<span dir="rtl"><strong>${name}</strong> — ${c.score}/100 (${bandAr})</span>`,
+                  { direction: 'top', sticky: true, className: 'risk-choropleth-tooltip', opacity: 1 },
+                );
                 layer.bindPopup(
                   `<div dir="rtl" class="flight-popup"><strong>${name}</strong>` +
                   `<div>مستوى الخطر: ${c.score}/100 — المصدر: ${catAr}</div>` +
@@ -457,6 +490,13 @@ export default function WorldMap({
               }}
               eventHandlers={isPredicted && c.outbreak ? { click: () => setSelectedOutbreak(c.outbreak!) } : undefined}
             >
+              {!isPredicted && (
+                <Tooltip direction="top" sticky className="risk-choropleth-tooltip" opacity={1}>
+                  <span dir="rtl">
+                    <strong>{countryNameAr(c.iso2)}</strong> — {c.score}/100 ({classifyRiskByScore(c.score).labelAr})
+                  </span>
+                </Tooltip>
+              )}
               {!isPredicted && (
                 <Popup>
                   <div dir="rtl" className="flight-popup">
@@ -514,9 +554,43 @@ export default function WorldMap({
           </Marker>
         ))}
 
+        {/* Saudi distribution — one aggregate point per city, sized by community
+            size. All counts roll up to the sidebar total (single unified source). */}
+        {showDistribution && allSaudiPoints().map((p) => (
+          <CircleMarker
+            key={`saudi-${p.countryCode}-${p.cityAr}`}
+            center={[p.lat, p.lng]}
+            radius={saudiPointRadius(p.count)}
+            pathOptions={{ color: SAUDI_PRESENCE_GOLD, weight: 1.5, fillColor: SAUDI_PRESENCE_GOLD, fillOpacity: 0.35 }}
+          >
+            <Tooltip direction="top" offset={[0, -4]} opacity={1}>
+              <span dir="rtl">{p.cityAr}، {p.countryAr}: {p.count.toLocaleString('en-US')} سعودي</span>
+            </Tooltip>
+            <Popup>
+              <div dir="rtl" style={{ minWidth: 130 }}>
+                <strong>{p.cityAr}، {p.countryAr}</strong>
+                <br />
+                {p.count.toLocaleString('en-US')} سعودي
+              </div>
+            </Popup>
+          </CircleMarker>
+        ))}
+
         {/* Aircraft layer — owns its own polling + smooth interpolation; toggled here */}
-        <FlightLayer enabled={showFlights} />
+        <FlightLayer enabled={showFlights} onStatus={setFlightStatus} />
       </MapContainer>
+
+      {/* Flight layer is ON but no aircraft came back — tell the user why instead
+          of leaving a blank layer (OpenSky rate-limits anonymous access). */}
+      {showFlights && !controlsHidden && flightStatus.count === 0 && flightStatus.reason && (
+        <div className="flight-empty-notice" dir="rtl">
+          <Plane size={12} />
+          <span>
+            لا تتوفر بيانات الطيران حالياً
+            {/rate|429/i.test(flightStatus.reason) ? ' — تم تجاوز حد الطلبات من OpenSky (يلزم إعداد OPENSKY_CLIENT_ID/SECRET)' : ''}
+          </span>
+        </div>
+      )}
 
       {/* The single outbreak details component — same card the health panel opens */}
       {selectedOutbreak && (

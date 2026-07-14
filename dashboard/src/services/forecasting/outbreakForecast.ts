@@ -16,6 +16,14 @@ export const FORECAST_HORIZON_AR = '٤ أسابيع';
 export const OFFICIAL_THRESHOLD = 0.73;
 /** Countries at/above this probability get a visible map marker. */
 export const MARKER_THRESHOLD = 0.05;
+/**
+ * Minimum probability shown ON THE MAP (both the country shading and the
+ * markers). Set to the "Monitor" band lower bound so "Very Low" (<0.05) and
+ * "Low" (0.05–0.15) forecasts are NOT drawn on the map — only Monitor and above
+ * (يحتاج مراقبة / مرتفع للمراقبة / خطر مرتفع / إنذار تفشٍ). The full ranked list
+ * elsewhere is unaffected.
+ */
+export const MAP_DISPLAY_MIN = 0.15;
 
 // Base-rate-aware DISPLAY bands (visual only — probabilities are NOT rescaled).
 export type RiskLevel = 'Very Low' | 'Low' | 'Elevated' | 'High Monitoring' | 'Outbreak Alert';

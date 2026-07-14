@@ -1,5 +1,6 @@
-// Comprehensive per-country Saudi presence (MOCK) — dependency-free on purpose
-// so it can be imported anywhere (and unit-checked in isolation).
+// Comprehensive per-country Saudi presence (MOCK). Depends only on the pure,
+// dependency-free unified distribution source so it can still be imported
+// anywhere; countries in that source use its EXACT per-country total.
 //
 // Estimated Saudi RESIDENTS per country, keyed by ISO2, so NO country detail
 // panel ever shows "غير متوفر". Known sizeable communities get realistic
@@ -7,6 +8,8 @@
 // `fallbackResidents`, so the table need not enumerate all 195 by hand yet still
 // covers every possible ISO2 code. Illustrative demo figures, NOT official
 // statistics. The largest entries mirror SAUDIS_ABROAD_TOP_RAW in mockData.ts.
+
+import { saudiCountForCountry } from './saudiDistribution';
 
 const SAUDI_RESIDENTS: Record<string, number> = {
   // ── Gulf & Arab world (largest communities) ──
@@ -60,9 +63,16 @@ function fallbackResidents(iso2: string): number {
   return 8 + (hash32(iso2) % 73); // 8..80
 }
 
-/** Estimated Saudi residents for ANY country code. Always a positive number. */
+/**
+ * Estimated Saudi residents for ANY country code. Always a positive number.
+ * Countries present in the unified distribution source use its EXACT per-country
+ * total, so this figure agrees with the map points and consulate counters; any
+ * other country falls back to the local table, then a small stable estimate.
+ */
 export function saudiResidents(countryCode: string): number {
   const code = (countryCode ?? '').toUpperCase();
+  const unified = saudiCountForCountry(code);
+  if (unified > 0) return unified;
   return SAUDI_RESIDENTS[code] ?? fallbackResidents(code || 'XX');
 }
 
@@ -70,6 +80,23 @@ export interface SaudiPresence {
   residents: number;
   visitors: number;
   visaHolders: number;
+}
+
+/** Unified severity band (same values as riskClassification.classifyRiskByScore). */
+export type PresenceRisk = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+// Per-band cap for the headline "visa holders" figure. Saudis avoid dangerous
+// countries, so the more severe the country's risk, the FEWER present:
+//   CRITICAL → tens..~100 · HIGH → hundreds · MEDIUM → thousands ·
+//   LOW/none → the full known community (can be tens/hundreds of thousands).
+// Deterministic per country (hash) so a country's figure is stable per band.
+function visaCapForRisk(band: PresenceRisk | undefined, h: number): number | null {
+  switch (band) {
+    case 'CRITICAL': return 30 + (h % 71);         // 30..100
+    case 'HIGH':     return 150 + (h % 750);       // 150..899
+    case 'MEDIUM':   return 1200 + (h % 6800);     // 1200..7999
+    default:         return null;                  // LOW / unknown → no cap (full community)
+  }
 }
 
 /**
@@ -85,19 +112,25 @@ export interface SaudiPresence {
  * All ratios are derived deterministically from the country code, so the numbers
  * are stable and self-consistent. Illustrative demo data, not official statistics.
  */
-export function getSaudiPresence(countryCode: string): SaudiPresence {
+export function getSaudiPresence(countryCode: string, riskBand?: PresenceRisk): SaudiPresence {
   const code = (countryCode ?? '').toUpperCase() || 'XX';
-  const residents = saudiResidents(code);
+  const fullResidents = saudiResidents(code);
   const h = hash32(code);
 
-  // Visitors: 35%–90% of residents, varying by country (season/tourism profile).
-  const visitorRatio = 0.35 + (h % 56) / 100;
-  const visitors = Math.round(residents * visitorRatio);
+  // Full-community figures (as before) — used directly for LOW/unknown risk.
+  const visitorRatio = 0.35 + (h % 56) / 100;            // 35%–90% of residents
+  const fullVisitors = Math.round(fullResidents * visitorRatio);
+  const surplus = 0.05 + ((h >>> 8) % 26) / 100;         // 5%–30% margin
+  const fullVisa = Math.round((fullResidents + fullVisitors) * (1 + surplus));
 
-  // Visa holders ⊇ residents ∪ visitors: the sum plus a 5%–30% margin, so it is
-  // always the largest of the three.
-  const surplus = 0.05 + ((h >>> 8) % 26) / 100;
-  const visaHolders = Math.round((residents + visitors) * (1 + surplus));
+  // Risk-aware: cap the headline visa-holders figure for higher-risk countries,
+  // then scale residents/visitors by the SAME factor so the three stay coherent
+  // (visa holders always the largest). Never scales UP a small community.
+  const cap = visaCapForRisk(riskBand, h);
+  const visaHolders = cap == null ? fullVisa : Math.min(fullVisa, cap);
+  const factor = fullVisa > 0 ? visaHolders / fullVisa : 1;
+  const residents = Math.max(1, Math.round(fullResidents * factor));
+  const visitors = Math.max(0, Math.round(fullVisitors * factor));
 
   return { residents, visitors, visaHolders };
 }

@@ -4,6 +4,7 @@ import {
   DISASTER_TYPE_LABEL_AR,
   SEVERITY_LABEL_AR,
   SEVERITY_COLOR,
+  disasterPlaceAr,
   type DisasterEvent,
   type DisasterType,
 } from '../services/naturalDisasterFeed';
@@ -74,7 +75,7 @@ export default function DisasterDetailPanel({ disaster, onClose }: DisasterDetai
               <button className="health-detail-close" onClick={onClose} title="إغلاق">
                 <X size={15} />
               </button>
-              <span className="health-detail-country">{displayed.country || 'غير محدّد'}</span>
+              {disasterPlaceAr(displayed) && <span className="health-detail-country">{disasterPlaceAr(displayed)}</span>}
               {displayed.countryCode && <span className="health-detail-code-badge">{displayed.countryCode}</span>}
             </div>
 

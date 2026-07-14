@@ -36,6 +36,93 @@ export { DISASTER_TYPE_LABEL_AR } from './disasterSources/aiSummary';
 
 const LATEST_PER_CATEGORY = 15;
 
+/**
+ * The place label for a disaster row: "Country - Region" when a sub-national
+ * region (state/province, or a locality from the quake sources) is known and
+ * differs from the country, otherwise just the country. Region text is shown
+ * as-is (Arabic or English) and never dropped. Returns '' when there is no
+ * country at all — callers then fall back to coordinates. This is the single
+ * place both the disaster list and the aggregated feed format location, so the
+ * two never disagree.
+ */
+export function disasterPlaceLabel(country: string, region: string | null): string {
+  const c = (country ?? '').trim();
+  const r = (region ?? '').trim();
+  if (c && r && r.toLowerCase() !== c.toLowerCase()) return `${c} - ${r}`;
+  return c;
+}
+
+const LATIN = /[A-Za-z]/;
+
+// Arabic names for the common offshore/oceanic regions that USGS/EMSC name in
+// English (they have no ISO country, so they never resolve to an Arabic name).
+// Keyword-matched against the raw place string so the UI never shows Latin text.
+const OFFSHORE_REGION_AR: [RegExp, string][] = [
+  [/loyalty\s*islands/i, 'جزر لويالتي'],
+  [/bismarck\s*sea/i, 'بحر بسمارك'],
+  [/banda\s*sea/i, 'بحر باندا'],
+  [/molucca\s*sea/i, 'بحر مولوكا'],
+  [/celebes\s*sea/i, 'بحر سيليبس'],
+  [/philippine\s*sea/i, 'بحر الفلبين'],
+  [/south\s*sandwich/i, 'جزر ساندويتش الجنوبية'],
+  [/mid-?atlantic\s*ridge/i, 'حيد وسط الأطلسي'],
+  [/(pacific-?antarctic|east\s*pacific)\s*ri(dge|se)/i, 'حيد شرق المحيط الهادئ'],
+  [/reykjanes\s*ridge/i, 'حيد ريكيانِس'],
+  [/carlsberg\s*ridge/i, 'حيد كارلسبرغ'],
+  [/kermadec/i, 'جزر كيرماديك'],
+  [/kuril/i, 'جزر الكوريل'],
+  [/mariana/i, 'جزر ماريانا'],
+  [/aleutian/i, 'جزر ألوشيان'],
+  [/ascension/i, 'جزيرة أسنشن'],
+  [/\bfiji\b/i, 'جزر فيجي'],
+  [/\btonga\b/i, 'تونغا'],
+  [/\bpacific\b/i, 'المحيط الهادئ'],
+  [/\batlantic\b/i, 'المحيط الأطلسي'],
+  [/indian\s*ocean/i, 'المحيط الهندي'],
+];
+
+/** Translate a recognised offshore/oceanic region name to Arabic, else null. */
+function translateOffshoreAr(text: string): string | null {
+  for (const [re, ar] of OFFSHORE_REGION_AR) if (re.test(text)) return ar;
+  return null;
+}
+
+/** Short Arabic coordinate string — the honest last resort, never a placeholder. */
+function coordsAr(lat: number, lng: number): string {
+  const ns = lat >= 0 ? 'شمالاً' : 'جنوباً';
+  const ew = lng >= 0 ? 'شرقاً' : 'غرباً';
+  return `${Math.abs(lat).toFixed(1)}° ${ns}، ${Math.abs(lng).toFixed(1)}° ${ew}`;
+}
+
+/**
+ * Place label for a disaster row, resolved from the event's OWN real fields —
+ * never a repeated generic placeholder. Order of preference:
+ *   1. "Country - Region" when both are known (e.g. "إندونيسيا - Merapi").
+ *   2. Country alone when there's no specific region.
+ *   3. The region alone when there's no resolved country (an offshore sea/ridge,
+ *      translated to Arabic when we recognise it, else its real name).
+ *   4. Short coordinates when nothing else is known.
+ * A region carrying a real name (a volcano like "Etna", a locality) is kept even
+ * when it's Latin text — showing the real, DISTINCT name beats collapsing every
+ * row to one placeholder. Recognised offshore regions are still Arabised.
+ */
+export function disasterPlaceAr(
+  d: Pick<DisasterEvent, 'country' | 'city' | 'latitude' | 'longitude'>,
+): string {
+  const c = (d.country ?? '').trim();
+  let r = (d.city ?? '').trim();
+  // Arabise a known ocean/ridge region; otherwise keep the real region name.
+  if (r && LATIN.test(r)) r = translateOffshoreAr(r) ?? r;
+  const hasCountry = Boolean(c) && c !== 'غير محدد';
+  if (hasCountry && r && r.toLowerCase() !== c.toLowerCase()) return `${c} - ${r}`;
+  if (hasCountry) return c;
+  if (r) return r;
+  if (Number.isFinite(d.latitude) && Number.isFinite(d.longitude) && (d.latitude || d.longitude)) {
+    return coordsAr(d.latitude, d.longitude);
+  }
+  return '';
+}
+
 function dedupe(list: DisasterEvent[]): DisasterEvent[] {
   const seen = new Set<string>();
   const out: DisasterEvent[] = [];

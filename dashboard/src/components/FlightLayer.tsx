@@ -65,11 +65,16 @@ interface Aircraft {
   lastSeen: number;                 // ms timestamp of the last response containing it
 }
 
-export default function FlightLayer({ enabled }: { enabled: boolean }) {
+export default function FlightLayer({ enabled, onStatus }: {
+  enabled: boolean;
+  /** Reports the live aircraft count (and a reason when zero) after each poll,
+   *  so the map can show feedback instead of a silently-blank layer. */
+  onStatus?: (s: { count: number; reason?: string }) => void;
+}) {
   const map = useMap();
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) { onStatus?.({ count: 0 }); return; }
 
     const group = L.layerGroup().addTo(map);
     const aircraft = new Map<string, Aircraft>();
@@ -86,7 +91,7 @@ export default function FlightLayer({ enabled }: { enabled: boolean }) {
       const t0 = performance.now();
       devlog('request started:', new Date().toISOString());
       try {
-        const { ok, states, source } = await fetchFlightStates();
+        const { ok, states, source, reason } = await fetchFlightStates();
         if (stopped) return;
         const dur = Math.round(performance.now() - t0);
         const now = Date.now();
@@ -134,9 +139,11 @@ export default function FlightLayer({ enabled }: { enabled: boolean }) {
         } else {
           // Graceful failure/empty: KEEP the last good aircraft; only drop the
           // ones that have now been missing long enough to be considered gone.
+          if (reason) devlog('reason:', reason);
           devlog(ok ? 'no records — keeping last aircraft' : 'request failed — keeping last aircraft');
           pruneStale(now);
         }
+        onStatus?.({ count: aircraft.size, reason: aircraft.size === 0 ? reason : undefined });
 
         devlog('request duration:', `${dur}ms`);
         devlog('next refresh:', `${FLIGHT_REFRESH_INTERVAL_MS}ms`);

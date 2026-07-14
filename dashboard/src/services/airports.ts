@@ -1,141 +1,107 @@
-// Airports inside a mission's authorized geographic scope.
+// Airports for a mission's host country — STATIC data from OurAirports
+// (public domain), pre-filtered to major airports (large/medium types that
+// carry an IATA code) and grouped by ISO2 country in public/data/airports.json.
 //
-// Live data from OpenStreetMap via the Overpass API (aeroway=aerodrome) — no
-// hardcoded coordinates. Results are validated (finite coords), reduced to
-// the mission scope with point-in-polygon against the REAL country boundary
-// BEFORE anything reaches the UI, enriched with the distance from the
-// mission, and cached (memory + localStorage, 24h) per country so the same
-// scope is not re-requested. Mirrors services/hospitals.ts.
+// This replaces the previous live OSM/Overpass fetch, which was slow and often
+// returned nothing (leaving the map layer and the "المطارات والحدود" section
+// empty). OurAirports rarely changes, so a bundled snapshot is reliable and
+// works offline. Filtered to the host country's ISO2 at runtime.
 
 import type { EmbassyConfig } from './embassies';
 import { distanceKm } from './embassies';
-import { isPointInsideBoundary, type CountryBoundary } from './countryBoundary';
 
 export interface Airport {
   id: string;
   type: 'AIRPORT';
-  name: string;            // name:ar > name > name:en > fallback
-  city: string | null;
+  name: string;            // real airport name (OurAirports)
+  city: string | null;     // Arabic city when known, else the English municipality
   lat: number;
   lng: number;
   iata: string | null;
   icao: string | null;
-  /** Has scheduled commercial service (IATA code) or is explicitly tagged an
-   *  international aerodrome — the "major airport" signal, since OSM carries
-   *  no passenger-traffic figures. */
+  /** large_airport in OurAirports (hub / scheduled international) — the "major" signal. */
   international: boolean;
   distanceFromMissionKm: number;
 }
 
-/** "Major" score, mirrors services/hospitals.ts's majorScore: an IATA code
- *  means scheduled commercial service; international status is the next
- *  strongest signal. Ties broken by proximity to the mission. */
-function majorScore(a: Airport): number {
-  let s = 0;
-  if (a.iata) s += 2;
-  if (a.international) s += 1;
-  return s;
+interface RawAirport {
+  iata: string; icao: string | null; name: string; city: string | null;
+  cc: string; lat: number; lng: number; large: boolean;
 }
 
-/** Picks up to `limit` major airports for the map layer — highest majorScore
- *  first, nearest-to-mission as the tiebreaker. Returns fewer than `limit`
- *  gracefully when the country genuinely has fewer valid results in scope. */
+// Arabic names for the host countries' hub cities, so the list/map read in
+// Arabic where we have it (falls back to the English municipality otherwise).
+const CITY_AR: Record<string, string> = {
+  Cairo: 'القاهرة', Alexandria: 'الإسكندرية', 'Sharm el-Sheikh': 'شرم الشيخ', 'Sharm El Sheikh': 'شرم الشيخ',
+  Hurghada: 'الغردقة', Luxor: 'الأقصر', Aswan: 'أسوان', 'Marsa Alam': 'مرسى علم', 'El Alamein': 'العلمين', 'Asyut': 'أسيوط',
+  Dubai: 'دبي', 'Abu Dhabi': 'أبوظبي', Sharjah: 'الشارقة', 'Al Ain': 'العين', 'Ras Al Khaimah': 'رأس الخيمة',
+  Istanbul: 'إسطنبول', Ankara: 'أنقرة', Izmir: 'إزمير', Antalya: 'أنطاليا', Bodrum: 'بودروم',
+  Karachi: 'كراتشي', Islamabad: 'إسلام آباد', Lahore: 'لاهور', Peshawar: 'بيشاور', Quetta: 'كويتة', Multan: 'مُلتان',
+  'Hong Kong': 'هونغ كونغ', Beijing: 'بكين', Shanghai: 'شنغهاي', Guangzhou: 'قوانغتشو',
+  Aden: 'عدن', Sanaa: 'صنعاء', "Sana'a": 'صنعاء', Seiyun: 'سيئون',
+  London: 'لندن', Manchester: 'مانشستر', Birmingham: 'برمنغهام',
+  'Los Angeles': 'لوس أنجلوس', Houston: 'هيوستن', 'New York': 'نيويورك', 'Newark': 'نيوارك',
+  Frankfurt: 'فرانكفورت', Berlin: 'برلين', Munich: 'ميونخ', 'München': 'ميونخ', Hamburg: 'هامبورغ',
+  Geneva: 'جنيف', Zurich: 'زيورخ', 'Zürich': 'زيورخ', Basel: 'بازل',
+  Madrid: 'مدريد', Barcelona: 'برشلونة', Malaga: 'مالقة', 'Málaga': 'مالقة',
+  Sydney: 'سيدني', Melbourne: 'ملبورن', Brisbane: 'بريزبن', Perth: 'بيرث',
+  Auckland: 'أوكلاند', Wellington: 'ويلنغتون', Christchurch: 'كرايستشيرش',
+  Kano: 'كانو', Lagos: 'لاغوس', Abuja: 'أبوجا', 'Port Harcourt': 'بورت هاركورت',
+  Jakarta: 'جاكرتا', Surabaya: 'سورابايا', Denpasar: 'دينباسار', 'Kuala Lumpur': 'كوالالمبور', Penang: 'بينانغ',
+};
+
+const cityAr = (city: string | null): string | null => (city ? CITY_AR[city] ?? city : null);
+
+let _cache: Promise<Record<string, RawAirport[]>> | null = null;
+function loadAll(): Promise<Record<string, RawAirport[]>> {
+  if (!_cache) {
+    _cache = fetch('/data/airports.json')
+      .then((r) => (r.ok ? r.json() : {}))
+      .catch(() => ({}));
+  }
+  return _cache;
+}
+
+/** Major airports first (large hubs), then nearest to the mission. */
+function majorScore(a: Airport): number {
+  return (a.international ? 2 : 0) + (a.iata ? 1 : 0);
+}
 export function pickTopAirports(airports: Airport[], limit = 3): Airport[] {
   return [...airports]
     .sort((a, b) => majorScore(b) - majorScore(a) || a.distanceFromMissionKm - b.distanceFromMissionKm)
     .slice(0, limit);
 }
 
-const OVERPASS_MIRRORS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-];
-const LS_PREFIX = 'airports-v1-';
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const MAX_RESULTS = 200;
-
-const memoryCache = new Map<string, Airport[]>();
-
-function isInternational(tags: Record<string, string>): boolean {
-  if (tags['aerodrome:type']?.toLowerCase().includes('international')) return true;
-  if (tags.iata) return true; // IATA codes are only assigned to scheduled commercial airports
-  const name = (tags['name:en'] ?? tags.name ?? '').toLowerCase();
-  return name.includes('international') || name.includes('دولي');
+function toAirport(r: RawAirport, missionLat: number, missionLng: number): Airport {
+  return {
+    id: `apt-${r.iata}`,
+    type: 'AIRPORT',
+    name: r.name,
+    city: cityAr(r.city),
+    lat: r.lat,
+    lng: r.lng,
+    iata: r.iata || null,
+    icao: r.icao ?? null,
+    international: r.large,
+    distanceFromMissionKm: Math.round(distanceKm(missionLat, missionLng, r.lat, r.lng)),
+  };
 }
 
-function parseElements(elements: any[], embassy: EmbassyConfig, boundary: CountryBoundary): Airport[] {
-  const out: Airport[] = [];
-  for (const el of elements) {
-    const lat = el.lat ?? el.center?.lat;
-    const lng = el.lon ?? el.center?.lon;
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-    // Scope enforcement at the DATA layer: only airports inside the real
-    // national boundary are ever returned.
-    if (!isPointInsideBoundary(lat, lng, boundary)) continue;
-    const tags: Record<string, string> = el.tags ?? {};
-    const name = tags['name:ar'] ?? tags.name ?? tags['name:en'];
-    if (!name) continue; // unnamed aerodromes are almost never "major"
-    out.push({
-      id: `${el.type}-${el.id}`,
-      type: 'AIRPORT',
-      name,
-      city: tags['addr:city'] ?? tags['addr:district'] ?? null,
-      lat, lng,
-      iata: tags.iata ?? null,
-      icao: tags.icao ?? null,
-      international: isInternational(tags),
-      distanceFromMissionKm: Math.round(distanceKm(embassy.coordinates.lat, embassy.coordinates.lng, lat, lng)),
-    });
-  }
-  // Major airports first (international/scheduled service), then nearest.
-  out.sort((a, b) => {
-    if (a.international !== b.international) return a.international ? -1 : 1;
-    return a.distanceFromMissionKm - b.distanceFromMissionKm;
-  });
-  return out.slice(0, MAX_RESULTS);
+/** All airports for the mission's host country (ISO2), largest hubs first. */
+export async function fetchAirports(embassy: EmbassyConfig): Promise<Airport[]> {
+  const all = await loadAll();
+  const raw = all[(embassy.hostCountryCode || '').toUpperCase()] ?? [];
+  const list = raw.map((r) => toAirport(r, embassy.coordinates.lat, embassy.coordinates.lng));
+  list.sort((a, b) => majorScore(b) - majorScore(a) || a.distanceFromMissionKm - b.distanceFromMissionKm);
+  return list;
 }
 
-/** Fetch airports for the mission's scope. Returns null on total failure
- *  (drives the error state); [] genuinely means no airports in scope. */
-export async function fetchAirports(embassy: EmbassyConfig, boundary: CountryBoundary): Promise<Airport[] | null> {
-  const cacheKey = embassy.iso3;
-
-  const inMem = memoryCache.get(cacheKey);
-  if (inMem) return inMem;
-
-  try {
-    const raw = localStorage.getItem(LS_PREFIX + cacheKey);
-    if (raw) {
-      const { at, data } = JSON.parse(raw);
-      if (Date.now() - at < CACHE_TTL_MS && Array.isArray(data)) {
-        memoryCache.set(cacheKey, data);
-        return data;
-      }
-    }
-  } catch { /* corrupt cache — refetch */ }
-
-  const [[latMin, lngMin], [latMax, lngMax]] = boundary.bounds;
-  const query =
-    `[out:json][timeout:30];nwr["aeroway"="aerodrome"](${latMin},${lngMin},${latMax},${lngMax});out center ${MAX_RESULTS + 100};`;
-
-  for (const mirror of OVERPASS_MIRRORS) {
-    try {
-      const res = await fetch(mirror, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `data=${encodeURIComponent(query)}`,
-        signal: AbortSignal.timeout(35000),
-      });
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (!Array.isArray(data?.elements)) continue;
-      const airports = parseElements(data.elements, embassy, boundary);
-      memoryCache.set(cacheKey, airports);
-      try {
-        localStorage.setItem(LS_PREFIX + cacheKey, JSON.stringify({ at: Date.now(), data: airports }));
-      } catch { /* quota — memory cache still holds it */ }
-      return airports;
-    } catch { /* try the next mirror */ }
-  }
-  return null;
+/** Convenience for callers that only have an ISO2 code (e.g. the airports list
+ *  in the consulate dashboard). Returns up to `limit` major airports. */
+export async function airportsForCountry(iso2: string, limit = 6): Promise<Airport[]> {
+  const all = await loadAll();
+  const raw = all[(iso2 || '').toUpperCase()] ?? [];
+  const list = raw.map((r) => toAirport(r, r.lat, r.lng)); // distance 0 — not needed here
+  list.sort((a, b) => majorScore(b) - majorScore(a) || a.name.localeCompare(b.name));
+  return list.slice(0, limit);
 }

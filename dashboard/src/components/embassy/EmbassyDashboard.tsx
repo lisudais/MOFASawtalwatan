@@ -21,9 +21,10 @@ import { fetchSecurityFeed, type CountrySecurityProfile } from '../../services/s
 import { fetchOfficialStatements } from '../../services/statementsFeed';
 import type { OfficialStatement } from '../../services/officialStatements';
 import { MOCK_TRAVELERS } from '../../services/mockData';
+import { saudiCountForCountry } from '../../services/saudiDistribution';
 import {
   isEventInEmbassyScope, isTravelerInEmbassyScope, distanceKm,
-  PORT_STATUS_AR, PORT_STATUS_COLOR,
+  PORT_STATUS_AR,
   type EmbassyConfig,
 } from '../../services/embassies';
 import {
@@ -35,6 +36,7 @@ import { filterByCountry } from '../../services/countryFilter';
 import { sortAlertsBySeverity } from '../../services/feed/sortAlerts';
 import { useFlights, buildFlightStatusSummary } from '../../services/flightStatus';
 import { fetchEmbassyWeather, type EmbassyWeather } from '../../services/embassyOps';
+import { airportsForCountry, type Airport } from '../../services/airports';
 import { RISK_COLORS, TYPE_LABEL_AR } from '../../constants';
 import type { GeoEvent, RiskLevel } from '../../types';
 
@@ -394,6 +396,16 @@ export default function EmbassyDashboard({ embassy, onBack }: EmbassyDashboardPr
   const [selectedEvent, setSelectedEvent] = useState<GeoEvent | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [showCompletedRequests, setShowCompletedRequests] = useState(false);
+  // Major airports of the host country (static OurAirports data), for the
+  // "المطارات والحدود" section. Loaded once per host country.
+  const [airports, setAirports] = useState<Airport[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    airportsForCountry(embassy.hostCountryCode, 6).then((list) => {
+      if (!cancelled) setAirports(list);
+    });
+    return () => { cancelled = true; };
+  }, [embassy.hostCountryCode]);
 
   // Single shared queue (services/alertApprovals.ts) — also read by
   // AlertDetailsPanel on the main dashboard. Country-scoped below via the
@@ -469,8 +481,11 @@ export default function EmbassyDashboard({ embassy, onBack }: EmbassyDashboardPr
 
   const activeCases = travelers.filter((t) => t.status === 'ALERTED' || t.status === 'EVACUATED').length;
 
-  // Placeholder side-panel data (no real case-management backend yet).
-  const mockStats = MOCK_EMBASSY_STATS[embassy.id] ?? DEFAULT_MOCK_STATS;
+  // Placeholder side-panel data (no real case-management backend yet). The
+  // "registered" counter now comes from the SINGLE unified distribution source,
+  // so it equals the sum of the Saudi points drawn on THIS consulate's map.
+  const baseStats = MOCK_EMBASSY_STATS[embassy.id] ?? DEFAULT_MOCK_STATS;
+  const mockStats = { ...baseStats, registered: saudiCountForCountry(embassy.hostCountryCode) };
   const mockRequests = useMemo(() => mockCitizenRequests(embassy), [embassy]);
   // Both request kinds — mock citizen requests AND HQ-approved alerts —
   // go through the SAME country filter used by ConsularAlertsPanel's feed
@@ -805,17 +820,25 @@ export default function EmbassyDashboard({ embassy, onBack }: EmbassyDashboardPr
             <div className="panel-header" dir="rtl">
               <Plane size={13} />
               <span>المطارات والحدود</span>
+              <span className="panel-badge">{airports.length}</span>
             </div>
             <div className="embassy-card-body">
               <div className="port-list">
-                {embassy.ports.map((p) => (
-                  <div key={p.nameAr} className="port-row">
-                    <span className="port-row-name">{p.nameAr}</span>
-                    <span className="embassy-sev-chip" style={{ color: PORT_STATUS_COLOR[p.status], borderColor: PORT_STATUS_COLOR[p.status] }}>
-                      {PORT_STATUS_AR[p.status]}
-                    </span>
-                  </div>
-                ))}
+                {airports.length === 0 ? (
+                  <div className="widget-empty-state">لا تتوفر بيانات مطارات لهذه الدولة.</div>
+                ) : (
+                  airports.map((a) => (
+                    <div key={a.id} className="port-row">
+                      <span className="port-row-name">{a.city ? `مطار ${a.city}` : a.name}{a.iata ? ` (${a.iata})` : ''}</span>
+                      <span
+                        className="embassy-sev-chip"
+                        style={{ color: a.international ? '#00E676' : '#42A5F5', borderColor: a.international ? '#00E676' : '#42A5F5' }}
+                      >
+                        {a.international ? 'دولي' : 'محلي'}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

@@ -22,6 +22,7 @@
 
 import type { CountryHealthEntry } from '../healthAnalysis';
 import type { DisasterEvent, Severity as DisasterSeverity } from '../naturalDisasterFeed';
+import { disasterPlaceLabel } from '../naturalDisasterFeed';
 import type { CountrySecurityProfile } from '../security';
 import type { EconomicIndicator } from '../economy';
 
@@ -117,11 +118,12 @@ function fromHealth(e: CountryHealthEntry): AggregatedAlert {
 }
 
 function fromDisaster(d: DisasterEvent): AggregatedAlert {
-  // Prefer the source's own place fields; fall back to coordinates (to be
-  // upgraded by reverse geocoding), never to a blank/unknown label.
+  // Prefer the source's own place fields ("Country - Region" when a state/
+  // province is known); fall back to coordinates (to be upgraded by reverse
+  // geocoding), never to a blank/unknown label.
   const hasCountry = Boolean(d.country && d.country.trim());
   const place = hasCountry
-    ? (d.city ? `${d.city}، ${d.country}` : d.country)
+    ? disasterPlaceLabel(d.country, d.city)
     : formatCoords(d.latitude, d.longitude);
   return {
     id: d.id,

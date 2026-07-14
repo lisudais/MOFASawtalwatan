@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup, Rectangle, GeoJSON, CircleMarker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, Rectangle, GeoJSON, CircleMarker, useMap } from 'react-leaflet';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Layers, Globe, HeartPulse, Plane, Users } from 'lucide-react';
 import L from 'leaflet';
@@ -8,8 +8,7 @@ import { eventDivIcon, travelerIcon } from '../WorldMap';
 import CitizenPopupCard from '../CitizenPopupCard';
 import MapLayersPanel, { type MapLayer } from '../MapLayersPanel';
 import { useBoundariesGeoJson } from '../../services/geoBoundaries';
-import { saudiPresencePoints } from '../../services/embassyFacilities';
-import { fetchCountryBoundary } from '../../services/countryBoundary';
+import { saudiPointsForCountry, saudiPointRadius } from '../../services/saudiDistribution';
 import { fetchHospitals, pickTopHospitals, type Hospital } from '../../services/hospitals';
 import { fetchAirports, pickTopAirports, type Airport } from '../../services/airports';
 import type { EmbassyConfig } from '../../services/embassies';
@@ -165,7 +164,10 @@ export default function EmbassyMap({ embassy, events, travelers, selectedEvent, 
     return f ? { type: 'FeatureCollection' as const, features: [f] } : null;
   }, [worldGeo, embassy.hostCountry]);
 
-  const presencePoints = useMemo(() => saudiPresencePoints(embassy.id), [embassy.id]);
+  // Saudi presence points for THIS host country, from the single unified source.
+  // Their counts sum to saudiCountForCountry(hostCountryCode) — the exact number
+  // the consulate's "مسجّلون" counter shows. Sized by community size.
+  const presencePoints = useMemo(() => saudiPointsForCountry(embassy.hostCountryCode), [embassy.hostCountryCode]);
 
   // ── Hospitals / Airports — real OSM data (Overpass), fetched lazily the
   //    first time each layer is switched on for this embassy, then cached
@@ -195,11 +197,9 @@ export default function EmbassyMap({ embassy, events, travelers, selectedEvent, 
     hospitalsRequestedRef.current.add(embassy.id);
     let cancelled = false;
     (async () => {
-      const boundary = await fetchCountryBoundary(embassy);
-      const result = await fetchHospitals(embassy, boundary);
+      const result = await fetchHospitals(embassy); // mock, host-country filtered
       if (cancelled) return;
-      if (result === null) hospitalsRequestedRef.current.delete(embassy.id); // allow retry on next toggle
-      setHospitalsByEmbassy((prev) => ({ ...prev, [embassy.id]: result ?? [] }));
+      setHospitalsByEmbassy((prev) => ({ ...prev, [embassy.id]: result }));
     })();
     return () => { cancelled = true; };
   }, [showHospitals, embassy]);
@@ -209,11 +209,9 @@ export default function EmbassyMap({ embassy, events, travelers, selectedEvent, 
     airportsRequestedRef.current.add(embassy.id);
     let cancelled = false;
     (async () => {
-      const boundary = await fetchCountryBoundary(embassy);
-      const result = await fetchAirports(embassy, boundary);
+      const result = await fetchAirports(embassy); // static OurAirports, host-country filtered
       if (cancelled) return;
-      if (result === null) airportsRequestedRef.current.delete(embassy.id); // allow retry on next toggle
-      setAirportsByEmbassy((prev) => ({ ...prev, [embassy.id]: result ?? [] }));
+      setAirportsByEmbassy((prev) => ({ ...prev, [embassy.id]: result }));
     })();
     return () => { cancelled = true; };
   }, [showAirports, embassy]);
@@ -334,14 +332,24 @@ export default function EmbassyMap({ embassy, events, travelers, selectedEvent, 
         {/* Saudi presence — deterministic representative scatter, not real
             individual positions (services/embassyFacilities.ts). Small,
             translucent, uniform dots read as "general area," not tracking. */}
-        {showPresence && presencePoints.map((pt, i) => (
+        {showPresence && presencePoints.map((pt) => (
           <CircleMarker
-            key={i}
+            key={`${pt.countryCode}-${pt.cityAr}`}
             center={[pt.lat, pt.lng]}
-            radius={5}
-            pathOptions={{ color: PRESENCE_GREEN, weight: 0, fillColor: PRESENCE_GREEN, fillOpacity: 0.25 }}
-            interactive={false}
-          />
+            radius={saudiPointRadius(pt.count)}
+            pathOptions={{ color: PRESENCE_GREEN, weight: 1.5, fillColor: PRESENCE_GREEN, fillOpacity: 0.3 }}
+          >
+            <Tooltip direction="top" offset={[0, -4]} opacity={1}>
+              <span dir="rtl">{pt.cityAr}: {pt.count.toLocaleString('en-US')} سعودي</span>
+            </Tooltip>
+            <Popup>
+              <div dir="rtl" style={{ minWidth: 120 }}>
+                <strong>{pt.cityAr}</strong>
+                <br />
+                {pt.count.toLocaleString('en-US')} سعودي
+              </div>
+            </Popup>
+          </CircleMarker>
         ))}
 
         {/* The mission itself — distinct marker */}

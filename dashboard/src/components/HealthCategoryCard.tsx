@@ -35,7 +35,6 @@ export default function HealthCategoryCard({ onSelectCountry, onDataLoaded }: He
   const [outbreaks, setOutbreaks] = useState<ResolvedOutbreak[]>([]);
   const [fcMeta, setFcMeta] = useState<OutbreakMeta | null>(null);
   const [selected, setSelected] = useState<ResolvedOutbreak | null>(null);
-  const [showAll, setShowAll] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,11 +67,23 @@ export default function HealthCategoryCard({ onSelectCountry, onDataLoaded }: He
     return () => { cancelled = true; };
   }, []);
 
-  const pct = (p: number) => Math.round(p * 100);
+  // ONE decimal — the exact calibrated probability, NOT rounded to a whole
+  // number. Many pairs share the same calibrated value (isotonic calibration
+  // bins them), so identical values here are the real model output, not a
+  // display artifact; genuinely different values now show their real difference
+  // (e.g. 8.8% vs 15.1%) instead of collapsing to the same integer.
+  const pct = (p: number) => (p * 100).toFixed(1);
   // Bar shows proximity to the official 0.73 alert (visual only) — the % label is
   // always the real calibrated probability.
   const barW = (p: number) => Math.min(100, Math.round((p / OFFICIAL_THRESHOLD) * 100));
-  const shown = showAll ? outbreaks : outbreaks.slice(0, TOP_N);
+  // Only forecasts the model is CONFIDENT about AND that carry a real signal are
+  // listed: High confidence + probability > 0 (a 0% forecast is "no signal", not
+  // a prediction). Ranked by probability so the most likely outbreaks lead, and
+  // capped to the top few — no "view all" expansion, just the accurate short list.
+  const visibleOutbreaks = outbreaks
+    .filter((f) => f.confidence === 'High' && f.probability > 0)
+    .sort((a, b) => b.probability - a.probability);
+  const shown = visibleOutbreaks.slice(0, TOP_N);
 
   return (
     <div className="region-card health-card">
@@ -132,7 +143,7 @@ export default function HealthCategoryCard({ onSelectCountry, onDataLoaded }: He
               <span className="health-regional-badge">{OUTBREAK_MODEL_AR}</span>
             </div>
 
-            {outbreaks.length === 0 ? (
+            {visibleOutbreaks.length === 0 ? (
               <div className="widget-empty-state">لا توجد توقعات متاحة</div>
             ) : (
               <>
@@ -164,15 +175,6 @@ export default function HealthCategoryCard({ onSelectCountry, onDataLoaded }: He
                   ))}
                 </div>
 
-                {outbreaks.length > TOP_N && (
-                  <button type="button" className="outbreak-viewall" onClick={() => setShowAll((v) => !v)}>
-                    {showAll ? 'عرض أعلى 10 فقط' : `عرض كل التوقعات (${outbreaks.length})`}
-                  </button>
-                )}
-
-                {fcMeta?.display_note_ar && (
-                  <div className="outbreak-note">{fcMeta.display_note_ar}</div>
-                )}
               </>
             )}
           </div>

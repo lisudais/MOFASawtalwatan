@@ -1,8 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import { X, MapPin, Clock, Radio, Link2, ShieldCheck, AlertTriangle, Pencil, ChevronDown, ChevronUp, Navigation } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { X, MapPin, Clock, Radio, Link2, ShieldCheck, AlertTriangle, Pencil, ChevronDown, ChevronUp, Navigation, RefreshCw } from 'lucide-react';
 import { TYPE_LABEL_AR } from '../constants';
 import { classifyRiskByScore } from '../services/riskClassification';
 import { getSaudiPresence } from '../services/mockData';
+import { getCachedAi, setCachedAi } from '../services/ai/cache';
+import {
+  composeAlertMessage, heuristicAlertMessage, alertMessageCacheKey,
+  type AlertMessageInput,
+} from '../services/alertMessageAi';
+import { recommendAlert, severityRecommendationAr } from '../services/alertAi';
 import { countryNameAr } from '../services/feed/countryNames';
 import { getEmbassyForCountryCode } from '../services/embassies';
 import {
@@ -96,6 +102,24 @@ function textDir(s: string): 'rtl' | 'ltr' {
   return /[؀-ۿ]/.test(s) ? 'rtl' : 'ltr';
 }
 
+// Assembles the gpt-oss prompt input from a selected alert. Uses the real
+// tracked-citizen count when there is one, otherwise the country's presence
+// estimate, so the message always has a concrete figure to work with.
+function buildAlertInput(card: FeedCard, event: GeoEvent | null, travelers: Traveler[]): AlertMessageInput {
+  const code = card.country ?? event?.countryCode ?? '';
+  const tracked = travelers.filter((t) => t.countryCode && t.countryCode === code).length;
+  const band = classifyRiskByScore(card.score).band;
+  return {
+    eventTypeAr: event ? TYPE_LABEL_AR[event.type] : EVENT_TYPE_AR[card.eventType],
+    location: card.location || countryNameAr(card.country ?? (event?.countryCode || null)),
+    riskLevelAr: severityWord(card.score),
+    riskScore: card.score,
+    description: event?.description ?? card.summary ?? '',
+    saudiCount: tracked > 0 ? tracked : getSaudiPresence(code, band).residents,
+    recommendedAction: event?.recommendedAction ?? '',
+  };
+}
+
 const na = (v: unknown): string =>
   v === null || v === undefined || v === '' ? NA : String(v);
 
@@ -113,6 +137,42 @@ export default function AlertDetailsPanel({ card, event, travelers, onClose, onT
   const [isCitizensMenuOpen, setIsCitizensMenuOpen] = useState(false);
   const [selectedCitizen, setSelectedCitizen] = useState<Traveler | null>(null);
   const [trackNotice, setTrackNotice] = useState('');
+  // True while gpt-oss is composing the alert message (spins the 🔄 button).
+  const [msgGenerating, setMsgGenerating] = useState(false);
+  const msgAbortRef = useRef<AbortController | null>(null);
+  // Ministry recommendation — always populated (severity-based default, upgraded
+  // by gpt-oss). Seeded synchronously so it is never empty on first paint and
+  // never renders "غير متاح".
+  const [recommendation, setRecommendation] = useState(
+    () => (card ? severityRecommendationAr(classifyRiskByScore(card.score).band) : ''),
+  );
+  const recAbortRef = useRef<AbortController | null>(null);
+
+  // Compose the alert message via gpt-oss and drop it into the editable field.
+  // `force` skips the cache (the manual "regenerate" button); otherwise a cached
+  // message for the same event is reused. Falls back to the heuristic template
+  // on any failure, so the field always populates.
+  async function generateAlertMessage(force: boolean) {
+    if (!card) return;
+    const input = buildAlertInput(card, event, travelers);
+    const key = alertMessageCacheKey(card.id, card.score);
+    if (!force) {
+      const cached = getCachedAi<string>(key);
+      if (cached) { setEditableRightAlertMessage(cached); return; }
+    }
+    msgAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    msgAbortRef.current = ctrl;
+    setMsgGenerating(true);
+    try {
+      const text = await composeAlertMessage(input, ctrl.signal);
+      if (ctrl.signal.aborted) return;
+      setEditableRightAlertMessage(text);
+      setCachedAi(key, text);
+    } finally {
+      if (!ctrl.signal.aborted) setMsgGenerating(false);
+    }
+  }
 
   // Single shared source of truth for approval/send status (services/
   // alertApprovals.ts) — also read by EmbassyDashboard. Whichever side
@@ -126,18 +186,37 @@ export default function AlertDetailsPanel({ card, event, travelers, onClose, onT
     return forThisCard.reduce((latest, a) => (a.approvedAt > latest.approvedAt ? a : latest));
   }, [approvedAlerts, card]);
 
-  // Regenerate the editable draft whenever a different card is selected.
+  // On opening a different event: reset the panel's transient UI, show the
+  // instant heuristic message so the field is never blank, then upgrade it with
+  // the gpt-oss-composed message (cache-aware). Cancels any in-flight compose
+  // when the event changes or the panel closes.
   useEffect(() => {
     if (!card) return;
     setShowApprovalModal(false);
     setIsCitizensMenuOpen(false);
     setSelectedCitizen(null);
     setTrackNotice('');
-    const where = card.location || countryNameAr(card.country);
-    const action = event?.recommendedAction ?? '';
-    setEditableRightAlertMessage(
-      `تنبيه وزارة الخارجية: خطر ${severityWord(card.score)} في ${where}. ${action}`.trim()
-    );
+    setEditableRightAlertMessage(heuristicAlertMessage(buildAlertInput(card, event, travelers)));
+    generateAlertMessage(false);
+
+    // Ministry recommendation: instant severity-based default (guaranteed
+    // non-empty), then upgrade with gpt-oss. Reverts to the default on any failure.
+    const band = classifyRiskByScore(card.score).band;
+    setRecommendation((event?.recommendedAction || '').trim() || severityRecommendationAr(band));
+    recAbortRef.current?.abort();
+    const recCtrl = new AbortController();
+    recAbortRef.current = recCtrl;
+    recommendAlert({
+      typeAr: event ? TYPE_LABEL_AR[event.type] : EVENT_TYPE_AR[card.eventType],
+      placeAr: card.location || countryNameAr(card.country ?? (event?.countryCode || null)),
+      severityAr: severityWord(card.score),
+      band,
+      headline: event?.title ?? card.summary ?? '',
+      description: event?.description ?? card.summary ?? '',
+    }, recCtrl.signal).then((r) => { if (!recCtrl.signal.aborted && r) setRecommendation(r); });
+
+    return () => { msgAbortRef.current?.abort(); recAbortRef.current?.abort(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card, event]);
 
   if (!card) return null;
@@ -156,7 +235,6 @@ export default function AlertDetailsPanel({ card, event, travelers, onClose, onT
   const arabicTitle = `${typeAr} · ${placeAr}`;
   const headline = event?.title ?? card.summary ?? '';
   const description = event?.description ?? card.summary ?? '';
-  const recommendation = event?.recommendedAction ?? null;
   const occurredAt = card.occurredAt ? new Date(card.occurredAt) : event?.timestamp ?? null;
   const sourceLabels = card.sources.length
     ? card.sources
@@ -247,7 +325,7 @@ export default function AlertDetailsPanel({ card, event, travelers, onClose, onT
           <div className="rec-label" style={{ color: 'var(--saudi-light)' }} dir="rtl">
             الإجراء الموصى به · MINISTRY RECOMMENDATION
           </div>
-          <div className="rec-text" dir="rtl">{na(recommendation)}</div>
+          <div className="rec-text" dir="rtl">{recommendation}</div>
         </div>
 
         {/* Sources & related resources — derived only from the alert's own source field */}
@@ -296,8 +374,9 @@ export default function AlertDetailsPanel({ card, event, travelers, onClose, onT
               {isCitizensMenuOpen ? <ChevronUp size={13} className="presence-chevron" /> : <ChevronDown size={13} className="presence-chevron" />}
             </button>
             <div className="presence-visa-card">
-              {/* Mock visa-holder estimate for this country (always a number). */}
-              <div className="presence-visa-count mono-num">{getSaudiPresence(countryCode).visaHolders.toLocaleString('en-US')}</div>
+              {/* Risk-aware visa-holder estimate — fewer Saudis in higher-risk
+                  countries (see getSaudiPresence). Always a number. */}
+              <div className="presence-visa-count mono-num">{getSaudiPresence(countryCode, classifyRiskByScore(card.score).band).visaHolders.toLocaleString('en-US')}</div>
               <div className="presence-visa-label">
                 Visa Holders
                 <span className="panel-header-ar" style={{ marginRight: 0 }}>حاملو التأشيرات</span>
@@ -356,6 +435,15 @@ export default function AlertDetailsPanel({ card, event, travelers, onClose, onT
             <Pencil size={12} />
             <span>Editable Alert Message</span>
             <span className="panel-header-ar" style={{ marginRight: 0 }}>نص الإشعار القابل للتعديل</span>
+            <button
+              type="button"
+              className="editable-message-regen"
+              onClick={() => generateAlertMessage(true)}
+              disabled={msgGenerating}
+              title="إعادة صياغة الرسالة عبر الذكاء الاصطناعي"
+            >
+              <RefreshCw size={12} className={msgGenerating ? 'spin-icon' : undefined} />
+            </button>
           </div>
           <textarea
             className="editable-message-textarea"

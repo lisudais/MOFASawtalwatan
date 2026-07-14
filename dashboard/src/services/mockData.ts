@@ -1,5 +1,6 @@
 import type { Traveler, SaudisAbroadData } from '../types';
 import { SAUDIS_ABROAD_COLORS, SAUDIS_ABROAD_OTHER_COLOR } from '../constants';
+import { SAUDIS_ABROAD_TOTAL, saudiCountriesRanked } from './saudiDistribution';
 
 // The 4 hand-written travelers keep their original ids/alert links (e.g. the
 // ALERTED Beirut case wired to alert 'mock-1'); the rest of the 100-citizen
@@ -203,33 +204,32 @@ export const MOCK_TRAVELERS: Traveler[] = [
   ...generatePresenceTravelers(96),
 ];
 
-// Illustrative mock figures for the "Saudis Abroad" national overview — not real
-// government statistics, just plausible round numbers for the demo dashboard.
-const SAUDIS_ABROAD_TOTAL = 2_847_650;
-const SAUDIS_ABROAD_TOP_RAW: { country: string; countryCode: string; count: number }[] = [
-  { country: 'الإمارات', countryCode: 'AE', count: 612_340 },
-  { country: 'مصر', countryCode: 'EG', count: 458_220 },
-  { country: 'الولايات المتحدة', countryCode: 'US', count: 341_890 },
-  { country: 'البحرين', countryCode: 'BH', count: 287_450 },
-  { country: 'المملكة المتحدة', countryCode: 'GB', count: 198_760 },
-  { country: 'تركيا', countryCode: 'TR', count: 156_330 },
-];
+// The "Saudis Abroad" national overview is now derived from the SINGLE unified
+// distribution source (saudiDistribution.ts), so the sidebar total, the world
+// map's distribution points, and each consulate counter all agree. Top-6
+// countries are shown explicitly; the rest roll into "دول أخرى".
+const SAUDIS_ABROAD_TOP_N = 6;
 
 export function getSaudisAbroadData(): SaudisAbroadData {
-  const topSum = SAUDIS_ABROAD_TOP_RAW.reduce((s, c) => s + c.count, 0);
-  const otherCount = SAUDIS_ABROAD_TOTAL - topSum;
+  const total = SAUDIS_ABROAD_TOTAL;
+  const ranked = saudiCountriesRanked();
+  const top = ranked.slice(0, SAUDIS_ABROAD_TOP_N);
+  const topSum = top.reduce((s, c) => s + c.count, 0);
+  const otherCount = total - topSum;
 
-  const countries = SAUDIS_ABROAD_TOP_RAW.map((c, i) => ({
-    ...c,
-    percentage: Math.round((c.count / SAUDIS_ABROAD_TOTAL) * 1000) / 10,
+  const countries = top.map((c, i) => ({
+    country: c.countryAr,
+    countryCode: c.countryCode,
+    count: c.count,
+    percentage: Math.round((c.count / total) * 1000) / 10,
     color: SAUDIS_ABROAD_COLORS[i % SAUDIS_ABROAD_COLORS.length],
   }));
 
   return {
-    total: SAUDIS_ABROAD_TOTAL,
+    total,
     countries,
     otherCount,
-    otherPercentage: Math.round((otherCount / SAUDIS_ABROAD_TOTAL) * 1000) / 10,
+    otherPercentage: Math.round((otherCount / total) * 1000) / 10,
     otherColor: SAUDIS_ABROAD_OTHER_COLOR,
   };
 }

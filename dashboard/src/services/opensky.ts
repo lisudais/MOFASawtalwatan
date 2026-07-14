@@ -32,6 +32,8 @@ export interface FlightFetchResult {
   states: Flight[];
   /** Human-readable provenance, for dev logs only (no secrets). */
   source: string;
+  /** Why the fetch returned no data (e.g. rate-limited 429), when ok:false. */
+  reason?: string;
 }
 
 const SOURCE = 'OpenSky Network (via /api/opensky proxy)';
@@ -41,13 +43,13 @@ const SOURCE = 'OpenSky Network (via /api/opensky proxy)';
 export async function fetchFlightStates(): Promise<FlightFetchResult> {
   try {
     const res = await fetch('/api/opensky', { signal: AbortSignal.timeout(15000) });
-    if (!res.ok) return { ok: false, states: [], source: SOURCE };
+    if (!res.ok) return { ok: false, states: [], source: SOURCE, reason: `proxy ${res.status}` };
     const data = await res.json();
     const states = Array.isArray(data?.states) ? (data.states as Flight[]) : [];
     // The proxy sets ok:false on upstream failure while still returning a shape.
-    return { ok: data?.ok !== false, states, source: SOURCE };
+    return { ok: data?.ok !== false, states, source: SOURCE, reason: data?.reason };
   } catch {
-    return { ok: false, states: [], source: SOURCE };
+    return { ok: false, states: [], source: SOURCE, reason: 'proxy unreachable' };
   }
 }
 

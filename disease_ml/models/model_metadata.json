@@ -1,5 +1,5 @@
 {
-  "training_date_utc": "2026-07-13T10:23:34Z",
+  "training_date_utc": "2026-07-14T09:26:23Z",
   "seed": 42,
   "xgboost_version": "3.3.0",
   "feature_list": [
@@ -104,14 +104,16 @@
     "population_density"
   ],
   "classifier_params": {
-    "max_depth": 4,
-    "learning_rate": 0.1,
-    "min_child_weight": 3,
+    "max_depth": 3,
+    "learning_rate": 0.05,
+    "min_child_weight": 1,
     "subsample": 0.8,
     "colsample_bytree": 0.8,
     "reg_alpha": 0.0,
     "reg_lambda": 1.0,
-    "best_iteration": 89
+    "gamma": 0.0,
+    "scale_pos_weight": 7.779,
+    "best_iteration": 441
   },
   "regressor_params": {
     "max_depth": 5,
@@ -124,7 +126,8 @@
     "best_iteration": 52
   },
   "scale_pos_weight": 7.778793418647166,
-  "selected_threshold": 0.73,
+  "selected_threshold": 0.8899999999999999,
+  "calibration_method": "platt",
   "dataset_paths": {
     "train": "C:\\Users\\PC\\Downloads\\sawt-alwatan\\disease_ml\\dataset\\train.csv",
     "validation": "C:\\Users\\PC\\Downloads\\sawt-alwatan\\disease_ml\\dataset\\validation.csv",
@@ -146,54 +149,73 @@
   },
   "validation_metrics": {
     "classification_at_selected": {
-      "PR_AUC": 0.9218644416902854,
-      "ROC_AUC": 0.9585145671545201,
+      "PR_AUC": 0.928154244867635,
+      "ROC_AUC": 0.9641079251294306,
       "precision": 1.0,
       "recall": 0.8307291666666666,
       "F1": 0.9075391180654339,
       "balanced_accuracy": 0.9153645833333333,
-      "log_loss": 0.1561802476644516,
-      "threshold": 0.73
+      "log_loss": 0.14198076725006104,
+      "threshold": 0.8899999999999999
     },
     "regression_log_rmse": 1.6774532491122995
   },
   "test_metrics": {
     "classification": {
       "at_0.50": {
-        "PR_AUC": 0.7015588785870732,
-        "ROC_AUC": 0.8239110710393116,
-        "precision": 0.324468085106383,
-        "recall": 0.6853932584269663,
-        "F1": 0.4404332129963899,
-        "balanced_accuracy": 0.8104467561814872,
-        "log_loss": 0.24062158167362213,
+        "PR_AUC": 0.702952093669823,
+        "ROC_AUC": 0.8083838827671606,
+        "precision": 0.3103448275862069,
+        "recall": 0.7078651685393258,
+        "F1": 0.4315068493150685,
+        "balanced_accuracy": 0.8183815431320296,
+        "log_loss": 0.23489829897880554,
         "threshold": 0.5
       },
       "at_selected": {
-        "PR_AUC": 0.7015588785870732,
-        "ROC_AUC": 0.8239110710393116,
-        "precision": 0.7023809523809523,
+        "PR_AUC": 0.702952093669823,
+        "ROC_AUC": 0.8083838827671606,
+        "precision": 0.9833333333333333,
         "recall": 0.6629213483146067,
-        "F1": 0.6820809248554913,
-        "balanced_accuracy": 0.8251122739541545,
-        "log_loss": 0.24062158167362213,
-        "threshold": 0.73
+        "F1": 0.7919463087248322,
+        "balanced_accuracy": 0.8312067381491774,
+        "log_loss": 0.23489829897880554,
+        "threshold": 0.8899999999999999
       },
       "val_at_selected": {
-        "PR_AUC": 0.9218644416902854,
-        "ROC_AUC": 0.9585145671545201,
+        "PR_AUC": 0.928154244867635,
+        "ROC_AUC": 0.9641079251294306,
         "precision": 1.0,
         "recall": 0.8307291666666666,
         "F1": 0.9075391180654339,
         "balanced_accuracy": 0.9153645833333333,
-        "log_loss": 0.1561802476644516,
-        "threshold": 0.73
+        "log_loss": 0.14198076725006104,
+        "threshold": 0.8899999999999999
       },
       "calibration": {
-        "brier_uncalibrated": 0.06546224653720856,
-        "brier_calibrated": 0.018771227449178696,
-        "prauc_uncalibrated": 0.7015588785870732,
-        "prauc_calibrated": 0.6969453395464158,
+        "method": "platt",
+        "brier_uncalibrated": 0.06457654386758804,
+        "brier_calibrated": 0.031867166583757295,
+        "prauc_uncalibrated": 0.702952093669823,
+        "prauc_calibrated": 0.702952093669823,
+        "test_distinct_probabilities": 1914,
+        "validation_selection": {
+          "none": {
+            "val_brier": 0.03870769962668419,
+            "val_prauc": 0.928154244867635,
+            "val_distinct_ratio": 0.9310009718172984
+          },
+          "isotonic": {
+            "val_brier": 0.028923846781253815,
+            "val_prauc": 0.9251450800135378,
+            "val_distinct_ratio": 0.0058309037900874635
+          },
+          "platt": {
+            "val_brier": 0.032124706073742196,
+            "val_prauc": 0.928154244867635,
+            "val_distinct_ratio": 0.9339164237123421
+          }
+        },
         "calibration_applied": true
       }
     },

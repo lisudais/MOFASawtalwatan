@@ -6,11 +6,10 @@ import SidebarResizeHandle from './components/SidebarResizeHandle';
 import EventDetail from './components/EventDetail';
 import AggregatedAlertFeed from './components/AggregatedAlertFeed';
 import AlertDetailsPanel from './components/AlertDetailsPanel';
-import type { FeedCard } from './services/feed/feedCards';
+import { aggregatedToDetail } from './services/feed/aggregatedToDetail';
 import { useFeedCards } from './services/feed/useFeedCards';
-import { groupFeedCards } from './services/feed/groupCards';
 import { aggregateAlerts, type AggregatedAlert } from './services/feed/aggregateAlerts';
-import { resolveGeoEvent, hasValidCoords } from './services/feed/resolveGeoEvent';
+import { centroidFor } from './services/feed/countryCentroids';
 import { classifyRiskByScore } from './services/riskClassification';
 import { buildGlobalContextSummary } from './services/chatbotContext';
 import { useFlights, buildFlightStatusSummary } from './services/flightStatus';
@@ -34,7 +33,7 @@ import { generateNotificationMessage, generateNotificationMessageAr, generateAiS
 import { registerServiceWorker, requestPermission, sendPushNotification, onAcknowledge } from './services/pushNotification';
 import type { GeoEvent, Traveler, Notification, DashboardStats } from './types';
 import type { CountryHealthEntry } from './services/healthAnalysis';
-import type { DisasterEvent } from './services/naturalDisasterFeed';
+import type { DisasterEvent, DisasterType } from './services/naturalDisasterFeed';
 import type { OfficialStatement } from './services/officialStatements';
 import type { CountrySecurityProfile } from './services/security';
 import type { EconomicIndicator } from './services/economy';
@@ -138,6 +137,31 @@ export default function App() {
   return <MainDashboard />;
 }
 
+// Disaster sub-type → GeoEvent glyph key (picks the marker's line icon).
+const DISASTER_GLYPH: Record<DisasterType, GeoEvent['type']> = {
+  EARTHQUAKE: 'EARTHQUAKE', VOLCANO: 'VOLCANO', HURRICANE: 'STORM', FLOOD: 'FLOOD', WILDFIRE: 'WILDFIRE',
+};
+
+// Placeable coordinates for an aggregated alert: a disaster's own lat/lng when
+// real, otherwise the country centroid. null → not placeable (economic/global,
+// or a country we have no centroid for) → no map marker.
+function alertCoords(alert: AggregatedAlert): [number, number] | null {
+  if (alert.lat != null && alert.lng != null && (alert.lat !== 0 || alert.lng !== 0)) {
+    return [alert.lat, alert.lng];
+  }
+  return centroidFor(alert.countryCode);
+}
+
+// Marker glyph for an aggregated alert, by source section.
+function alertGlyph(alert: AggregatedAlert): GeoEvent['type'] {
+  switch (alert.ref.kind) {
+    case 'natural_disaster': return DISASTER_GLYPH[alert.ref.event.disasterType] ?? 'EARTHQUAKE';
+    case 'health': return 'DISEASE';
+    case 'security': return 'CONFLICT';
+    case 'economic': return 'DROUGHT';
+  }
+}
+
 function MainDashboard() {
   const [events, setEvents] = useState<GeoEvent[]>([]);
   const [travelers] = useState<Traveler[]>(() => {
@@ -145,21 +169,14 @@ function MainDashboard() {
     return saved ? [saved, ...MOCK_TRAVELERS] : MOCK_TRAVELERS;
   });
   const [selectedEvent, setSelectedEvent] = useState<GeoEvent | null>(null);
-  // Right sidebar (Global Alert Feed) selection — deliberately separate from
-  // `selectedEvent`, which drives the left sidebar / map / EventDetail flow.
-  const [selectedRightAlert, setSelectedRightAlert] = useState<GeoEvent | null>(null);
-  // Global Alert Feed cards come from the Stages 1-6 pipeline (/api/feed).
-  // Fast→full orchestration lives in the shared hook (also used by the
-  // consular feed, filtered by country). No filter here → the global feed.
-  // Pipeline feed (Stages 1-6) — still powers the MAP's markers, country-risk
-  // layer, and the assistant's grounding context. The right-column list no
-  // longer uses it; that list is now a live roll-up of the four sidebar
-  // sections (see `aggregatedAlerts`).
+  // Pipeline feed (Stages 1-6) — still powers the map's country-risk RED layer
+  // and the assistant's grounding context. Neither the right-column list nor
+  // the map's event MARKERS use it any more: both are now a live roll-up of the
+  // four sidebar sections (see `aggregatedAlerts`).
   const { cards: feedCards } = useFeedCards();
-  const [selectedCard, setSelectedCard] = useState<FeedCard | null>(null);
-  // Citizen tracked from the right-sidebar details panel — feeds the map's
-  // existing selectedTraveler fly-to only; no marker layer is altered.
-  const [trackedCitizen, setTrackedCitizen] = useState<Traveler | null>(null);
+  // Fly-to target for the map — the coordinates of the currently-selected alert
+  // (from the right list or a marker click).
+  const [flyTo, setFlyTo] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<CountryHealthEntry | null>(null);
   const [selectedDisaster, setSelectedDisaster] = useState<DisasterEvent | null>(null);
   const [selectedStatement, setSelectedStatement] = useState<OfficialStatement | null>(null);
@@ -181,6 +198,11 @@ function MainDashboard() {
   // Right-column aggregated-feed selection (highlight only) — separate from the
   // pipeline-driven `selectedCard`/map flow.
   const [selectedAggId, setSelectedAggId] = useState<string | null>(null);
+  // Clicking a RIGHT-column "التنبيهات العالمية" item opens the SAME original
+  // alert card the dashboard was built around (AlertDetailsPanel) — just fed with
+  // that alert's data (adapted via aggregatedToDetail). Kept as its own state so
+  // the right flow never collides with the left-sidebar panels.
+  const [selectedAggAlert, setSelectedAggAlert] = useState<AggregatedAlert | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
@@ -275,23 +297,6 @@ function MainDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Per-country risk for the map's RED highlight layer: the max Stage 5 score
-  // across each country's feed cards. Real pipeline output, ISO2-keyed; cards
-  // with no country are ignored. No mock, no fetch.
-  const countryRisk = useMemo(() => {
-    // Deterministic, no LLM: overall = max card.score for the country; keep the
-    // driving category + per-category breakdown so the map can answer
-    // "why is this country red" by pointing at real Stage 5 scores.
-    const byCountry: Record<string, { score: number; category: string; byCategory: Record<string, number> }> = {};
-    for (const c of feedCards) {
-      if (!c.country) continue;
-      const entry = byCountry[c.country] ??= { score: 0, category: c.eventType, byCategory: {} };
-      entry.byCategory[c.eventType] = Math.max(entry.byCategory[c.eventType] ?? 0, c.score);
-      if (c.score > entry.score) { entry.score = c.score; entry.category = c.eventType; }
-    }
-    return byCountry;
-  }, [feedCards]);
-
   // Shared live flight feed — the SAME source the map's "حركة الطيران" layer
   // uses (services/flightStatus.ts). Kept always-active here so the assistant
   // can answer flight questions even when the map layer is toggled off; the
@@ -309,61 +314,13 @@ function MainDashboard() {
     return [base, flightSummary].filter(Boolean).join('\n\n');
   }, [feedCards, events, securityCountries, healthCountries, flights]);
 
-  /**
-   * Clicking a card selects it. When the cluster contains a signal that came
-   * from a geophysical GeoEvent, we also select that event, so the existing
-   * map fly-to and the right-side details panel keep working exactly as before.
-   * Clusters with no GeoEvent behind them (security / statements / GDELT) simply
-   * highlight — nothing that used to work has been taken away.
-   */
-  const handleSelectCard = useCallback((card: FeedCard) => {
-    setSelectedCard(card);
-    // When the cluster contains a geophysical signal that maps back to a
-    // GeoEvent, also select it so the map fly-to keeps working. Cards with no
-    // GeoEvent behind them (security / statements / GDELT) still open the
-    // details panel — it now renders from the card itself. Same resolver the
-    // map's alertMarkers are built with, below, so a card and its marker
-    // (when one exists) always agree.
-    setSelectedRightAlert(resolveGeoEvent(card, events));
-  }, [events]);
-
-  // Global Alert Feed cards, rolled up exactly the way GlobalAlertFeed itself
-  // displays them (same pure function, same input) — this is what makes a map
-  // marker and its right-panel card the same alert, not two parallel lists.
-  const alertGroups = useMemo(() => groupFeedCards(feedCards), [feedCards]);
-
-  // One marker per right-panel card: MEDIUM/HIGH/CRITICAL severity only (LOW
-  // is never shown on the map), real source coordinates only (a card with no
-  // matching GeoEvent — security/health/economic/statement clusters — has no
-  // marker at all, never a guessed/centroid position), deduped by card id.
-  const alertMarkers = useMemo<AlertMarker[]>(() => {
-    const seen = new Set<string>();
-    const out: AlertMarker[] = [];
-    for (const group of alertGroups) {
-      const band = classifyRiskByScore(group.score).band;
-      if (band === 'LOW') continue;
-      if (seen.has(group.lead.id)) continue;
-      const geo = resolveGeoEvent(group.lead, events);
-      if (!geo || !hasValidCoords(geo)) continue;
-      seen.add(group.lead.id);
-      out.push({ id: group.lead.id, lat: geo.lat, lng: geo.lng, band, type: geo.type });
-    }
-    return out;
-  }, [alertGroups, events]);
-
-  // Clicking a map marker must do exactly what clicking its right-panel card
-  // does — so it reuses handleSelectCard, looking the FeedCard back up by the
-  // same id the marker was built with.
-  const handleSelectAlertMarker = useCallback((marker: AlertMarker) => {
-    const group = alertGroups.find((g) => g.lead.id === marker.id);
-    if (group) handleSelectCard(group.lead);
-  }, [alertGroups, handleSelectCard]);
-
-  // Only one left-column detail panel is ever open at a time. Centralised here so
-  // BOTH the left cards and the right aggregated feed open panels the same way.
+  // Only one detail window is ever open at a time. Opening any LEFT-sidebar panel
+  // also closes the RIGHT-column's dedicated window (and vice-versa), so the two
+  // independent flows never show two windows at once.
   const clearDetailPanels = useCallback(() => {
     setSelectedCountry(null); setSelectedDisaster(null); setSelectedStatement(null);
     setSelectedSecurity(null); setSelectedIndicator(null);
+    setSelectedAggAlert(null);
   }, []);
   const openHealth = useCallback((entry: CountryHealthEntry) => { clearDetailPanels(); setSelectedCountry(entry); }, [clearDetailPanels]);
   const openDisaster = useCallback((d: DisasterEvent) => { clearDetailPanels(); setSelectedDisaster(d); }, [clearDetailPanels]);
@@ -383,17 +340,66 @@ function MainDashboard() {
     healthCountries.length === 0 && disasterEvents.length === 0 &&
     securityCountries.length === 0 && economyIndicators.length === 0;
 
-  // Clicking a right-column item opens the SAME detail panel its left card does,
-  // dispatching by the alert's source category.
+  // Clicking a right-column item opens the ORIGINAL alert card (AlertDetailsPanel)
+  // — the same one the dashboard was built around — fed with this alert's data.
+  // It also highlights the row and flies the map to the alert's location. The
+  // left sidebar's own click flow (openHealth/openDisaster/…) is completely
+  // separate and untouched.
   const handleSelectAggregated = useCallback((alert: AggregatedAlert) => {
+    clearDetailPanels();               // close any left-sidebar panel first
     setSelectedAggId(alert.id);
-    switch (alert.ref.kind) {
-      case 'health': openHealth(alert.ref.entry); break;
-      case 'natural_disaster': openDisaster(alert.ref.event); break;
-      case 'security': openSecurity(alert.ref.profile); break;
-      case 'economic': openIndicator(alert.ref.indicator); break;
+    const coords = alertCoords(alert);
+    if (coords) setFlyTo({ lat: coords[0], lng: coords[1] });
+    setSelectedAggAlert(alert);        // open the original alert card
+  }, [clearDetailPanels]);
+
+  // Map event markers — built from the SAME aggregated four-section data as the
+  // right list, so the map reflects real risk scores from health/disasters/
+  // security (no dependency on the slow pipeline feed). Every band LOW→CRITICAL
+  // is placed (an event that qualifies is never hidden by an over-strict cutoff).
+  // Coordinates: a disaster's own lat/lng, else the country centroid; economic/
+  // global alerts have no location and are simply not placed. When several alerts
+  // collapse to the same point, the most severe one wins that marker.
+  const alertMarkers = useMemo<AlertMarker[]>(() => {
+    const best = new Map<string, AlertMarker>();
+    for (const alert of aggregatedAlerts) {
+      const coords = alertCoords(alert);
+      if (!coords) continue;
+      const [lat, lng] = coords;
+      const key = `${lat.toFixed(2)},${lng.toFixed(2)}`;
+      const prev = best.get(key);
+      if (prev && prev.score >= alert.score) continue;
+      best.set(key, {
+        id: alert.id, lat, lng, score: alert.score,
+        band: classifyRiskByScore(alert.score).band, type: alertGlyph(alert),
+      });
     }
-  }, [openHealth, openDisaster, openSecurity, openIndicator]);
+    return [...best.values()];
+  }, [aggregatedAlerts]);
+
+  // Per-country risk for the map's "current risk" choropleth — built from the
+  // SAME aggregatedAlerts list the right column ("التنبيهات العالمية") renders,
+  // so the shaded map is a faithful mirror of that panel: the country of a red
+  // alert there is shaded red here, at the same score. ISO2-keyed; alerts with no
+  // country (e.g. global market moves, countryCode='') are ignored. For each
+  // country we keep its highest alert score, the driving category, and the
+  // per-category breakdown so the polygon popup can explain "why".
+  const countryRisk = useMemo(() => {
+    const byCountry: Record<string, { score: number; category: string; byCategory: Record<string, number> }> = {};
+    for (const a of aggregatedAlerts) {
+      if (!a.countryCode) continue;
+      const entry = byCountry[a.countryCode] ??= { score: 0, category: a.category, byCategory: {} };
+      entry.byCategory[a.category] = Math.max(entry.byCategory[a.category] ?? 0, a.score);
+      if (a.score > entry.score) { entry.score = a.score; entry.category = a.category; }
+    }
+    return byCountry;
+  }, [aggregatedAlerts]);
+
+  // A marker click does exactly what clicking its right-list item does.
+  const handleSelectAlertMarker = useCallback((marker: AlertMarker) => {
+    const alert = aggregatedAlerts.find((a) => a.id === marker.id);
+    if (alert) handleSelectAggregated(alert);
+  }, [aggregatedAlerts, handleSelectAggregated]);
 
   const dismissNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
@@ -445,7 +451,7 @@ function MainDashboard() {
   // the panels and would otherwise peek out beside them.
   const anyDetailOpen = !!(
     selectedEvent || selectedCountry || selectedDisaster ||
-    selectedStatement || selectedSecurity || selectedIndicator || selectedCard
+    selectedStatement || selectedSecurity || selectedIndicator || selectedAggAlert
   );
 
   return (
@@ -500,17 +506,17 @@ function MainDashboard() {
               left sidebar's own `selectedEvent` flow is untouched. */}
           <WorldMap
             alertMarkers={alertMarkers}
-            selectedAlertId={selectedCard?.id ?? null}
+            selectedAlertId={selectedAggId}
             onSelectAlert={handleSelectAlertMarker}
             travelers={travelers}
-            selectedEvent={selectedRightAlert}
-            selectedTraveler={trackedCitizen}
+            flyTo={flyTo}
+            selectedTraveler={null}
             countryRisk={countryRisk}
             detailOpen={anyDetailOpen}
           />
-          {/* Empty / error state — shown ONLY when there are no real events.
-              No mock fallback is ever displayed. */}
-          {!loading && events.length === 0 && (
+          {/* Empty / error state — shown ONLY when the aggregated feed (the map's
+              marker source) has nothing to place. No mock fallback is ever shown. */}
+          {!aggregatedLoading && alertMarkers.length === 0 && (
             <div className="map-empty-overlay">
               {feedError
                 ? 'تعذر جلب البيانات من المصدر الحقيقي'
@@ -544,17 +550,24 @@ function MainDashboard() {
             indicator={selectedIndicator}
             onClose={() => setSelectedIndicator(null)}
           />
-          {/* Right-sidebar-only details overlay — driven solely by the Global
-              Alert Feed's own state; never touches the left sidebar's panels. */}
-          {selectedCard && (
-            <AlertDetailsPanel
-              card={selectedCard}
-              event={selectedRightAlert}
-              travelers={travelers}
-              onClose={() => { setSelectedCard(null); setSelectedRightAlert(null); }}
-              onTrackCitizen={setTrackedCitizen}
-            />
-          )}
+          {/* RIGHT-column "التنبيهات العالمية" detail — the SAME original
+              AlertDetailsPanel card, populated with the selected alert's data. */}
+          {selectedAggAlert && (() => {
+            const { card, event } = aggregatedToDetail(selectedAggAlert);
+            return (
+              <AlertDetailsPanel
+                card={card}
+                event={event}
+                travelers={travelers}
+                onClose={() => { setSelectedAggAlert(null); setSelectedAggId(null); }}
+                onTrackCitizen={(c) => {
+                  if (Number.isFinite(c.lat) && Number.isFinite(c.lng) && (c.lat !== 0 || c.lng !== 0)) {
+                    setFlyTo({ lat: c.lat, lng: c.lng });
+                  }
+                }}
+              />
+            );
+          })()}
           <AiChatbot globalSummaryAr={globalSummaryAr} />
         </div>
 
