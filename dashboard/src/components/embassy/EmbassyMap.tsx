@@ -21,6 +21,10 @@ interface EmbassyMapProps {
   travelers: Traveler[];    // already scope-filtered by the caller
   selectedEvent: GeoEvent | null;
   onSelectEvent: (e: GeoEvent) => void;
+  /** True while a detail panel (event / citizen request) is open over the map.
+   *  The layers trigger is removed from the DOM while it's true so it can't
+   *  show beside the panel — same top-left slot. See WorldMap for the rationale. */
+  detailOpen?: boolean;
 }
 
 // Natural Earth 1:110m (already-simplified) world-country polygons — the same
@@ -141,7 +145,7 @@ function FitToBoundary({ feature }: { feature: FeatureCollection | null }) {
 // Host-country-focused map for the embassy sub-dashboard. Same tile layer,
 // same event/traveler marker design, same fly-to + details-panel pattern as
 // the main WorldMap — only the framing and the data scope differ.
-export default function EmbassyMap({ embassy, events, travelers, selectedEvent, onSelectEvent }: EmbassyMapProps) {
+export default function EmbassyMap({ embassy, events, travelers, selectedEvent, onSelectEvent, detailOpen = false }: EmbassyMapProps) {
   const { bounds } = embassy;
 
   const [layersOpen, setLayersOpen] = useState(false);
@@ -214,6 +218,12 @@ export default function EmbassyMap({ embassy, events, travelers, selectedEvent, 
     return () => { cancelled = true; };
   }, [showAirports, embassy]);
 
+  // Don't leave the layers checklist open underneath a detail panel: close it
+  // whenever a panel opens so it can't linger beside the panel.
+  useEffect(() => {
+    if (detailOpen) setLayersOpen(false);
+  }, [detailOpen]);
+
   function handleLayerToggle(id: string) {
     switch (id) {
       case 'boundary': setShowBoundary((v) => !v); break;
@@ -233,28 +243,32 @@ export default function EmbassyMap({ embassy, events, travelers, selectedEvent, 
 
   return (
     <>
-      <div className="map-toggle-row">
-        <button
-          ref={layersBtnRef}
-          type="button"
-          className={`map-toggle-btn layers${layersOpen ? ' active' : ''}`}
-          onClick={() => setLayersOpen((v) => !v)}
-          title="طبقات الخريطة"
-          aria-expanded={layersOpen}
-        >
-          <Layers size={13} />
-          الطبقات
-          {activeLayerCount > 0 && <span className="map-layers-count">{activeLayerCount}</span>}
-        </button>
-        {layersOpen && (
-          <MapLayersPanel
-            layers={mapLayers}
-            onToggle={handleLayerToggle}
-            onClose={() => setLayersOpen(false)}
-            anchorRef={layersBtnRef}
-          />
-        )}
-      </div>
+      {/* Hidden (removed from the DOM) while a detail panel is open so it can't
+          show beside the panel that overlaps this same top-left slot. */}
+      {!detailOpen && (
+        <div className="map-toggle-row">
+          <button
+            ref={layersBtnRef}
+            type="button"
+            className={`map-toggle-btn layers${layersOpen ? ' active' : ''}`}
+            onClick={() => setLayersOpen((v) => !v)}
+            title="طبقات الخريطة"
+            aria-expanded={layersOpen}
+          >
+            <Layers size={13} />
+            الطبقات
+            {activeLayerCount > 0 && <span className="map-layers-count">{activeLayerCount}</span>}
+          </button>
+          {layersOpen && (
+            <MapLayersPanel
+              layers={mapLayers}
+              onToggle={handleLayerToggle}
+              onClose={() => setLayersOpen(false)}
+              anchorRef={layersBtnRef}
+            />
+          )}
+        </div>
+      )}
 
       <MapContainer
         center={[embassy.coordinates.lat, embassy.coordinates.lng]}

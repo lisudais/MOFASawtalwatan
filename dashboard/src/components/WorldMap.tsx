@@ -56,6 +56,15 @@ interface WorldMapProps {
    * App.tsx from the pipeline output — deterministic, no mock, no fetch here.
    */
   countryRisk?: Record<string, CountryRisk>;
+  /**
+   * True while any country/event detail panel is open over the map (App owns
+   * the panels; see App.tsx). The floating map controls (layers trigger,
+   * forecast banner) are removed from the DOM while it's true so they can't
+   * peek out beside the panel — both live in the same top-left slot, and the
+   * panel's z-index is not guaranteed to win over every control. This is the
+   * robust guard; z-index alone proved brittle across the several panels.
+   */
+  detailOpen?: boolean;
 }
 
 // A country is highlighted red when its overall score (the max across its
@@ -236,6 +245,7 @@ type RiskLayer = 'none' | 'current' | 'predicted';
 
 export default function WorldMap({
   alertMarkers, selectedAlertId, onSelectAlert, travelers, selectedEvent, selectedTraveler, countryRisk = {},
+  detailOpen = false,
 }: WorldMapProps) {
   // ── Flight monitoring (isolated from alert/risk state) ──────────────────
   // The imperative <FlightLayer> owns polling + smooth interpolation; this only
@@ -272,6 +282,17 @@ export default function WorldMap({
 
   const toggleLayer = (layer: RiskLayer) =>
     setRiskLayer((cur) => (cur === layer ? 'none' : layer));
+
+  // The map's own outbreak card (OutbreakDetailCard, below) is itself a detail
+  // panel over the map, so it hides the controls exactly like the App-level
+  // panels do. `controlsHidden` gates every floating control in one place.
+  const controlsHidden = detailOpen || selectedOutbreak !== null;
+
+  // Never leave the layers checklist open underneath a detail panel: if a panel
+  // opens while it's showing, close it so it can't linger beside the panel.
+  useEffect(() => {
+    if (controlsHidden) setLayersOpen(false);
+  }, [controlsHidden]);
 
   // Single dispatch point for the checklist panel — each id maps back to the
   // exact same state setter the old individual buttons called. 'risk-current'
@@ -336,32 +357,37 @@ export default function WorldMap({
   return (
     <>
       {/* Map layer controls — one trigger opens the checklist dropdown below,
-          replacing what used to be three separate always-visible buttons. */}
-      <div className="map-toggle-row">
-        <button
-          ref={layersBtnRef}
-          type="button"
-          className={`map-toggle-btn layers${layersOpen ? ' active' : ''}`}
-          onClick={() => setLayersOpen((v) => !v)}
-          title="طبقات الخريطة"
-          aria-expanded={layersOpen}
-        >
-          <Layers size={13} />
-          الطبقات
-          {activeLayerCount > 0 && <span className="map-layers-count">{activeLayerCount}</span>}
-        </button>
-        {layersOpen && (
-          <MapLayersPanel
-            layers={mapLayers}
-            onToggle={handleLayerToggle}
-            onClose={() => setLayersOpen(false)}
-            anchorRef={layersBtnRef}
-          />
-        )}
-      </div>
+          replacing what used to be three separate always-visible buttons.
+          Hidden entirely (removed from the DOM) while a detail panel is open so
+          it can't show beside the panel that overlaps this same top-left slot. */}
+      {!controlsHidden && (
+        <div className="map-toggle-row">
+          <button
+            ref={layersBtnRef}
+            type="button"
+            className={`map-toggle-btn layers${layersOpen ? ' active' : ''}`}
+            onClick={() => setLayersOpen((v) => !v)}
+            title="طبقات الخريطة"
+            aria-expanded={layersOpen}
+          >
+            <Layers size={13} />
+            الطبقات
+            {activeLayerCount > 0 && <span className="map-layers-count">{activeLayerCount}</span>}
+          </button>
+          {layersOpen && (
+            <MapLayersPanel
+              layers={mapLayers}
+              onToggle={handleLayerToggle}
+              onClose={() => setLayersOpen(false)}
+              anchorRef={layersBtnRef}
+            />
+          )}
+        </div>
+      )}
 
-      {/* Provenance banner while the forecast layer is on */}
-      {riskLayer === 'predicted' && (
+      {/* Provenance banner while the forecast layer is on — also hidden while a
+          detail panel is open (it floats at the map's top edge). */}
+      {riskLayer === 'predicted' && !controlsHidden && (
         <div className="predict-banner" dir="rtl">
           <TrendingUp size={12} />
           {OUTBREAK_SOURCE_AR}

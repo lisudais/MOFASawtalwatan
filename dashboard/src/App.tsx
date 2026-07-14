@@ -4,11 +4,12 @@ import WorldMap, { type AlertMarker } from './components/WorldMap';
 import IntelSidebar from './components/IntelSidebar';
 import SidebarResizeHandle from './components/SidebarResizeHandle';
 import EventDetail from './components/EventDetail';
-import GlobalAlertFeed from './components/GlobalAlertFeed';
+import AggregatedAlertFeed from './components/AggregatedAlertFeed';
 import AlertDetailsPanel from './components/AlertDetailsPanel';
 import type { FeedCard } from './services/feed/feedCards';
 import { useFeedCards } from './services/feed/useFeedCards';
 import { groupFeedCards } from './services/feed/groupCards';
+import { aggregateAlerts, type AggregatedAlert } from './services/feed/aggregateAlerts';
 import { resolveGeoEvent, hasValidCoords } from './services/feed/resolveGeoEvent';
 import { classifyRiskByScore } from './services/riskClassification';
 import { buildGlobalContextSummary } from './services/chatbotContext';
@@ -150,7 +151,11 @@ function MainDashboard() {
   // Global Alert Feed cards come from the Stages 1-6 pipeline (/api/feed).
   // Fast→full orchestration lives in the shared hook (also used by the
   // consular feed, filtered by country). No filter here → the global feed.
-  const { cards: feedCards, loading: cardsLoading, error: cardsError } = useFeedCards();
+  // Pipeline feed (Stages 1-6) — still powers the MAP's markers, country-risk
+  // layer, and the assistant's grounding context. The right-column list no
+  // longer uses it; that list is now a live roll-up of the four sidebar
+  // sections (see `aggregatedAlerts`).
+  const { cards: feedCards } = useFeedCards();
   const [selectedCard, setSelectedCard] = useState<FeedCard | null>(null);
   // Citizen tracked from the right-sidebar details panel — feeds the map's
   // existing selectedTraveler fly-to only; no marker layer is altered.
@@ -169,6 +174,13 @@ function MainDashboard() {
   // Read-only mirror of the sidebar's live economic indicators — folded into the
   // exported report only; the Economy card still owns/fetches its own data.
   const [economyIndicators, setEconomyIndicators] = useState<EconomicIndicator[]>([]);
+  // Live mirror of the Natural-Disasters card's own feed (naturalDisasterFeed.ts)
+  // — the SAME list the left card renders. Powers the aggregated right-column
+  // feed so its disaster items match the left card exactly (same country/severity).
+  const [disasterEvents, setDisasterEvents] = useState<DisasterEvent[]>([]);
+  // Right-column aggregated-feed selection (highlight only) — separate from the
+  // pipeline-driven `selectedCard`/map flow.
+  const [selectedAggId, setSelectedAggId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
@@ -347,6 +359,42 @@ function MainDashboard() {
     if (group) handleSelectCard(group.lead);
   }, [alertGroups, handleSelectCard]);
 
+  // Only one left-column detail panel is ever open at a time. Centralised here so
+  // BOTH the left cards and the right aggregated feed open panels the same way.
+  const clearDetailPanels = useCallback(() => {
+    setSelectedCountry(null); setSelectedDisaster(null); setSelectedStatement(null);
+    setSelectedSecurity(null); setSelectedIndicator(null);
+  }, []);
+  const openHealth = useCallback((entry: CountryHealthEntry) => { clearDetailPanels(); setSelectedCountry(entry); }, [clearDetailPanels]);
+  const openDisaster = useCallback((d: DisasterEvent) => { clearDetailPanels(); setSelectedDisaster(d); }, [clearDetailPanels]);
+  const openStatement = useCallback((s: OfficialStatement) => { clearDetailPanels(); setSelectedStatement(s); }, [clearDetailPanels]);
+  const openSecurity = useCallback((p: CountrySecurityProfile) => { clearDetailPanels(); setSelectedSecurity(p); }, [clearDetailPanels]);
+  const openIndicator = useCallback((ind: EconomicIndicator) => { clearDetailPanels(); setSelectedIndicator(ind); }, [clearDetailPanels]);
+
+  // THE right-column list. A live roll-up of the four left sections' own data
+  // (health / natural disasters / security / economy), ranked by real risk score
+  // across all of them. Recomputes whenever ANY section refreshes, so the list
+  // stays in live sync with the left cards with no separate fetch of its own.
+  const aggregatedAlerts = useMemo(
+    () => aggregateAlerts({ healthCountries, disasterEvents, securityCountries, economyIndicators }),
+    [healthCountries, disasterEvents, securityCountries, economyIndicators],
+  );
+  const aggregatedLoading =
+    healthCountries.length === 0 && disasterEvents.length === 0 &&
+    securityCountries.length === 0 && economyIndicators.length === 0;
+
+  // Clicking a right-column item opens the SAME detail panel its left card does,
+  // dispatching by the alert's source category.
+  const handleSelectAggregated = useCallback((alert: AggregatedAlert) => {
+    setSelectedAggId(alert.id);
+    switch (alert.ref.kind) {
+      case 'health': openHealth(alert.ref.entry); break;
+      case 'natural_disaster': openDisaster(alert.ref.event); break;
+      case 'security': openSecurity(alert.ref.profile); break;
+      case 'economic': openIndicator(alert.ref.indicator); break;
+    }
+  }, [openHealth, openDisaster, openSecurity, openIndicator]);
+
   const dismissNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
@@ -391,6 +439,15 @@ function MainDashboard() {
     activeAlerts: disasterCritical.length + disasterHigh.length + securityCritical.length + securityHigh.length + healthCritical.length + healthHigh.length,
   };
 
+  // Any detail panel currently open over the map. Passed to WorldMap so it can
+  // pull its floating controls (layers trigger, forecast banner) out of the DOM
+  // while a panel is open — those controls share the map's top-left slot with
+  // the panels and would otherwise peek out beside them.
+  const anyDetailOpen = !!(
+    selectedEvent || selectedCountry || selectedDisaster ||
+    selectedStatement || selectedSecurity || selectedIndicator || selectedCard
+  );
+
   return (
     <div className="app">
       <Header lastUpdated={lastUpdated} missionsMenu onExportReport={() => setShowReport(true)} />
@@ -407,10 +464,11 @@ function MainDashboard() {
           stats={stats}
           selectedEvent={selectedEvent}
           onSelectEvent={setSelectedEvent}
-          onSelectCountry={(entry) => { setSelectedDisaster(null); setSelectedStatement(null); setSelectedSecurity(null); setSelectedIndicator(null); setSelectedCountry(entry); }}
-          onSelectDisaster={(d) => { setSelectedCountry(null); setSelectedStatement(null); setSelectedSecurity(null); setSelectedIndicator(null); setSelectedDisaster(d); }}
-          onSelectStatement={(s) => { setSelectedCountry(null); setSelectedDisaster(null); setSelectedSecurity(null); setSelectedIndicator(null); setSelectedStatement(s); }}
-          onSelectSecurity={(p) => { setSelectedCountry(null); setSelectedDisaster(null); setSelectedStatement(null); setSelectedIndicator(null); setSelectedSecurity(p); }}
+          onSelectCountry={openHealth}
+          onSelectDisaster={openDisaster}
+          onDisasterDataLoaded={setDisasterEvents}
+          onSelectStatement={openStatement}
+          onSelectSecurity={openSecurity}
           onSecurityDataLoaded={(countries) => {
             setSecurityCountries(countries);
             // Keeps an already-open detail panel showing the SAME country
@@ -421,7 +479,7 @@ function MainDashboard() {
             setSelectedSecurity((prev) => (prev ? countries.find((c) => c.id === prev.id) ?? prev : prev));
           }}
           onHealthDataLoaded={setHealthCountries}
-          onSelectIndicator={(ind) => { setSelectedCountry(null); setSelectedDisaster(null); setSelectedStatement(null); setSelectedSecurity(null); setSelectedIndicator(ind); }}
+          onSelectIndicator={openIndicator}
           onEconomyDataLoaded={setEconomyIndicators}
         />
 
@@ -448,6 +506,7 @@ function MainDashboard() {
             selectedEvent={selectedRightAlert}
             selectedTraveler={trackedCitizen}
             countryRisk={countryRisk}
+            detailOpen={anyDetailOpen}
           />
           {/* Empty / error state — shown ONLY when there are no real events.
               No mock fallback is ever displayed. */}
@@ -500,12 +559,11 @@ function MainDashboard() {
         </div>
 
         <div className="right-column">
-          <GlobalAlertFeed
-            cards={feedCards}
-            loading={cardsLoading}
-            error={cardsError}
-            selectedCardId={selectedCard?.id ?? null}
-            onSelectCard={handleSelectCard}
+          <AggregatedAlertFeed
+            alerts={aggregatedAlerts}
+            loading={aggregatedLoading}
+            selectedId={selectedAggId}
+            onSelectAlert={handleSelectAggregated}
           />
         </div>
       </main>

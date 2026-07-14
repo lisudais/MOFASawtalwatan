@@ -650,6 +650,7 @@ export default function EmbassyDashboard({ embassy, onBack }: EmbassyDashboardPr
             travelers={travelers}
             selectedEvent={selectedEvent}
             onSelectEvent={setSelectedEvent}
+            detailOpen={!!(selectedEvent || selectedRequest)}
           />
 
           {!loading && events.length === 0 && (

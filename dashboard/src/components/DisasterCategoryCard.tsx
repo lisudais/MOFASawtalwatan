@@ -11,6 +11,9 @@ import {
 
 interface DisasterCategoryCardProps {
   onSelectDisaster: (d: DisasterEvent) => void;
+  /** Read-only mirror of the latest load — lets the dashboard roll the live
+   *  disaster events into the aggregated right-column feed without a second fetch. */
+  onDataLoaded?: (events: DisasterEvent[]) => void;
 }
 
 const TYPE_ICON: Record<DisasterType, React.ElementType> = {
@@ -48,7 +51,7 @@ const REFRESH_MS = 5 * 60 * 1000;
 // (volcanoes), NOAA NHC + GDACS/JTWC (hurricanes), GDACS/GLOFAS + EONET (floods),
 // GDACS/GWIS + EONET (wildfires). No mock data. Rows open the shared detail
 // popup via onSelectDisaster.
-export default function DisasterCategoryCard({ onSelectDisaster }: DisasterCategoryCardProps) {
+export default function DisasterCategoryCard({ onSelectDisaster, onDataLoaded }: DisasterCategoryCardProps) {
   const [activeType, setActiveType] = useState<DisasterType | null>(null);
   const [disasters, setDisasters] = useState<DisasterEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,12 +64,13 @@ export default function DisasterCategoryCard({ onSelectDisaster }: DisasterCateg
       const data = await fetchDisasterEvents();
       if (data.length === 0) throw new Error('no data');
       setDisasters(data);
+      onDataLoaded?.(data);
     } catch {
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [onDataLoaded]);
 
   useEffect(() => {
     load();
